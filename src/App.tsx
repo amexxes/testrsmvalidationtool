@@ -933,7 +933,6 @@ export default function App() {
       "note",
       "tag",
       "checked_at",
-      "timestamp",
     ];
 
     const aoa: string[][] = [
