@@ -933,7 +933,6 @@ function exportExcel() {
     "note",
     "tag",
     "checked_at",
-    "timestamp",
   ];
 
   const dateFields = new Set(["checked_at", "next_retry_at", "timestamp"]);
