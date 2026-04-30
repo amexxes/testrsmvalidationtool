@@ -2036,7 +2036,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Kies 1 land en voeg meerdere TIN-nummers toe, 1 per regel. Zonder landcode ervoor.
+              "Choose one country and add one or more TIN numbers, one per line, without the country code."
             </p>
 
             <div className="row inputActionsRow">
@@ -2097,14 +2097,9 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               </button>
             </div>
 
-            <div className="callout" style={{ marginTop: 14 }}>
-              <b>Important</b>: bulk in jouw tool is meerdere losse calls naar de officiële EC service.
-            </div>
-          </div>
-
           <div className="card">
             <h2>Dashboard</h2>
-            <p className="hint">Overzicht, filter en sortering.</p>
+            <p className="hint">"Overview, filters and sorting."</p>
 
             {error && (
               <div className="callout" style={{ marginTop: 10 }}>
