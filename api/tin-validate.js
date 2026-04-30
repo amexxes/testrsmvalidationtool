@@ -1,75 +1,188 @@
-const TIN_SOAP_ENDPOINT =
-  process.env.TIN_SOAP_ENDPOINT ||
-  "https://ec.europa.eu/taxation_customs/tin/services/checkTinService";
+const DEFAULT_TIN_REST_BASE =
+  process.env.TIN_REST_BASE || "https://ec.europa.eu/taxation_customs/tin";
 
-function escapeXml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+const ENDPOINT_CANDIDATES = Array.from(
+  new Set(
+    [
+      process.env.TIN_REST_ENDPOINT,
+      `${DEFAULT_TIN_REST_BASE}/check-tin-number`,
+      `${DEFAULT_TIN_REST_BASE}/api/check-tin-number`,
+      `${DEFAULT_TIN_REST_BASE}/rest/check-tin-number`,
+    ].filter(Boolean)
+  )
+);
+
+function normalizeCountry(country) {
+  const c = String(country || "").toUpperCase().trim();
+  if (c === "GR") return "EL";
+  return c;
 }
 
-function decodeXml(value) {
-  return String(value || "")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&");
-}
-
-function extractTag(xml, tagName) {
-  const re = new RegExp(
-    `<(?:\\w+:)?${tagName}>([\\s\\S]*?)<\\/(?:\\w+:)?${tagName}>`,
-    "i"
-  );
-  const match = xml.match(re);
-  return match ? decodeXml(match[1].trim()) : null;
-}
-
-function buildSoapEnvelope(countryCode, tinNumber) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:tin:services:checkTin:types">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <urn:checkTin>
-      <urn:countryCode>${escapeXml(countryCode)}</urn:countryCode>
-      <urn:tinNumber>${escapeXml(tinNumber)}</urn:tinNumber>
-    </urn:checkTin>
-  </soapenv:Body>
-</soapenv:Envelope>`;
-}
-
-function normalizeInputTin(countryCode, tinNumber) {
+function normalizeTinInput(countryCode, tinNumber) {
   let tin = String(tinNumber || "").trim();
+  if (!tin) return tin;
 
-  tin = tin.replace(/\s+/g, " ");
-
-  const cc = String(countryCode || "").toUpperCase().trim();
+  const cc = normalizeCountry(countryCode);
   const altCc = cc === "EL" ? "GR" : cc;
 
-  if (tin.toUpperCase().startsWith(`${cc} `)) tin = tin.slice(3).trim();
-  if (tin.toUpperCase().startsWith(`${altCc} `)) tin = tin.slice(3).trim();
-  if (tin.toUpperCase().startsWith(cc)) tin = tin.slice(2).trim();
-  if (tin.toUpperCase().startsWith(altCc)) tin = tin.slice(2).trim();
+  const upperTin = tin.toUpperCase();
+
+  if (upperTin.startsWith(`${cc} `)) tin = tin.slice(3).trim();
+  else if (upperTin.startsWith(`${altCc} `)) tin = tin.slice(3).trim();
+  else if (upperTin.startsWith(cc)) tin = tin.slice(2).trim();
+  else if (upperTin.startsWith(altCc)) tin = tin.slice(2).trim();
 
   return tin;
 }
 
-function parseSoapFault(xml) {
-  const faultString = extractTag(xml, "faultstring");
-  if (!faultString) return null;
-  return faultString;
+function tryParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 function toBooleanOrNull(value) {
   if (value === null || value === undefined) return null;
-  const s = String(value).toLowerCase().trim();
+  if (typeof value === "boolean") return value;
+
+  const s = String(value).trim().toLowerCase();
   if (s === "true") return true;
   if (s === "false") return false;
   return null;
+}
+
+function pick(obj, keys) {
+  for (const key of keys) {
+    if (obj && Object.prototype.hasOwnProperty.call(obj, key)) {
+      return obj[key];
+    }
+  }
+  return undefined;
+}
+
+function mapResponse(data, fallbackCountry, fallbackTin) {
+  const root = data?.data ?? data?.result ?? data;
+
+  const country =
+    pick(root, ["countryCode", "country_code", "country"]) ?? fallbackCountry;
+
+  const tinNumber =
+    pick(root, ["tinNumber", "tin_number", "tin"]) ?? fallbackTin;
+
+  const requestDate =
+    pick(root, ["requestDate", "request_date", "date"]) ?? null;
+
+  const validStructure = toBooleanOrNull(
+    pick(root, ["validStructure", "valid_structure"])
+  );
+
+  const validSyntax = toBooleanOrNull(
+    pick(root, ["validSyntax", "valid_syntax"])
+  );
+
+  if (validStructure === null) {
+    return null;
+  }
+
+  let status = "invalid";
+  let message = "Invalid TIN structure";
+
+  if (validStructure === false) {
+    status = "invalid";
+    message = "Invalid TIN structure";
+  } else if (validStructure === true && validSyntax === null) {
+    status = "valid";
+    message = "Valid TIN structure";
+  } else if (validStructure === true && validSyntax === true) {
+    status = "valid";
+    message = "Valid TIN structure and syntax";
+  } else if (validStructure === true && validSyntax === false) {
+    status = "invalid";
+    message = "Valid TIN structure but invalid syntax";
+  }
+
+  return {
+    status,
+    country,
+    tin_number: tinNumber,
+    request_date: requestDate,
+    structure_valid: validStructure,
+    syntax_valid: validSyntax,
+    message,
+    raw: data,
+  };
+}
+
+async function callTinRest(country, tin) {
+  const payload = {
+    countryCode: country,
+    tinNumber: tin,
+  };
+
+  let lastError = null;
+
+  for (const endpoint of ENDPOINT_CANDIDATES) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const text = await response.text();
+      const data = tryParseJson(text);
+
+      if (response.ok && data) {
+        const mapped = mapResponse(data, country, tin);
+        if (mapped) {
+          mapped.endpoint_used = endpoint;
+          return mapped;
+        }
+      }
+
+      if (data && !response.ok) {
+        const remoteError =
+          data.error ||
+          data.message ||
+          data.code ||
+          `HTTP ${response.status}`;
+        lastError = { status: response.status, error: remoteError, endpoint };
+        continue;
+      }
+
+      if (!response.ok) {
+        lastError = {
+          status: response.status,
+          error: `HTTP ${response.status}`,
+          endpoint,
+          body: text.slice(0, 500),
+        };
+        continue;
+      }
+
+      lastError = {
+        status: 502,
+        error: "Unexpected REST response shape",
+        endpoint,
+        body: text.slice(0, 500),
+      };
+    } catch (err) {
+      lastError = {
+        status: 500,
+        error: String(err?.message || err),
+        endpoint,
+      };
+    }
+  }
+
+  const error = new Error(lastError?.error || "TIN REST validation failed");
+  error.details = lastError;
+  throw error;
 }
 
 export default async function handler(req, res) {
@@ -81,92 +194,23 @@ export default async function handler(req, res) {
     const body =
       typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
 
-    let country = String(body?.country || "").toUpperCase().trim();
-    if (country === "GR") country = "EL";
-
-    const rawTin = String(body?.tin || "");
-    const tin = normalizeInputTin(country, rawTin);
+    const country = normalizeCountry(body?.country);
+    const tin = normalizeTinInput(country, body?.tin);
 
     if (!country || !tin) {
       return res.status(400).json({ error: "country and tin are required" });
     }
 
-    const envelope = buildSoapEnvelope(country, tin);
+    const result = await callTinRest(country, tin);
 
-    const response = await fetch(TIN_SOAP_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/xml; charset=UTF-8",
-        Accept: "text/xml",
-        SOAPAction: '""',
-      },
-      body: envelope,
-    });
+    return res.status(200).json(result);
+  } catch (err) {
+    const details = err?.details || null;
 
-    const xml = await response.text();
-
-    const fault = parseSoapFault(xml);
-    if (fault) {
-      const faultUpper = String(fault).toUpperCase().trim();
-
-      if (faultUpper === "INVALID_INPUT") {
-        return res.status(400).json({ error: "INVALID_INPUT" });
-      }
-
-      if (faultUpper === "NO_INFORMATION") {
-        return res.status(502).json({ error: "NO_INFORMATION" });
-      }
-
-      if (faultUpper === "SERVICE_UNAVAILABLE" || faultUpper === "SERVER_BUSY") {
-        return res.status(503).json({ error: faultUpper });
-      }
-
-      return res.status(502).json({ error: fault });
-    }
-
-    const responseCountry = extractTag(xml, "countryCode") || country;
-    const responseTin = extractTag(xml, "tinNumber") || tin;
-    const requestDate = extractTag(xml, "requestDate");
-    const validStructure = toBooleanOrNull(extractTag(xml, "validStructure"));
-    const validSyntax = toBooleanOrNull(extractTag(xml, "validSyntax"));
-
-    if (validStructure === null) {
-      return res.status(502).json({
-        error: "Unexpected SOAP response",
-        raw: xml.slice(0, 1000),
-      });
-    }
-
-    let status = "invalid";
-    let message = "Invalid TIN structure";
-
-    if (validStructure === false) {
-      status = "invalid";
-      message = "Invalid TIN structure";
-    } else if (validStructure === true && validSyntax === null) {
-      status = "valid";
-      message = "Valid TIN structure";
-    } else if (validStructure === true && validSyntax === true) {
-      status = "valid";
-      message = "Valid TIN structure and syntax";
-    } else if (validStructure === true && validSyntax === false) {
-      status = "invalid";
-      message = "Valid TIN structure but invalid syntax";
-    }
-
-    return res.status(200).json({
-      status,
-      country: responseCountry,
-      tin_number: responseTin,
-      request_date: requestDate,
-      structure_valid: validStructure,
-      syntax_valid: validSyntax,
-      message,
-    });
-  } catch (error) {
-    return res.status(500).json({
+    return res.status(details?.status || 500).json({
       error: "tin-validate failed",
-      message: String(error?.message || error),
+      message: String(err?.message || err),
+      details,
     });
   }
 }
