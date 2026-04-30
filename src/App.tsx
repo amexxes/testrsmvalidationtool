@@ -10,6 +10,11 @@ type SortState = { colIndex: number | null; asc: boolean };
 type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
 type ActivePage = "vat" | "tin";
 
+type PageSwitcherProps = {
+  activePage: ActivePage;
+  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+};
+
 const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   AT: { lat: 48.2082, lon: 16.3738 },
   BE: { lat: 50.8503, lon: 4.3517 },
@@ -60,7 +65,6 @@ function normalizeLine(s: string): string {
 
 function normalizeVatCandidate(v: string): string {
   let n = normalizeLine(v);
-  // GR -> EL (VIES gebruikt EL)
   if (n.startsWith("GR")) n = "EL" + n.slice(2);
   return n;
 }
@@ -70,7 +74,6 @@ type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error
 function normalizeTsMs(ts: any): number | undefined {
   const n = typeof ts === "number" ? ts : Number(ts);
   if (!Number.isFinite(n) || n <= 0) return undefined;
-  // seconds -> ms (heuristic)
   if (n < 1_000_000_000_000) return n * 1000;
   return n;
 }
@@ -112,10 +115,9 @@ function formatEta(ts?: number) {
   return `${m}m`;
 }
 
-// --- STRICT VAT FORMAT (voor precheck + row format_ok) ---
 const VAT_PATTERNS: Record<string, RegExp> = {
-  AT: /^U\d{8}$/, // ATU12345678
-  BE: /^\d{10}$/, // BE0123456789
+  AT: /^U\d{8}$/,
+  BE: /^\d{10}$/,
   BG: /^\d{9,10}$/,
   CY: /^\d{8}[A-Z]$/,
   CZ: /^\d{8,10}$/,
@@ -123,25 +125,25 @@ const VAT_PATTERNS: Record<string, RegExp> = {
   DK: /^\d{8}$/,
   EE: /^\d{9}$/,
   EL: /^\d{9}$/,
-  ES: /^[A-Z0-9]{9}$/, // tolerant, maar lengte klopt
+  ES: /^[A-Z0-9]{9}$/,
   FI: /^\d{8}$/,
-  FR: /^[0-9A-Z]{2}\d{9}$/, // FRXX123456789
+  FR: /^[0-9A-Z]{2}\d{9}$/,
   HR: /^\d{11}$/,
   HU: /^\d{8}$/,
-  IE: /^[0-9A-Z]{8,9}$/, // tolerant (IE formats variëren)
+  IE: /^[0-9A-Z]{8,9}$/,
   IT: /^\d{11}$/,
   LT: /^(?:\d{9}|\d{12})$/,
   LU: /^\d{8}$/,
   LV: /^\d{11}$/,
   MT: /^\d{8}$/,
-  NL: /^\d{9}B\d{2}$/, // NL123456789B01
+  NL: /^\d{9}B\d{2}$/,
   PL: /^\d{10}$/,
   PT: /^\d{9}$/,
   RO: /^\d{2,10}$/,
   SE: /^\d{12}$/,
   SI: /^\d{8}$/,
   SK: /^\d{10}$/,
-  XI: /^(?:\d{9}|\d{12}|GD\d{3}|HA\d{3})$/, // NI/UK-style
+  XI: /^(?:\d{9}|\d{12}|GD\d{3}|HA\d{3})$/,
 };
 
 function validateFormatStrict(vatNumberWithPrefix: string) {
@@ -161,7 +163,6 @@ function validateFormatStrict(vatNumberWithPrefix: string) {
   return { ok: true, reason: "" };
 }
 
-// (oude, permissieve check blijft bestaan voor import-filter e.d.)
 function validateFormat(vatNumberWithPrefix: string) {
   const v = normalizeLine(vatNumberWithPrefix);
   if (v.length < 3) return { ok: false, reason: "Too short" };
@@ -173,7 +174,6 @@ function validateFormat(vatNumberWithPrefix: string) {
   return { ok: true, reason: "" };
 }
 
-// Retryable error heuristics (voor UI-state; backend moet dit óók goed zetten)
 function isRetryableError(codeOrError?: string, details?: string) {
   const c = String(codeOrError || "").trim().toUpperCase();
   const d = String(details || "").toLowerCase();
@@ -189,18 +189,11 @@ function isRetryableError(codeOrError?: string, details?: string) {
     return true;
   }
 
-  // "This operation was aborted" / AbortError-achtige teksten
   if (d.includes("abort") || d.includes("aborted") || d.includes("timeout")) return true;
 
   return false;
 }
 
-/**
- * UI displayState:
- * - valid boolean => valid/invalid (overrulet raw state)
- * - raw processing/queued + retryable error => retry (fix: blijft hangen op processing/queued met MS_MAX_CONCURRENT_REQ/NETWORK_ERROR)
- * - raw retry + name/address al gevuld + geen error => valid (fix: retry terwijl resultaat zichtbaar is)
- */
 function displayState(r: VatRow): RowState {
   const raw = String((r as any).state || "").toLowerCase();
   const v = (r as any).valid;
@@ -214,10 +207,8 @@ function displayState(r: VatRow): RowState {
 
   const retryable = isRetryableError(errorCode || errorText, details);
 
-  // Fix voor: queued/processing blijft hangen met retryable code (MS_MAX_CONCURRENT_REQ / NETWORK_ERROR / aborted)
   if ((raw === "queued" || raw === "processing") && retryable) return "retry";
 
-  // Fix voor: retry maar resultaat al zichtbaar
   const hasResult = Boolean(String((r as any).name || "").trim() || String((r as any).address || "").trim());
   if (raw === "retry" && hasResult && !errorCode && !errorText) return "valid";
 
@@ -339,7 +330,54 @@ function InputCountryBarChart({
   );
 }
 
-function VatPage() {
+function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
+  const buttonStyle = (active: boolean): React.CSSProperties => ({
+    padding: "8px 12px",
+    borderRadius: 10,
+    border: active ? "1px solid #0B2E5F" : "1px solid rgba(11,46,95,0.14)",
+    background: active ? "#0B2E5F" : "rgba(255,255,255,0.88)",
+    color: active ? "#FFFFFF" : "#0B2E5F",
+    fontWeight: 700,
+    fontSize: 13,
+    cursor: "pointer",
+    boxSizing: "border-box",
+    whiteSpace: "nowrap",
+  });
+
+  return (
+    <div
+      className="chip"
+      style={{
+        width: "100%",
+        alignItems: "flex-start",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <span>Tool</span>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => setActivePage("vat")}
+          style={buttonStyle(activePage === "vat")}
+        >
+          VAT VIES Validation
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActivePage("tin")}
+          style={buttonStyle(activePage === "tin")}
+        >
+          TIN Validation
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
@@ -363,7 +401,6 @@ function VatPage() {
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
-  // Import / cancel / debug
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const validateAbortRef = useRef<AbortController | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
@@ -376,7 +413,6 @@ function VatPage() {
     frDebugOnRef.current = frDebugOn;
   }, [frDebugOn]);
 
-  // (feature blijft bestaan; UI “Saved runs” panel is verwijderd)
   const [savedRuns, setSavedRuns] = useState<SavedRun[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("vat_saved_runs") || "[]");
@@ -425,7 +461,6 @@ function VatPage() {
     const q = filter.trim().toLowerCase();
     const base = !q ? rows : rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
 
-    // Als je handmatig sorteert via kolom-klik: laat die sortering leidend zijn
     if (sortState.colIndex !== null) return base;
 
     const prio = (r: VatRow) => {
@@ -478,7 +513,6 @@ function VatPage() {
     return Math.round((stats.done / stats.total) * 100);
   }, [stats.total, stats.done]);
 
-  // --- Precheck: nu strict format ---
   const precheck = useMemo(() => {
     const rawLines = vatInput
       .split(/\r?\n/)
@@ -590,7 +624,6 @@ function VatPage() {
 
           const merged: any = { ...(existing || {}), ...(incoming as any) };
 
-          // Als server geen state meestuurt (of leeg), behoud de lokale state
           const st = (incoming as any).state;
           if (st === undefined || st === null || st === "") merged.state = (existing as any)?.state;
 
@@ -602,11 +635,9 @@ function VatPage() {
 
       setLastUpdate(new Date().toLocaleString("nl-NL"));
 
-      // Stop niet als er nog pending rows zijn (ook als backend "completed" zegt)
       if ((data as any).job?.status === "completed" && !hasPendingRaw) stopPolling();
     } catch (e: any) {
       if (e?.name === "AbortError") return;
-      // ignore
     }
   }
 
@@ -665,9 +696,7 @@ function VatPage() {
       }
     } catch (e: any) {
       if (e?.name === "AbortError") {
-        // cancelled
       } else {
-        // ignore
       }
     } finally {
       validateAbortRef.current = null;
@@ -765,7 +794,6 @@ function VatPage() {
       const n = normalizeVatCandidate(c);
       if (!n) continue;
 
-      // Import blijft permissief (filtert alleen obvious bad input)
       const fmt = validateFormat(n);
       if (!fmt.ok) continue;
 
@@ -917,103 +945,99 @@ function VatPage() {
     pres.writeFile({ fileName: `vat_infographic_${stamp}.pptx` });
   }
 
-function exportExcel() {
-  const headers = [
-    "case_ref",
-    "input",
-    "vat_number",
-    "country_code",
-    "valid",
-    "state",
-    "name",
-    "address",
-    "error_code",
-    "error",
-    "attempt",
-    "next_retry_at",
-    "note",
-    "tag",
-    "checked_at",
-  ];
+  function exportExcel() {
+    const headers = [
+      "case_ref",
+      "input",
+      "vat_number",
+      "country_code",
+      "valid",
+      "state",
+      "name",
+      "address",
+      "error_code",
+      "error",
+      "attempt",
+      "next_retry_at",
+      "note",
+      "tag",
+      "checked_at",
+    ];
 
-  const dateFields = new Set(["checked_at", "next_retry_at", "timestamp"]);
+    const dateFields = new Set(["checked_at", "next_retry_at", "timestamp"]);
 
-  const toExcelDate = (value: any): Date | "" => {
-    if (value === null || value === undefined || value === "") return "";
+    const toExcelDate = (value: any): Date | "" => {
+      if (value === null || value === undefined || value === "") return "";
 
-    if (value instanceof Date && !Number.isNaN(value.getTime())) {
-      const d = new Date(value);
-      d.setMilliseconds(0);
-      return d;
-    }
-
-    if (typeof value === "string" && !/^\d+$/.test(value.trim())) {
-      const d = new Date(value);
-      if (!Number.isNaN(d.getTime())) {
+      if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        const d = new Date(value);
         d.setMilliseconds(0);
         return d;
       }
-      return "";
-    }
 
-    let n = Number(value);
-    if (!Number.isFinite(n) || n <= 0) return "";
+      if (typeof value === "string" && !/^\d+$/.test(value.trim())) {
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) {
+          d.setMilliseconds(0);
+          return d;
+        }
+        return "";
+      }
 
-    // seconds -> ms
-    if (n < 1_000_000_000_000) {
-      n = n * 1000;
-    }
-    // microseconds -> ms
-    else if (n > 10_000_000_000_000) {
-      n = Math.floor(n / 1000);
-    }
+      let n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return "";
 
-    const d = new Date(n);
-    if (Number.isNaN(d.getTime())) return "";
-    d.setMilliseconds(0);
-    return d;
-  };
+      if (n < 1_000_000_000_000) {
+        n = n * 1000;
+      } else if (n > 10_000_000_000_000) {
+        n = Math.floor(n / 1000);
+      }
 
-  const aoa = [
-    headers,
-    ...rows.map((r) =>
-      headers.map((h) => {
-        const v = (r as any)[h];
-        if (dateFields.has(h)) return toExcelDate(v);
-        return v === null || v === undefined ? "" : String(v);
-      })
-    ),
-  ];
+      const d = new Date(n);
+      if (Number.isNaN(d.getTime())) return "";
+      d.setMilliseconds(0);
+      return d;
+    };
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
+    const aoa = [
+      headers,
+      ...rows.map((r) =>
+        headers.map((h) => {
+          const v = (r as any)[h];
+          if (dateFields.has(h)) return toExcelDate(v);
+          return v === null || v === undefined ? "" : String(v);
+        })
+      ),
+    ];
 
-  for (let rowIdx = 1; rowIdx < aoa.length; rowIdx++) {
-    for (const h of dateFields) {
-      const colIdx = headers.indexOf(h);
-      if (colIdx === -1) continue;
+    const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
 
-      const addr = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
-      if (ws[addr]) {
-        ws[addr].z = "yyyy-mm-dd hh:mm:ss";
+    for (let rowIdx = 1; rowIdx < aoa.length; rowIdx++) {
+      for (const h of dateFields) {
+        const colIdx = headers.indexOf(h);
+        if (colIdx === -1) continue;
+
+        const addr = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
+        if (ws[addr]) {
+          ws[addr].z = "yyyy-mm-dd hh:mm:ss";
+        }
       }
     }
+
+    ws["!cols"] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Results");
+
+    const filename = `vat_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
+    XLSX.writeFile(wb, filename);
   }
-
-  ws["!cols"] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }));
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Results");
-
-  const filename = `vat_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
-  XLSX.writeFile(wb, filename);
-}
 
   function saveRun() {
     const id = crypto.randomUUID();
     setSavedRuns((prev) => [{ id, ts: Date.now(), caseRef, input: vatInput, results: rows }, ...prev].slice(0, 30));
   }
 
-  // --- Map init ---
   useEffect(() => {
     const el = document.getElementById("countryMap");
     if (!el) return;
@@ -1199,22 +1223,24 @@ function exportExcel() {
             <div className="title">VAT validation</div>
           </div>
 
-          <div className="chipsRow" style={{ marginTop: 0, width: "100%", maxWidth: 560 }}>
+          <div className="chipsRow" style={{ marginTop: 0, width: "100%", maxWidth: 760 }}>
             <div className="chip">
               <span>FR job</span>
               <b className="nowrap">{frText}</b>
             </div>
+
             <div className="chip">
               <span>Last update</span>
               <b className="nowrap">{lastUpdate}</b>
             </div>
+
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
           </div>
         </div>
       </div>
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          {/* LEFT */}
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
@@ -1362,7 +1388,6 @@ function exportExcel() {
             <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} />
           </div>
 
-          {/* RIGHT */}
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <div className="card">
               <h2>Filter</h2>
@@ -1509,7 +1534,6 @@ function exportExcel() {
                   const nra = normalizeTsMs((r as any).next_retry_at);
                   const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
 
-                  // verberg stale retry-errors zodra row een echte outcome heeft
                   const isDone = ds === "valid" || ds === "invalid";
                   const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error);
 
@@ -1622,81 +1646,47 @@ function exportExcel() {
     </>
   );
 }
-function TinPage() {
-  return (
-    <div
-      style={{
-        minHeight: "100vh",
-        padding: 24,
-        boxSizing: "border-box",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: 24,
-          borderRadius: 16,
-          background: "rgba(255,255,255,0.72)",
-          border: "1px solid rgba(0,0,0,0.08)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 28 }}>TIN Validation</h1>
 
-        <p style={{ marginTop: 10, color: "var(--muted)" }}>
-          Deze pagina is nog leeg. Hier komt straks de TIN check koppeling.
-        </p>
+function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
+  return (
+    <>
+      <div className="banner">
+        <div className="banner-accent" />
+        <div className="banner-inner">
+          <div className="brand">
+            <div className="mark" aria-hidden="true">
+              <div className="mark-bars">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="mark-text">RSM</div>
+            </div>
+            <div className="title">TIN validation</div>
+          </div>
+
+          <div className="chipsRow" style={{ marginTop: 0, width: "100%", maxWidth: 760 }}>
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+          </div>
+        </div>
       </div>
-    </div>
+
+      <div className="wrap">
+        <div className="card">
+          <h2>TIN Validation</h2>
+          <p className="hint">Deze pagina is nog leeg. Hier komt straks de TIN check koppeling.</p>
+        </div>
+      </div>
+    </>
   );
 }
 
 export default function App() {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
 
-  const navButtonStyle = (active: boolean): React.CSSProperties => ({
-    padding: "10px 14px",
-    borderRadius: 999,
-    border: active ? "1px solid #0B2E5F" : "1px solid rgba(0,0,0,0.12)",
-    background: active ? "#0B2E5F" : "rgba(255,255,255,0.92)",
-    color: active ? "#FFFFFF" : "#0B2E5F",
-    fontWeight: 600,
-    cursor: "pointer",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-  });
-
-  return (
-    <>
-      <div
-        style={{
-          position: "fixed",
-          top: 20,
-          right: 20,
-          zIndex: 9999,
-          display: "flex",
-          gap: 10,
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setActivePage("vat")}
-          style={navButtonStyle(activePage === "vat")}
-        >
-          VAT VIES Validation
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActivePage("tin")}
-          style={navButtonStyle(activePage === "tin")}
-        >
-          TIN Validation
-        </button>
-      </div>
-
-      {activePage === "vat" ? <VatPage /> : <TinPage />}
-    </>
+  return activePage === "vat" ? (
+    <VatPage activePage={activePage} setActivePage={setActivePage} />
+  ) : (
+    <TinPage activePage={activePage} setActivePage={setActivePage} />
   );
 }
