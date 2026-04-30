@@ -1729,7 +1729,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       <div className="wrap">
         <div className="card">
           <h2>TIN Validation</h2>
-          <p className="hint">Deze pagina is nog leeg. Hier komt straks de TIN check koppeling.</p>
+          <p className="hint">The TIN check link will be added here shortly.</p>
         </div>
       </div>
     </>
