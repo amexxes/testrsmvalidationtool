@@ -1802,6 +1802,71 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     void importTinFile(f);
   }
 
+  function exportTinExcel() {
+    const headers = [
+      "country",
+      "input_tin",
+      "returned_tin",
+      "status",
+      "structure_valid",
+      "syntax_valid",
+      "validation_date",
+      "message",
+    ];
+
+    const aoa = [
+      headers,
+      ...rows.map((r) => [
+        country,
+        r.input_tin || "",
+        r.tin_number || "",
+        r.status || "",
+        r.structure_valid === null || r.structure_valid === undefined
+          ? ""
+          : String(r.structure_valid),
+        r.syntax_valid === null || r.syntax_valid === undefined
+          ? ""
+          : String(r.syntax_valid),
+        r.request_date ? String(r.request_date).slice(0, 10) : "",
+        r.message || "",
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [
+      { wch: 10 },
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 40 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "TIN Results");
+
+    const filename = `tin_results_${country}_${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.xlsx`;
+
+    XLSX.writeFile(wb, filename);
+  }
+
+  function statusPillClass(status: string) {
+    if (status === "valid") return "valid";
+    if (status === "invalid") return "invalid";
+    return "error";
+  }
+
+  function prettyStatus(status: string) {
+    if (status === "valid") return "Valid";
+    if (status === "invalid") return "Invalid";
+    return "Error";
+  }
+
   return (
     <>
       <div className="banner">
@@ -1890,6 +1955,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 Import XLSX/CSV
               </button>
 
+              <button
+                className="btn btn-secondary btn-export btn-excel"
+                onClick={exportTinExcel}
+                disabled={!rows.length}
+              >
+                Export Excel
+              </button>
+
               <input
                 ref={importFileRef}
                 type="file"
@@ -1926,7 +1999,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
           <div className="card">
             <h2>Summary</h2>
-            <p className="hint">Overzicht van de batch.</p>
+            <p className="hint">Kort overzicht van de batch.</p>
 
             {error && (
               <div className="callout" style={{ marginTop: 10 }}>
@@ -1942,20 +2015,27 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
             {!!rows.length && (
               <>
-                <div className="stats" style={{ marginTop: 10 }}>
-                  <div className="stat">
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                    gap: 12,
+                    marginTop: 10,
+                  }}
+                >
+                  <div className="stat" style={{ minHeight: 76 }}>
                     <span>Total</span>
                     <b>{stats.total}</b>
                   </div>
-                  <div className="stat">
+                  <div className="stat" style={{ minHeight: 76 }}>
                     <span>Valid</span>
                     <b style={{ color: "var(--ok)" }}>{stats.valid}</b>
                   </div>
-                  <div className="stat">
+                  <div className="stat" style={{ minHeight: 76 }}>
                     <span>Invalid</span>
                     <b style={{ color: "var(--bad)" }}>{stats.invalid}</b>
                   </div>
-                  <div className="stat">
+                  <div className="stat" style={{ minHeight: 76 }}>
                     <span>Error</span>
                     <b style={{ color: "var(--bad)" }}>{stats.error}</b>
                   </div>
@@ -1981,25 +2061,18 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 180 }}>Status</th>
+                  <th style={{ width: 150 }}>Status</th>
                   <th style={{ width: 220 }}>Input TIN</th>
                   <th style={{ width: 220 }}>Returned TIN</th>
-                  <th style={{ width: 140 }}>Structure</th>
+                  <th style={{ width: 120 }}>Structure</th>
                   <th style={{ width: 120 }}>Syntax</th>
-                  <th style={{ width: 160 }}>Validation date</th>
+                  <th style={{ width: 140 }}>Date</th>
                   <th style={{ width: 320 }}>Message</th>
                 </tr>
               </thead>
 
               <tbody>
                 {rows.map((r, idx) => {
-                  const cls =
-                    r.status === "valid"
-                      ? "valid"
-                      : r.status === "invalid"
-                      ? "invalid"
-                      : "error";
-
                   const structureLabel =
                     r.structure_valid === null || r.structure_valid === undefined
                       ? "n/a"
@@ -2017,9 +2090,9 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                   return (
                     <tr key={`${r.input_tin}-${idx}`}>
                       <td>
-                        <span className={`pill ${cls}`}>
+                        <span className={`pill ${statusPillClass(r.status)}`}>
                           <i aria-hidden="true" />
-                          {r.status}
+                          {prettyStatus(r.status)}
                         </span>
                       </td>
                       <td className="mono nowrap">{r.input_tin || ""}</td>
