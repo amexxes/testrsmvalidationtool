@@ -1696,6 +1696,29 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               marginLeft: "auto",
             }}
           >
+            <div
+              className="chipsRow"
+              aria-hidden="true"
+              style={{
+                marginTop: 0,
+                width: "auto",
+                maxWidth: "none",
+                flex: "0 1 auto",
+                visibility: "hidden",
+                pointerEvents: "none",
+              }}
+            >
+              <div className="chip">
+                <span>FR job</span>
+                <b className="nowrap">-</b>
+              </div>
+
+              <div className="chip">
+                <span>Last update</span>
+                <b className="nowrap">-</b>
+              </div>
+            </div>
+
             <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
               <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
             </div>
