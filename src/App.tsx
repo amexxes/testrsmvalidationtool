@@ -2036,7 +2036,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              "Choose one country and add one or more TIN numbers, one per line, without the country code."
+                Choose one country and add one or more TIN numbers, one per line, without the country code.
             </p>
 
             <div className="row inputActionsRow">
@@ -2097,9 +2097,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               </button>
             </div>
 
+            <div className="callout" style={{ marginTop: 14 }}>
+              <b>Important</b>: Select the correct country and enter the TIN without the country code.
+            </div>
+          </div>
+
           <div className="card">
             <h2>Dashboard</h2>
-            <p className="hint">"Overview, filters and sorting."</p>
+            <p className="hint">Overview, filters and sorting.</p>
 
             {error && (
               <div className="callout" style={{ marginTop: 10 }}>
