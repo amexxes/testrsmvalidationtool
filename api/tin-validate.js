@@ -475,7 +475,10 @@ function validateRO(raw) {
 }
 
 const TIN_RULES = {
+  AT: { label: "Austria", support: "pending", validate: null },
   BE: { label: "Belgium", support: "syntax", validate: validateBE },
+  BG: { label: "Bulgaria", support: "pending", validate: null },
+  CY: { label: "Cyprus", support: "pending", validate: null },
   CZ: {
     label: "Czech Republic",
     support: "structure",
@@ -492,6 +495,7 @@ const TIN_RULES = {
     validate: structureValidator(/^\d{10}$/, digitsOnly),
   },
   EE: { label: "Estonia", support: "syntax", validate: validateEE },
+  EL: { label: "Greece", support: "pending", validate: null },
   ES: { label: "Spain", support: "syntax", validate: validateES },
   FI: { label: "Finland", support: "syntax", validate: validateFI },
   FR: {
@@ -500,6 +504,7 @@ const TIN_RULES = {
     validate: structureValidator(/^\d{13}$/, digitsOnly),
   },
   HR: { label: "Croatia", support: "syntax", validate: validateHR },
+  HU: { label: "Hungary", support: "pending", validate: null },
   IE: {
     label: "Ireland",
     support: "structure",
@@ -507,16 +512,19 @@ const TIN_RULES = {
   },
   IT: { label: "Italy", support: "syntax", validate: validateIT },
   LT: { label: "Lithuania", support: "syntax", validate: validateLT },
+  LU: { label: "Luxembourg", support: "pending", validate: null },
   LV: {
     label: "Latvia",
     support: "structure",
     validate: structureValidator(/^\d{11}$/, digitsOnly),
   },
+  MT: { label: "Malta", support: "pending", validate: null },
   NL: { label: "Netherlands", support: "syntax", validate: validateNL },
   PL: { label: "Poland", support: "syntax", validate: validatePL },
   PT: { label: "Portugal", support: "syntax", validate: validatePT },
   RO: { label: "Romania", support: "syntax", validate: validateRO },
   SE: { label: "Sweden", support: "syntax", validate: validateSE },
+  SI: { label: "Slovenia", support: "pending", validate: null },
   SK: {
     label: "Slovakia",
     support: "structure",
@@ -532,6 +540,7 @@ export default async function handler(req, res) {
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
     const country = String(body?.country || "").toUpperCase().trim();
+    const subject = String(body?.subject || "unknown").trim() || "unknown";
     const tin = String(body?.tin || "");
 
     if (!country || !tin.trim()) {
@@ -541,6 +550,26 @@ export default async function handler(req, res) {
     const rule = TIN_RULES[country];
     if (!rule) {
       return res.status(400).json({ error: `Unsupported country: ${country}` });
+    }
+
+    if (!rule.validate) {
+      return res.status(200).json({
+        status: "not_implemented",
+        country,
+        country_label: rule.label,
+        subject,
+        subject_applied: false,
+        support: rule.support,
+        input: tin,
+        normalized: compactAlnum(tin),
+        structure_valid: null,
+        syntax_valid: null,
+        check_level: "pending",
+        message:
+          `Country added in dropdown. Validation rule for ${rule.label} is not implemented yet in this version.`,
+        disclaimer:
+          "This check verifies structure and, where available, syntax only. It does not confirm existence or identity.",
+      });
     }
 
     const checked = rule.validate(tin);
@@ -563,10 +592,18 @@ export default async function handler(req, res) {
       message = `Invalid ${rule.label} TIN syntax`;
     }
 
+    const subjectApplied = subject === "unknown";
+
+    if (!subjectApplied) {
+      message += " Subject-specific rule not yet loaded; generic country rule used.";
+    }
+
     return res.status(200).json({
       status,
       country,
       country_label: rule.label,
+      subject,
+      subject_applied: subjectApplied,
       support: rule.support,
       input: tin,
       normalized: checked.normalized,
