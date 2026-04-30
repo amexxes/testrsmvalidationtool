@@ -1958,10 +1958,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                       <span>Country</span>
                       <b>{result.country}</b>
                     </div>
-                    <div className="stat">
-                      <span>Request date</span>
-                      <b>{result.request_date || "—"}</b>
-                    </div>
+<div className="stat">
+  <span>Validation date</span>
+  <b>
+    {result.request_date
+      ? String(result.request_date).slice(0, 10)
+      : "—"}
+  </b>
+</div>
                     <div className="stat">
                       <span>Structure</span>
                       <b>{structureLabel}</b>
