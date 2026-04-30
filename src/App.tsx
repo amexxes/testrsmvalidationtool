@@ -1668,35 +1668,53 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
 function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [country, setCountry] = useState("NL");
+  const [subject, setSubject] = useState("unknown");
   const [tinInput, setTinInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [error, setError] = useState("");
 
+  const subjectOptions = [
+    { code: "nationals", label: "Nationals" },
+    { code: "foreign_residents", label: "Foreign residents" },
+    { code: "unknown", label: "Unknown / not sure" },
+  ];
+
   const countryOptions = [
+    { code: "AT", label: "Austria", support: "pending", example: "See official sheet" },
     { code: "BE", label: "Belgium", support: "syntax", example: "85073003328" },
+    { code: "BG", label: "Bulgaria", support: "pending", example: "See official sheet" },
+    { code: "CY", label: "Cyprus", support: "pending", example: "See official sheet" },
     { code: "CZ", label: "Czech Republic", support: "structure", example: "8507301234" },
     { code: "DE", label: "Germany", support: "structure", example: "65012347890" },
     { code: "DK", label: "Denmark", support: "structure", example: "0102031234" },
     { code: "EE", label: "Estonia", support: "syntax", example: "37605030299" },
+    { code: "EL", label: "Greece", support: "pending", example: "See official sheet" },
     { code: "ES", label: "Spain", support: "syntax", example: "12345678Z" },
     { code: "FI", label: "Finland", support: "syntax", example: "131052-308T" },
     { code: "FR", label: "France", support: "structure", example: "1234567890123" },
     { code: "HR", label: "Croatia", support: "syntax", example: "12345678903" },
+    { code: "HU", label: "Hungary", support: "pending", example: "See official sheet" },
     { code: "IE", label: "Ireland", support: "structure", example: "1234567T" },
     { code: "IT", label: "Italy", support: "syntax", example: "RSSMRA85M01H501U" },
     { code: "LT", label: "Lithuania", support: "syntax", example: "39001011234" },
+    { code: "LU", label: "Luxembourg", support: "pending", example: "See official sheet" },
     { code: "LV", label: "Latvia", support: "structure", example: "01020312345" },
+    { code: "MT", label: "Malta", support: "pending", example: "See official sheet" },
     { code: "NL", label: "Netherlands", support: "syntax", example: "123456782" },
     { code: "PL", label: "Poland", support: "syntax", example: "02070803628" },
     { code: "PT", label: "Portugal", support: "syntax", example: "123456789" },
     { code: "RO", label: "Romania", support: "syntax", example: "1800101221144" },
     { code: "SE", label: "Sweden", support: "syntax", example: "8507099805" },
+    { code: "SI", label: "Slovenia", support: "pending", example: "See official sheet" },
     { code: "SK", label: "Slovakia", support: "structure", example: "8507301234" },
   ];
 
   const selectedCountry =
     countryOptions.find((c) => c.code === country) || countryOptions[0];
+
+  const selectedSubject =
+    subjectOptions.find((s) => s.code === subject) || subjectOptions[2];
 
   async function onValidateTin() {
     const trimmed = tinInput.trim();
@@ -1710,7 +1728,11 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       const resp = await fetch("/api/tin-validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ country, tin: trimmed }),
+        body: JSON.stringify({
+          country,
+          subject,
+          tin: trimmed,
+        }),
       });
 
       const data = await resp.json();
@@ -1738,12 +1760,16 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     ? "Not checked"
     : result.status === "valid"
     ? "Valid"
+    : result.status === "not_implemented"
+    ? "Not implemented"
     : "Invalid";
 
   const statusColor = !result
     ? "var(--text)"
     : result.status === "valid"
     ? "var(--ok)"
+    : result.status === "not_implemented"
+    ? "var(--warn)"
     : "var(--bad)";
 
   const syntaxLabel =
@@ -1752,6 +1778,13 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       : result?.syntax_valid
       ? "true"
       : "false";
+
+  const supportLabel =
+    selectedCountry.support === "syntax"
+      ? "structure + syntax"
+      : selectedCountry.support === "structure"
+      ? "structure only"
+      : "coming soon";
 
   return (
     <>
@@ -1817,11 +1850,27 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Natural persons only. Structure is checked for all listed countries below.
-              Syntax is checked where implemented.
+              Natural persons only. Subject is now included. For countries already implemented,
+              the current version still uses one generic country rule.
             </p>
 
             <div className="row inputActionsRow">
+              <select
+                value={subject}
+                onChange={(e) => {
+                  setSubject(e.target.value);
+                  setResult(null);
+                  setError("");
+                }}
+                style={{ minWidth: 220 }}
+              >
+                {subjectOptions.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={country}
                 onChange={(e) => {
@@ -1851,10 +1900,11 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
 
             <div className="callout" style={{ marginTop: 10 }}>
+              <b>Subject</b>: {selectedSubject.label}
+              <br />
               <b>Country</b>: {selectedCountry.code} — {selectedCountry.label}
               <br />
-              <b>Check mode</b>:{" "}
-              {selectedCountry.support === "syntax" ? "structure + syntax" : "structure only"}
+              <b>Check mode</b>: {supportLabel}
               <br />
               <b>Example</b>: <span className="mono">{selectedCountry.example}</span>
             </div>
@@ -1881,7 +1931,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Result</h2>
             <p className="hint">
-              Result card aligned with the VAT page layout.
+              Result card now includes country, subject and whether the subject-specific rule was applied.
             </p>
 
             <div
@@ -1927,14 +1977,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                     borderRadius: 12,
                     border: "1px solid rgba(0,0,0,0.08)",
                     background: "rgba(255,255,255,0.40)",
-                    minWidth: 180,
+                    minWidth: 220,
                   }}
                 >
                   <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
                     Mode
                   </div>
                   <div className="mono" style={{ fontWeight: 700 }}>
-                    {selectedCountry.support === "syntax" ? "structure + syntax" : "structure only"}
+                    {supportLabel}
                   </div>
                 </div>
               </div>
@@ -1959,16 +2009,30 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                       <b>{result.country}</b>
                     </div>
                     <div className="stat">
+                      <span>Subject</span>
+                      <b>{result.subject}</b>
+                    </div>
+                    <div className="stat">
                       <span>Check</span>
                       <b>{result.check_level}</b>
                     </div>
                     <div className="stat">
                       <span>Structure</span>
-                      <b>{result.structure_valid ? "true" : "false"}</b>
+                      <b>
+                        {result.structure_valid === null
+                          ? "n/a"
+                          : result.structure_valid
+                          ? "true"
+                          : "false"}
+                      </b>
                     </div>
                     <div className="stat">
                       <span>Syntax</span>
                       <b>{syntaxLabel}</b>
+                    </div>
+                    <div className="stat">
+                      <span>Subject rule</span>
+                      <b>{result.subject_applied ? "applied" : "generic / pending"}</b>
                     </div>
                   </div>
 
