@@ -1667,11 +1667,25 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 }
 
 function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
+  type TinSortKey =
+    | "status"
+    | "input_tin"
+    | "tin_number"
+    | "structure_valid"
+    | "syntax_valid"
+    | "request_date"
+    | "message";
+
   const [country, setCountry] = useState("NL");
   const [tinInput, setTinInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<TinSortKey>("status");
+  const [sortAsc, setSortAsc] = useState(true);
+
   const importFileRef = useRef<HTMLInputElement | null>(null);
 
   const countryOptions = [
@@ -1704,6 +1718,49 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     { code: "SK", label: "Slovakia" },
   ];
 
+  function statusPillClass(status: string) {
+    if (status === "valid") return "valid";
+    if (status === "invalid") return "invalid";
+    return "error";
+  }
+
+  function prettyStatus(status: string) {
+    if (status === "valid") return "Valid";
+    if (status === "invalid") return "Invalid";
+    return "Error";
+  }
+
+  function boolLabel(value: any) {
+    if (value === null || value === undefined) return "n/a";
+    return value ? "true" : "false";
+  }
+
+  function boolRank(value: any) {
+    if (value === true) return 0;
+    if (value === false) return 1;
+    return 2;
+  }
+
+  function statusRank(status: string) {
+    if (status === "valid") return 0;
+    if (status === "invalid") return 1;
+    return 2;
+  }
+
+  function sortBy(nextKey: TinSortKey) {
+    if (sortKey === nextKey) {
+      setSortAsc((prev) => !prev);
+    } else {
+      setSortKey(nextKey);
+      setSortAsc(true);
+    }
+  }
+
+  function sortIndicator(key: TinSortKey) {
+    if (sortKey !== key) return "";
+    return sortAsc ? " ↑" : " ↓";
+  }
+
   const stats = useMemo(() => {
     return {
       total: rows.length,
@@ -1712,6 +1769,60 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       error: rows.filter((r) => r.status === "error").length,
     };
   }, [rows]);
+
+  const validPct = useMemo(() => {
+    if (!stats.total) return 0;
+    return Math.round((stats.valid / stats.total) * 100);
+  }, [stats.total, stats.valid]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    let base = rows.filter((r) => {
+      const matchesStatus = statusFilter === "all" ? true : r.status === statusFilter;
+
+      if (!matchesStatus) return false;
+      if (!q) return true;
+
+      const haystack = [
+        r.input_tin,
+        r.tin_number,
+        r.request_date ? String(r.request_date).slice(0, 10) : "",
+        r.message,
+        r.status,
+        boolLabel(r.structure_valid),
+        boolLabel(r.syntax_valid),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+
+    const sorted = [...base].sort((a, b) => {
+      let cmp = 0;
+
+      if (sortKey === "status") {
+        cmp = statusRank(a.status) - statusRank(b.status);
+      } else if (sortKey === "input_tin") {
+        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), "nl");
+      } else if (sortKey === "tin_number") {
+        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), "nl");
+      } else if (sortKey === "structure_valid") {
+        cmp = boolRank(a.structure_valid) - boolRank(b.structure_valid);
+      } else if (sortKey === "syntax_valid") {
+        cmp = boolRank(a.syntax_valid) - boolRank(b.syntax_valid);
+      } else if (sortKey === "request_date") {
+        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), "nl");
+      } else if (sortKey === "message") {
+        cmp = String(a.message || "").localeCompare(String(b.message || ""), "nl");
+      }
+
+      return sortAsc ? cmp : -cmp;
+    });
+
+    return sorted;
+  }, [rows, search, statusFilter, sortKey, sortAsc]);
 
   async function onValidateTinBatch() {
     const lines = tinInput
@@ -1751,6 +1862,10 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     setTinInput("");
     setRows([]);
     setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setSortKey("status");
+    setSortAsc(true);
   }
 
   function openImportDialog() {
@@ -1792,6 +1907,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       setTinInput(candidates.join("\n"));
       setRows([]);
       setError("");
+      setSearch("");
+      setStatusFilter("all");
     }
   }
 
@@ -1816,7 +1933,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
     const aoa = [
       headers,
-      ...rows.map((r) => [
+      ...filteredRows.map((r) => [
         country,
         r.input_tin || "",
         r.tin_number || "",
@@ -1853,18 +1970,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       .replace(/[:T]/g, "-")}.xlsx`;
 
     XLSX.writeFile(wb, filename);
-  }
-
-  function statusPillClass(status: string) {
-    if (status === "valid") return "valid";
-    if (status === "invalid") return "invalid";
-    return "error";
-  }
-
-  function prettyStatus(status: string) {
-    if (status === "valid") return "Valid";
-    if (status === "invalid") return "Invalid";
-    return "Error";
   }
 
   return (
@@ -1958,7 +2063,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               <button
                 className="btn btn-secondary btn-export btn-excel"
                 onClick={exportTinExcel}
-                disabled={!rows.length}
+                disabled={!filteredRows.length}
               >
                 Export Excel
               </button>
@@ -1998,8 +2103,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           </div>
 
           <div className="card">
-            <h2>Summary</h2>
-            <p className="hint">Kort overzicht van de batch.</p>
+            <h2>Dashboard</h2>
+            <p className="hint">Overzicht, filter en sortering.</p>
 
             {error && (
               <div className="callout" style={{ marginTop: 10 }}>
@@ -2043,6 +2148,38 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
                 <div className="callout" style={{ marginTop: 12 }}>
                   <b>Country</b>: {country}
+                  <br />
+                  <b>Valid rate</b>: {validPct}%
+                </div>
+
+                <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
+                  <div className="bar" style={{ width: `${validPct}%` }} />
+                </div>
+
+                <div className="filterBox" style={{ marginTop: 14 }}>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search in results…"
+                  />
+
+                  <div className="row" style={{ marginTop: 10 }}>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      style={{ minWidth: 180 }}
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="valid">Valid</option>
+                      <option value="invalid">Invalid</option>
+                      <option value="error">Error</option>
+                    </select>
+
+                    <div className="callout" style={{ margin: 0, padding: "10px 12px" }}>
+                      Sort: <span className="mono">{sortKey}{sortAsc ? " asc" : " desc"}</span>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -2053,7 +2190,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="tableHeader">
             <strong>Results</strong>
             <div className="muted">
-              Showing <b style={{ color: "var(--text)" }}>{rows.length}</b> rows
+              Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
             </div>
           </div>
 
@@ -2061,32 +2198,32 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 150 }}>Status</th>
-                  <th style={{ width: 220 }}>Input TIN</th>
-                  <th style={{ width: 220 }}>Returned TIN</th>
-                  <th style={{ width: 120 }}>Structure</th>
-                  <th style={{ width: 120 }}>Syntax</th>
-                  <th style={{ width: 140 }}>Date</th>
-                  <th style={{ width: 320 }}>Message</th>
+                  <th style={{ width: 150, cursor: "pointer" }} onClick={() => sortBy("status")}>
+                    Status{sortIndicator("status")}
+                  </th>
+                  <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("input_tin")}>
+                    Input TIN{sortIndicator("input_tin")}
+                  </th>
+                  <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("tin_number")}>
+                    Returned TIN{sortIndicator("tin_number")}
+                  </th>
+                  <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("structure_valid")}>
+                    Structure{sortIndicator("structure_valid")}
+                  </th>
+                  <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("syntax_valid")}>
+                    Syntax{sortIndicator("syntax_valid")}
+                  </th>
+                  <th style={{ width: 140, cursor: "pointer" }} onClick={() => sortBy("request_date")}>
+                    Date{sortIndicator("request_date")}
+                  </th>
+                  <th style={{ width: 320, cursor: "pointer" }} onClick={() => sortBy("message")}>
+                    Message{sortIndicator("message")}
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
-                {rows.map((r, idx) => {
-                  const structureLabel =
-                    r.structure_valid === null || r.structure_valid === undefined
-                      ? "n/a"
-                      : r.structure_valid
-                      ? "true"
-                      : "false";
-
-                  const syntaxLabel =
-                    r.syntax_valid === null || r.syntax_valid === undefined
-                      ? "n/a"
-                      : r.syntax_valid
-                      ? "true"
-                      : "false";
-
+                {filteredRows.map((r, idx) => {
                   return (
                     <tr key={`${r.input_tin}-${idx}`}>
                       <td>
@@ -2097,15 +2234,15 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                       </td>
                       <td className="mono nowrap">{r.input_tin || ""}</td>
                       <td className="mono nowrap">{r.tin_number || ""}</td>
-                      <td>{structureLabel}</td>
-                      <td>{syntaxLabel}</td>
+                      <td>{boolLabel(r.structure_valid)}</td>
+                      <td>{boolLabel(r.syntax_valid)}</td>
                       <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
                       <td title={r.message || ""}>{r.message || ""}</td>
                     </tr>
                   );
                 })}
 
-                {!rows.length && (
+                {!filteredRows.length && (
                   <tr>
                     <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
                       No results
