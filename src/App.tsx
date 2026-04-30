@@ -1798,8 +1798,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     { code: "SK", label: "Slovakia" },
   ];
 
-  const inputStats = useMemo(() => getTinInputStats(tinInput, country), [tinInput, country]);
-
   function statusPillClass(status: string) {
     if (status === "valid") return "valid";
     if (status === "invalid") return "invalid";
@@ -1948,24 +1946,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       setError("TIN validation failed");
     } finally {
       setLoading(false);
-    }
-  }
-
-  function onRemoveDuplicates() {
-    const prepared = dedupeTinText(tinInput, country);
-    setTinInput(prepared.cleanedText);
-
-    if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
-      const parts = [];
-      if (prepared.duplicatesRemoved > 0) {
-        parts.push(`Removed ${prepared.duplicatesRemoved} duplicate line(s)`);
-      }
-      if (prepared.prefixRemoved > 0) {
-        parts.push(`removed the country code from ${prepared.prefixRemoved} line(s)`);
-      }
-      setInfoMessage(parts.join(" and ") + ".");
-    } else {
-      setInfoMessage("No duplicates found.");
     }
   }
 
@@ -2187,10 +2167,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 Import XLSX/CSV
               </button>
 
-              <button className="btn btn-secondary" onClick={onRemoveDuplicates} disabled={!tinInput.trim() || loading}>
-                Remove duplicates
-              </button>
-
               <button
                 className="btn btn-secondary btn-export btn-excel"
                 onClick={exportTinExcel}
@@ -2239,76 +2215,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
           </div>
 
-          <div className="card">
-            <h2>Input helper</h2>
-            <p className="hint">Quick checks before validation.</p>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                gap: 12,
-                marginTop: 10,
-              }}
-            >
-              <div className="stat" style={{ minHeight: 76 }}>
-                <span>Selected country</span>
-                <b>{country}</b>
-              </div>
-              <div className="stat" style={{ minHeight: 76 }}>
-                <span>Input lines</span>
-                <b>{inputStats.totalLines}</b>
-              </div>
-              <div className="stat" style={{ minHeight: 76 }}>
-                <span>Unique lines</span>
-                <b>{inputStats.uniqueCount}</b>
-              </div>
-              <div className="stat" style={{ minHeight: 76 }}>
-                <span>Duplicates</span>
-                <b>{inputStats.duplicateCount}</b>
-              </div>
-            </div>
-
-            <div className="callout" style={{ marginTop: 12 }}>
-              <b>First line preview</b>:{" "}
-              <span className="mono">{inputStats.firstLine || "—"}</span>
-            </div>
-
-            <div className="callout" style={{ marginTop: 10 }}>
-              <b>Normalized preview</b>:{" "}
-              <span className="mono">{inputStats.normalizedPreview || "—"}</span>
-            </div>
-
-            <div
-              style={{
-                marginTop: 12,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: 10,
-              }}
-            >
-              <div className="callout" style={{ margin: 0 }}>
-                <b>Country code included</b>:{" "}
-                {inputStats.prefixCount > 0 ? "Yes" : "No"}
-              </div>
-
-              <div className="callout" style={{ margin: 0 }}>
-                <b>Separators detected</b>:{" "}
-                {inputStats.hasSeparators ? "Yes" : "No"}
-              </div>
-
-              <div className="callout" style={{ margin: 0 }}>
-                <b>Preview length</b>: {inputStats.previewLength || 0}
-              </div>
-            </div>
-
-            <div className="callout" style={{ marginTop: 12 }}>
-              This helper only prepares the input. The actual result still comes from the official EC validation service.
-            </div>
-          </div>
-        </div>
-
-        <div className="grid" style={{ alignItems: "stretch", marginTop: 16 }}>
           <div className="card">
             <h2>Dashboard</h2>
             <p className="hint">Overview, filters and sorting.</p>
