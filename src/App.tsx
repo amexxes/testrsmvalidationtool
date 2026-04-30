@@ -1666,6 +1666,85 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   );
 }
 
+function stripSelectedCountryPrefix(line: string, countryCode: string): string {
+  let value = String(line || "").trim();
+  if (!value) return value;
+
+  const cc = String(countryCode || "").toUpperCase().trim();
+  const altCc = cc === "EL" ? "GR" : cc;
+  const upper = value.toUpperCase();
+
+  if (upper.startsWith(`${cc} `)) return value.slice(3).trim();
+  if (upper.startsWith(`${altCc} `)) return value.slice(3).trim();
+  if (upper.startsWith(cc)) return value.slice(2).trim();
+  if (upper.startsWith(altCc)) return value.slice(2).trim();
+
+  return value;
+}
+
+function normalizeTinDuplicateKey(line: string, countryCode: string): string {
+  return stripSelectedCountryPrefix(line, countryCode)
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[.\-\/]/g, "");
+}
+
+function dedupeTinText(text: string, countryCode: string) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const uniqueLines: string[] = [];
+  let duplicatesRemoved = 0;
+  let prefixRemoved = 0;
+
+  for (const line of lines) {
+    const cleaned = stripSelectedCountryPrefix(line, countryCode);
+    const key = normalizeTinDuplicateKey(line, countryCode);
+
+    if (!key) continue;
+
+    if (cleaned !== line) {
+      prefixRemoved++;
+    }
+
+    if (seen.has(key)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(key);
+    uniqueLines.push(cleaned);
+  }
+
+  return {
+    totalLines: lines.length,
+    uniqueLines,
+    cleanedText: uniqueLines.join("\n"),
+    duplicatesRemoved,
+    prefixRemoved,
+  };
+}
+
+function getTinInputStats(text: string, countryCode: string) {
+  const prepared = dedupeTinText(text, countryCode);
+  const firstLine = prepared.uniqueLines[0] || "";
+  const normalizedPreview = normalizeTinDuplicateKey(firstLine, countryCode);
+
+  return {
+    totalLines: prepared.totalLines,
+    uniqueCount: prepared.uniqueLines.length,
+    duplicateCount: prepared.duplicatesRemoved,
+    prefixCount: prepared.prefixRemoved,
+    firstLine,
+    normalizedPreview,
+    previewLength: normalizedPreview.length,
+    hasSeparators: /[.\-\/\s]/.test(firstLine),
+  };
+}
+
 function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   type TinSortKey =
     | "status"
@@ -1681,6 +1760,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const [infoMessage, setInfoMessage] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortKey, setSortKey] = useState<TinSortKey>("status");
@@ -1717,6 +1797,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     { code: "SI", label: "Slovenia" },
     { code: "SK", label: "Slovakia" },
   ];
+
+  const inputStats = useMemo(() => getTinInputStats(tinInput, country), [tinInput, country]);
 
   function statusPillClass(status: string) {
     if (status === "valid") return "valid";
@@ -1778,9 +1860,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
 
-    let base = rows.filter((r) => {
+    const base = rows.filter((r) => {
       const matchesStatus = statusFilter === "all" ? true : r.status === statusFilter;
-
       if (!matchesStatus) return false;
       if (!q) return true;
 
@@ -1799,38 +1880,50 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       return haystack.includes(q);
     });
 
-    const sorted = [...base].sort((a, b) => {
+    return [...base].sort((a, b) => {
       let cmp = 0;
 
       if (sortKey === "status") {
         cmp = statusRank(a.status) - statusRank(b.status);
       } else if (sortKey === "input_tin") {
-        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), "nl");
+        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), "en");
       } else if (sortKey === "tin_number") {
-        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), "nl");
+        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), "en");
       } else if (sortKey === "structure_valid") {
         cmp = boolRank(a.structure_valid) - boolRank(b.structure_valid);
       } else if (sortKey === "syntax_valid") {
         cmp = boolRank(a.syntax_valid) - boolRank(b.syntax_valid);
       } else if (sortKey === "request_date") {
-        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), "nl");
+        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), "en");
       } else if (sortKey === "message") {
-        cmp = String(a.message || "").localeCompare(String(b.message || ""), "nl");
+        cmp = String(a.message || "").localeCompare(String(b.message || ""), "en");
       }
 
       return sortAsc ? cmp : -cmp;
     });
-
-    return sorted;
   }, [rows, search, statusFilter, sortKey, sortAsc]);
 
   async function onValidateTinBatch() {
-    const lines = tinInput
-      .split(/\r?\n/)
-      .map((x) => String(x || "").trim())
-      .filter(Boolean);
+    const prepared = dedupeTinText(tinInput, country);
 
-    if (!lines.length) return;
+    if (!prepared.uniqueLines.length) return;
+
+    if (prepared.cleanedText !== tinInput) {
+      setTinInput(prepared.cleanedText);
+    }
+
+    if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
+      const parts = [];
+      if (prepared.duplicatesRemoved > 0) {
+        parts.push(`Removed ${prepared.duplicatesRemoved} duplicate line(s)`);
+      }
+      if (prepared.prefixRemoved > 0) {
+        parts.push(`removed the country code from ${prepared.prefixRemoved} line(s)`);
+      }
+      setInfoMessage(parts.join(" and ") + " before validation.");
+    } else {
+      setInfoMessage("");
+    }
 
     setLoading(true);
     setError("");
@@ -1840,7 +1933,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       const resp = await fetch("/api/tin-validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ country, tins: lines }),
+        body: JSON.stringify({ country, tins: prepared.uniqueLines }),
       });
 
       const data = await resp.json();
@@ -1858,10 +1951,29 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     }
   }
 
+  function onRemoveDuplicates() {
+    const prepared = dedupeTinText(tinInput, country);
+    setTinInput(prepared.cleanedText);
+
+    if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
+      const parts = [];
+      if (prepared.duplicatesRemoved > 0) {
+        parts.push(`Removed ${prepared.duplicatesRemoved} duplicate line(s)`);
+      }
+      if (prepared.prefixRemoved > 0) {
+        parts.push(`removed the country code from ${prepared.prefixRemoved} line(s)`);
+      }
+      setInfoMessage(parts.join(" and ") + ".");
+    } else {
+      setInfoMessage("No duplicates found.");
+    }
+  }
+
   function onClearTin() {
     setTinInput("");
     setRows([]);
     setError("");
+    setInfoMessage("");
     setSearch("");
     setStatusFilter("all");
     setSortKey("status");
@@ -1904,11 +2016,25 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     }
 
     if (candidates.length) {
-      setTinInput(candidates.join("\n"));
+      const prepared = dedupeTinText(candidates.join("\n"), country);
+      setTinInput(prepared.cleanedText);
       setRows([]);
       setError("");
       setSearch("");
       setStatusFilter("all");
+
+      if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
+        const parts = [];
+        if (prepared.duplicatesRemoved > 0) {
+          parts.push(`Removed ${prepared.duplicatesRemoved} duplicate line(s)`);
+        }
+        if (prepared.prefixRemoved > 0) {
+          parts.push(`removed the country code from ${prepared.prefixRemoved} line(s)`);
+        }
+        setInfoMessage(parts.join(" and ") + " during import.");
+      } else {
+        setInfoMessage("");
+      }
     }
   }
 
@@ -2036,7 +2162,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-                Choose one country and add one or more TIN numbers, one per line, without the country code.
+              Choose one country and add one or more TIN numbers, one per line, without the country code.
             </p>
 
             <div className="row inputActionsRow">
@@ -2046,6 +2172,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                   setCountry(e.target.value);
                   setRows([]);
                   setError("");
+                  setInfoMessage("");
                 }}
                 style={{ minWidth: 240 }}
               >
@@ -2058,6 +2185,10 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
               <button className="btn btn-secondary" onClick={openImportDialog} disabled={loading}>
                 Import XLSX/CSV
+              </button>
+
+              <button className="btn btn-secondary" onClick={onRemoveDuplicates} disabled={!tinInput.trim() || loading}>
+                Remove duplicates
               </button>
 
               <button
@@ -2083,6 +2214,12 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               placeholder={`123456782\n987654321\n...`}
             />
 
+            {infoMessage && (
+              <div className="callout" style={{ marginTop: 10 }}>
+                {infoMessage}
+              </div>
+            )}
+
             <div className="row" style={{ marginTop: 12 }}>
               <button
                 className="btn btn-primary"
@@ -2102,6 +2239,76 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
           </div>
 
+          <div className="card">
+            <h2>Input helper</h2>
+            <p className="hint">Quick checks before validation.</p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: 12,
+                marginTop: 10,
+              }}
+            >
+              <div className="stat" style={{ minHeight: 76 }}>
+                <span>Selected country</span>
+                <b>{country}</b>
+              </div>
+              <div className="stat" style={{ minHeight: 76 }}>
+                <span>Input lines</span>
+                <b>{inputStats.totalLines}</b>
+              </div>
+              <div className="stat" style={{ minHeight: 76 }}>
+                <span>Unique lines</span>
+                <b>{inputStats.uniqueCount}</b>
+              </div>
+              <div className="stat" style={{ minHeight: 76 }}>
+                <span>Duplicates</span>
+                <b>{inputStats.duplicateCount}</b>
+              </div>
+            </div>
+
+            <div className="callout" style={{ marginTop: 12 }}>
+              <b>First line preview</b>:{" "}
+              <span className="mono">{inputStats.firstLine || "—"}</span>
+            </div>
+
+            <div className="callout" style={{ marginTop: 10 }}>
+              <b>Normalized preview</b>:{" "}
+              <span className="mono">{inputStats.normalizedPreview || "—"}</span>
+            </div>
+
+            <div
+              style={{
+                marginTop: 12,
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 10,
+              }}
+            >
+              <div className="callout" style={{ margin: 0 }}>
+                <b>Country code included</b>:{" "}
+                {inputStats.prefixCount > 0 ? "Yes" : "No"}
+              </div>
+
+              <div className="callout" style={{ margin: 0 }}>
+                <b>Separators detected</b>:{" "}
+                {inputStats.hasSeparators ? "Yes" : "No"}
+              </div>
+
+              <div className="callout" style={{ margin: 0 }}>
+                <b>Preview length</b>: {inputStats.previewLength || 0}
+              </div>
+            </div>
+
+            <div className="callout" style={{ marginTop: 12 }}>
+              This helper only prepares the input. The actual result still comes from the official EC validation service.
+            </div>
+          </div>
+        </div>
+
+        <div className="grid" style={{ alignItems: "stretch", marginTop: 16 }}>
           <div className="card">
             <h2>Dashboard</h2>
             <p className="hint">Overview, filters and sorting.</p>
@@ -2223,24 +2430,22 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               </thead>
 
               <tbody>
-                {filteredRows.map((r, idx) => {
-                  return (
-                    <tr key={`${r.input_tin}-${idx}`}>
-                      <td>
-                        <span className={`pill ${statusPillClass(r.status)}`}>
-                          <i aria-hidden="true" />
-                          {prettyStatus(r.status)}
-                        </span>
-                      </td>
-                      <td className="mono nowrap">{r.input_tin || ""}</td>
-                      <td className="mono nowrap">{r.tin_number || ""}</td>
-                      <td>{boolLabel(r.structure_valid)}</td>
-                      <td>{boolLabel(r.syntax_valid)}</td>
-                      <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
-                      <td title={r.message || ""}>{r.message || ""}</td>
-                    </tr>
-                  );
-                })}
+                {filteredRows.map((r, idx) => (
+                  <tr key={`${r.input_tin}-${idx}`}>
+                    <td>
+                      <span className={`pill ${statusPillClass(r.status)}`}>
+                        <i aria-hidden="true" />
+                        {prettyStatus(r.status)}
+                      </span>
+                    </td>
+                    <td className="mono nowrap">{r.input_tin || ""}</td>
+                    <td className="mono nowrap">{r.tin_number || ""}</td>
+                    <td>{boolLabel(r.structure_valid)}</td>
+                    <td>{boolLabel(r.syntax_valid)}</td>
+                    <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
+                    <td title={r.message || ""}>{r.message || ""}</td>
+                  </tr>
+                ))}
 
                 {!filteredRows.length && (
                   <tr>
