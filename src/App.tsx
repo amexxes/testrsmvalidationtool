@@ -1721,7 +1721,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       const data = await resp.json();
 
       if (!resp.ok) {
-        setError(data?.error || data?.message || "TIN validation failed");
+        setError(data?.message || data?.error || "TIN validation failed");
         return;
       }
 
@@ -1829,7 +1829,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Checks the TIN through the official EC ToW SOAP service.
+              Choose the country and enter the TIN. Do not add the country code in front of the number.
             </p>
 
             <div className="row inputActionsRow">
@@ -1876,7 +1876,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
 
             <div className="callout" style={{ marginTop: 14 }}>
-              <b>Important</b>: this checks structure and, where available, syntax through the EC service.
+              <b>Important</b>: this checks structure and syntax where available. It does not confirm identity or whether the number really exists.
             </div>
           </div>
 
