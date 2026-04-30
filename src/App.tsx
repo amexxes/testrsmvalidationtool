@@ -8,6 +8,7 @@ import pptxgen from "pptxgenjs";
 
 type SortState = { colIndex: number | null; asc: boolean };
 type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
+type ActivePage = "vat" | "tin";
 
 const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   AT: { lat: 48.2082, lon: 16.3738 },
@@ -338,7 +339,7 @@ function InputCountryBarChart({
   );
 }
 
-export default function App() {
+function VatPage() {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
@@ -1618,6 +1619,84 @@ function exportExcel() {
           </div>
         </div>
       </div>
+    </>
+  );
+}
+function TinPage() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: 24,
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          padding: 24,
+          borderRadius: 16,
+          background: "rgba(255,255,255,0.72)",
+          border: "1px solid rgba(0,0,0,0.08)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: 28 }}>TIN Validation</h1>
+
+        <p style={{ marginTop: 10, color: "var(--muted)" }}>
+          Deze pagina is nog leeg. Hier komt straks de TIN check koppeling.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [activePage, setActivePage] = useState<ActivePage>("vat");
+
+  const navButtonStyle = (active: boolean): React.CSSProperties => ({
+    padding: "10px 14px",
+    borderRadius: 999,
+    border: active ? "1px solid #0B2E5F" : "1px solid rgba(0,0,0,0.12)",
+    background: active ? "#0B2E5F" : "rgba(255,255,255,0.92)",
+    color: active ? "#FFFFFF" : "#0B2E5F",
+    fontWeight: 600,
+    cursor: "pointer",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  });
+
+  return (
+    <>
+      <div
+        style={{
+          position: "fixed",
+          top: 20,
+          right: 20,
+          zIndex: 9999,
+          display: "flex",
+          gap: 10,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setActivePage("vat")}
+          style={navButtonStyle(activePage === "vat")}
+        >
+          VAT VIES Validation
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActivePage("tin")}
+          style={navButtonStyle(activePage === "tin")}
+        >
+          TIN Validation
+        </button>
+      </div>
+
+      {activePage === "vat" ? <VatPage /> : <TinPage />}
     </>
   );
 }
