@@ -12,7 +12,11 @@ function compactAlnum(value) {
 
 function isValidDate(year, month, day) {
   const d = new Date(Date.UTC(year, month - 1, day));
-  return d.getUTCFullYear() === year && d.getUTCMonth() === month - 1 && d.getUTCDate() === day;
+  return (
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() === month - 1 &&
+    d.getUTCDate() === day
+  );
 }
 
 function luhn(value) {
@@ -33,6 +37,36 @@ function luhn(value) {
   }
 
   return sum % 10 === 0;
+}
+
+function structureValidator(regex, normalizer = compactAlnum) {
+  return function validate(raw) {
+    const normalized = normalizer(raw);
+    return {
+      normalized,
+      structureValid: regex.test(normalized),
+      syntaxValid: null,
+    };
+  };
+}
+
+function checksumMod11Weighted(value, weights1, weights2) {
+  let sum = 0;
+  for (let i = 0; i < weights1.length; i++) {
+    sum += Number(value[i]) * weights1[i];
+  }
+  let check = sum % 11;
+
+  if (check === 10 && weights2) {
+    sum = 0;
+    for (let i = 0; i < weights2.length; i++) {
+      sum += Number(value[i]) * weights2[i];
+    }
+    check = sum % 11;
+    if (check === 10) check = 0;
+  }
+
+  return check;
 }
 
 function validateNL(raw) {
@@ -111,6 +145,7 @@ function validatePL(raw) {
   }
 
   const checksum = (10 - (sum % 10)) % 10;
+
   const yy = Number(normalized.slice(0, 2));
   let mm = Number(normalized.slice(2, 4));
   const dd = Number(normalized.slice(4, 6));
@@ -138,7 +173,8 @@ function validatePL(raw) {
   return {
     normalized,
     structureValid: true,
-    syntaxValid: Number(normalized[10]) === checksum && isValidDate(year, mm, dd),
+    syntaxValid:
+      Number(normalized[10]) === checksum && isValidDate(year, mm, dd),
   };
 }
 
@@ -316,45 +352,176 @@ function validateIT(raw) {
   };
 }
 
-function validateDE(raw) {
+function validateEE(raw) {
   const normalized = digitsOnly(raw);
+  if (!/^\d{11}$/.test(normalized)) {
+    return { normalized, structureValid: false, syntaxValid: null };
+  }
+
+  const first = Number(normalized[0]);
+  const yy = Number(normalized.slice(1, 3));
+  const mm = Number(normalized.slice(3, 5));
+  const dd = Number(normalized.slice(5, 7));
+
+  let century = 1900;
+  if (first === 1 || first === 2) century = 1800;
+  else if (first === 3 || first === 4) century = 1900;
+  else if (first === 5 || first === 6) century = 2000;
+  else if (first === 7 || first === 8) century = 2100;
+
+  const dateOk = first >= 1 && first <= 8 && isValidDate(century + yy, mm, dd);
+
+  const check = checksumMod11Weighted(
+    normalized,
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 1],
+    [3, 4, 5, 6, 7, 8, 9, 1, 2, 3]
+  );
+
   return {
     normalized,
-    structureValid: /^\d{11}$/.test(normalized),
-    syntaxValid: null,
+    structureValid: true,
+    syntaxValid: dateOk && Number(normalized[10]) === check,
   };
 }
 
-function validateDK(raw) {
+function validateLT(raw) {
   const normalized = digitsOnly(raw);
+  if (!/^\d{11}$/.test(normalized)) {
+    return { normalized, structureValid: false, syntaxValid: null };
+  }
+
+  const first = Number(normalized[0]);
+  const yy = Number(normalized.slice(1, 3));
+  const mm = Number(normalized.slice(3, 5));
+  const dd = Number(normalized.slice(5, 7));
+
+  let century = 1900;
+  if (first === 1 || first === 2) century = 1800;
+  else if (first === 3 || first === 4) century = 1900;
+  else if (first === 5 || first === 6) century = 2000;
+
+  const dateOk = first >= 1 && first <= 6 && isValidDate(century + yy, mm, dd);
+
+  const check = checksumMod11Weighted(
+    normalized,
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 1],
+    [3, 4, 5, 6, 7, 8, 9, 1, 2, 3]
+  );
+
   return {
     normalized,
-    structureValid: /^\d{10}$/.test(normalized),
-    syntaxValid: null,
+    structureValid: true,
+    syntaxValid: dateOk && Number(normalized[10]) === check,
   };
 }
 
-function validateFR(raw) {
+function validateHR(raw) {
   const normalized = digitsOnly(raw);
+  if (!/^\d{11}$/.test(normalized)) {
+    return { normalized, structureValid: false, syntaxValid: null };
+  }
+
+  let a = 10;
+  for (let i = 0; i < 10; i++) {
+    a = (a + Number(normalized[i])) % 10;
+    if (a === 0) a = 10;
+    a = (a * 2) % 11;
+  }
+
+  let check = 11 - a;
+  if (check === 10) check = 0;
+
   return {
     normalized,
-    structureValid: /^\d{13}$/.test(normalized),
-    syntaxValid: null,
+    structureValid: true,
+    syntaxValid: Number(normalized[10]) === check,
+  };
+}
+
+function validateRO(raw) {
+  const normalized = digitsOnly(raw);
+  if (!/^\d{13}$/.test(normalized)) {
+    return { normalized, structureValid: false, syntaxValid: null };
+  }
+
+  const first = Number(normalized[0]);
+  const yy = Number(normalized.slice(1, 3));
+  const mm = Number(normalized.slice(3, 5));
+  const dd = Number(normalized.slice(5, 7));
+
+  let dateOk = true;
+  if (first >= 1 && first <= 8) {
+    let century = 1900;
+    if (first === 1 || first === 2) century = 1900;
+    else if (first === 3 || first === 4) century = 1800;
+    else if (first === 5 || first === 6) century = 2000;
+    else if (first === 7 || first === 8) century = 2000;
+    dateOk = isValidDate(century + yy, mm, dd);
+  }
+
+  const control = "279146358279";
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += Number(normalized[i]) * Number(control[i]);
+  }
+  let check = sum % 11;
+  if (check === 10) check = 1;
+
+  return {
+    normalized,
+    structureValid: true,
+    syntaxValid: dateOk && Number(normalized[12]) === check,
   };
 }
 
 const TIN_RULES = {
-  BE: { label: "Belgium", validate: validateBE },
-  DE: { label: "Germany", validate: validateDE },
-  DK: { label: "Denmark", validate: validateDK },
-  ES: { label: "Spain", validate: validateES },
-  FI: { label: "Finland", validate: validateFI },
-  FR: { label: "France", validate: validateFR },
-  IT: { label: "Italy", validate: validateIT },
-  NL: { label: "Netherlands", validate: validateNL },
-  PL: { label: "Poland", validate: validatePL },
-  PT: { label: "Portugal", validate: validatePT },
-  SE: { label: "Sweden", validate: validateSE },
+  BE: { label: "Belgium", support: "syntax", validate: validateBE },
+  CZ: {
+    label: "Czech Republic",
+    support: "structure",
+    validate: structureValidator(/^\d{9,10}$/, digitsOnly),
+  },
+  DE: {
+    label: "Germany",
+    support: "structure",
+    validate: structureValidator(/^\d{11}$/, digitsOnly),
+  },
+  DK: {
+    label: "Denmark",
+    support: "structure",
+    validate: structureValidator(/^\d{10}$/, digitsOnly),
+  },
+  EE: { label: "Estonia", support: "syntax", validate: validateEE },
+  ES: { label: "Spain", support: "syntax", validate: validateES },
+  FI: { label: "Finland", support: "syntax", validate: validateFI },
+  FR: {
+    label: "France",
+    support: "structure",
+    validate: structureValidator(/^\d{13}$/, digitsOnly),
+  },
+  HR: { label: "Croatia", support: "syntax", validate: validateHR },
+  IE: {
+    label: "Ireland",
+    support: "structure",
+    validate: structureValidator(/^\d{7}[A-Z]{1,2}$/i, compactAlnum),
+  },
+  IT: { label: "Italy", support: "syntax", validate: validateIT },
+  LT: { label: "Lithuania", support: "syntax", validate: validateLT },
+  LV: {
+    label: "Latvia",
+    support: "structure",
+    validate: structureValidator(/^\d{11}$/, digitsOnly),
+  },
+  NL: { label: "Netherlands", support: "syntax", validate: validateNL },
+  PL: { label: "Poland", support: "syntax", validate: validatePL },
+  PT: { label: "Portugal", support: "syntax", validate: validatePT },
+  RO: { label: "Romania", support: "syntax", validate: validateRO },
+  SE: { label: "Sweden", support: "syntax", validate: validateSE },
+  SK: {
+    label: "Slovakia",
+    support: "structure",
+    validate: structureValidator(/^\d{9,10}$/, digitsOnly),
+  },
 };
 
 export default async function handler(req, res) {
@@ -400,6 +567,7 @@ export default async function handler(req, res) {
       status,
       country,
       country_label: rule.label,
+      support: rule.support,
       input: tin,
       normalized: checked.normalized,
       structure_valid: checked.structureValid,
