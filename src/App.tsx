@@ -1667,6 +1667,68 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 }
 
 function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
+  const [country, setCountry] = useState("NL");
+  const [tinInput, setTinInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any | null>(null);
+  const [error, setError] = useState("");
+
+  const countryOptions = [
+    { code: "BE", label: "Belgium" },
+    { code: "DE", label: "Germany" },
+    { code: "DK", label: "Denmark" },
+    { code: "ES", label: "Spain" },
+    { code: "FI", label: "Finland" },
+    { code: "FR", label: "France" },
+    { code: "IT", label: "Italy" },
+    { code: "NL", label: "Netherlands" },
+    { code: "PL", label: "Poland" },
+    { code: "PT", label: "Portugal" },
+    { code: "SE", label: "Sweden" },
+  ];
+
+  async function onValidateTin() {
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const resp = await fetch("/api/tin-validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          country,
+          tin: tinInput,
+        }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.error || data?.message || "TIN validation failed");
+        return;
+      }
+
+      setResult(data);
+    } catch {
+      setError("TIN validation failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function onClearTin() {
+    setTinInput("");
+    setResult(null);
+    setError("");
+  }
+
+  const statusColor = !result
+    ? "var(--text)"
+    : result.status === "valid"
+    ? "var(--ok)"
+    : "var(--bad)";
+
   return (
     <>
       <div className="banner">
@@ -1727,9 +1789,115 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       </div>
 
       <div className="wrap">
-        <div className="card">
-          <h2>TIN Validation</h2>
-          <p className="hint">The TIN check link will be added here shortly.</p>
+        <div className="grid" style={{ alignItems: "stretch" }}>
+          <div className="card">
+            <h2>Input</h2>
+            <p className="hint">
+              Natural persons only. This check validates structure and, where available in this first version, syntax.
+            </p>
+
+            <div className="row inputActionsRow">
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                style={{ minWidth: 220 }}
+              >
+                {countryOptions.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} — {c.label}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                type="text"
+                value={tinInput}
+                onChange={(e) => setTinInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void onValidateTin();
+                }}
+                placeholder="Enter TIN"
+                style={{ flex: 1, minWidth: 260 }}
+              />
+            </div>
+
+            <div className="callout" style={{ marginTop: 10 }}>
+              <b>Coverage in this first version</b>: syntax for <span className="mono">BE, ES, FI, IT, NL, PL, PT, SE</span> ·
+              structure only for <span className="mono">DE, DK, FR</span>
+            </div>
+
+            <div className="row" style={{ marginTop: 12 }}>
+              <button className="btn btn-primary" onClick={onValidateTin} disabled={loading || !tinInput.trim()}>
+                {loading ? "Validating…" : "Validate"}
+              </button>
+
+              <button className="btn btn-secondary" onClick={onClearTin} disabled={loading && !tinInput}>
+                Clear
+              </button>
+            </div>
+
+            <div className="callout" style={{ marginTop: 14 }}>
+              <b>Important</b>: this does not confirm that the TIN exists or that it belongs to the person.
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Result</h2>
+            <p className="hint">Same principle as the EU TIN portal: structure first, syntax where available.</p>
+
+            {error && (
+              <div className="callout" style={{ marginTop: 10 }}>
+                <b style={{ color: "var(--bad)" }}>Error</b>: {error}
+              </div>
+            )}
+
+            {!error && !result && (
+              <div className="callout" style={{ marginTop: 10 }}>
+                No result yet.
+              </div>
+            )}
+
+            {result && (
+              <>
+                <div className="stats">
+                  <div className="stat">
+                    <span>Status</span>
+                    <b style={{ color: statusColor }}>{result.status}</b>
+                  </div>
+                  <div className="stat">
+                    <span>Check</span>
+                    <b>{result.check_level}</b>
+                  </div>
+                  <div className="stat">
+                    <span>Country</span>
+                    <b>{result.country}</b>
+                  </div>
+                  <div className="stat">
+                    <span>Syntax</span>
+                    <b>
+                      {result.syntax_valid === null
+                        ? "n/a"
+                        : result.syntax_valid
+                        ? "true"
+                        : "false"}
+                    </b>
+                  </div>
+                </div>
+
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b>Normalized</b>: <span className="mono">{result.normalized || "—"}</span>
+                </div>
+
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b>Message</b>: {result.message}
+                </div>
+
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b>Disclaimer</b>: {result.disclaimer}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </>
