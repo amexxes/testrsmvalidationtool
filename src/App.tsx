@@ -335,7 +335,7 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
     padding: "8px 12px",
     borderRadius: 10,
     border: active ? "1px solid #0B2E5F" : "1px solid rgba(11,46,95,0.14)",
-    background: active ? "#0B2E5F" : "rgba(255,255,255,0.88)",
+    background: active ? "#0B2E5F" : "rgba(255,255,255,0.92)",
     color: active ? "#FFFFFF" : "#0B2E5F",
     fontWeight: 700,
     fontSize: 13,
@@ -346,33 +346,29 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
 
   return (
     <div
-      className="chip"
       style={{
-        width: "100%",
-        alignItems: "flex-start",
-        flexDirection: "column",
+        display: "flex",
         gap: 8,
+        alignItems: "center",
+        justifyContent: "flex-end",
+        flexWrap: "wrap",
       }}
     >
-      <span>Tool</span>
+      <button
+        type="button"
+        onClick={() => setActivePage("vat")}
+        style={buttonStyle(activePage === "vat")}
+      >
+        VAT VIES Validation
+      </button>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={() => setActivePage("vat")}
-          style={buttonStyle(activePage === "vat")}
-        >
-          VAT VIES Validation
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActivePage("tin")}
-          style={buttonStyle(activePage === "tin")}
-        >
-          TIN Validation
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setActivePage("tin")}
+        style={buttonStyle(activePage === "tin")}
+      >
+        TIN Validation
+      </button>
     </div>
   );
 }
@@ -1223,18 +1219,41 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             <div className="title">VAT validation</div>
           </div>
 
-          <div className="chipsRow" style={{ marginTop: 0, width: "100%", maxWidth: 760 }}>
-            <div className="chip">
-              <span>FR job</span>
-              <b className="nowrap">{frText}</b>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 16,
+              flexWrap: "wrap",
+              width: "100%",
+              maxWidth: 980,
+              marginLeft: "auto",
+            }}
+          >
+            <div
+              className="chipsRow"
+              style={{
+                marginTop: 0,
+                width: "auto",
+                maxWidth: "none",
+                flex: "0 1 auto",
+              }}
+            >
+              <div className="chip">
+                <span>FR job</span>
+                <b className="nowrap">{frText}</b>
+              </div>
+
+              <div className="chip">
+                <span>Last update</span>
+                <b className="nowrap">{lastUpdate}</b>
+              </div>
             </div>
 
-            <div className="chip">
-              <span>Last update</span>
-              <b className="nowrap">{lastUpdate}</b>
+            <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
+              <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
             </div>
-
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
           </div>
         </div>
       </div>
@@ -1665,8 +1684,21 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             <div className="title">TIN validation</div>
           </div>
 
-          <div className="chipsRow" style={{ marginTop: 0, width: "100%", maxWidth: 760 }}>
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 16,
+              flexWrap: "wrap",
+              width: "100%",
+              maxWidth: 980,
+              marginLeft: "auto",
+            }}
+          >
+            <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
+              <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+            </div>
           </div>
         </div>
       </div>
@@ -1690,3 +1722,4 @@ export default function App() {
     <TinPage activePage={activePage} setActivePage={setActivePage} />
   );
 }
+
