@@ -1670,8 +1670,9 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [country, setCountry] = useState("NL");
   const [tinInput, setTinInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any | null>(null);
+  const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
+  const importFileRef = useRef<HTMLInputElement | null>(null);
 
   const countryOptions = [
     { code: "AT", label: "Austria" },
@@ -1703,19 +1704,32 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     { code: "SK", label: "Slovakia" },
   ];
 
-  async function onValidateTin() {
-    const trimmed = tinInput.trim();
-    if (!trimmed) return;
+  const stats = useMemo(() => {
+    return {
+      total: rows.length,
+      valid: rows.filter((r) => r.status === "valid").length,
+      invalid: rows.filter((r) => r.status === "invalid").length,
+      error: rows.filter((r) => r.status === "error").length,
+    };
+  }, [rows]);
+
+  async function onValidateTinBatch() {
+    const lines = tinInput
+      .split(/\r?\n/)
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
+
+    if (!lines.length) return;
 
     setLoading(true);
     setError("");
-    setResult(null);
+    setRows([]);
 
     try {
-      const resp = await fetch("/api/tin-validate", {
+      const resp = await fetch("/api/tin-validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ country, tin: trimmed }),
+        body: JSON.stringify({ country, tins: lines }),
       });
 
       const data = await resp.json();
@@ -1725,7 +1739,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
         return;
       }
 
-      setResult(data);
+      setRows(Array.isArray(data?.results) ? data.results : []);
     } catch {
       setError("TIN validation failed");
     } finally {
@@ -1735,35 +1749,58 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
   function onClearTin() {
     setTinInput("");
-    setResult(null);
+    setRows([]);
     setError("");
   }
 
-  const statusText = !result
-    ? "Not checked"
-    : result.status === "valid"
-    ? "Valid"
-    : "Invalid";
+  function openImportDialog() {
+    importFileRef.current?.click();
+  }
 
-  const statusColor = !result
-    ? "var(--text)"
-    : result.status === "valid"
-    ? "var(--ok)"
-    : "var(--bad)";
+  async function importTinFile(file: File) {
+    const name = (file.name || "").toLowerCase();
+    const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
 
-  const structureLabel =
-    result?.structure_valid === null || result?.structure_valid === undefined
-      ? "n/a"
-      : result.structure_valid
-      ? "true"
-      : "false";
+    let candidates: string[] = [];
 
-  const syntaxLabel =
-    result?.syntax_valid === null || result?.syntax_valid === undefined
-      ? "n/a"
-      : result.syntax_valid
-      ? "true"
-      : "false";
+    if (isCsvLike) {
+      const text = await file.text();
+      candidates = text
+        .split(/\r?\n|,|;|\t/)
+        .map((x) => String(x || "").trim())
+        .filter(Boolean);
+    } else {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const firstSheetName = wb.SheetNames?.[0];
+      const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
+      if (!ws) return;
+
+      const aoa = XLSX.utils.sheet_to_json(ws, {
+        header: 1,
+        raw: false,
+        defval: "",
+      }) as any[][];
+
+      candidates = aoa
+        .flat()
+        .map((x) => String(x || "").trim())
+        .filter(Boolean);
+    }
+
+    if (candidates.length) {
+      setTinInput(candidates.join("\n"));
+      setRows([]);
+      setError("");
+    }
+  }
+
+  function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    void importTinFile(f);
+  }
 
   return (
     <>
@@ -1829,7 +1866,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Choose the country and enter the TIN. Do not add the country code in front of the number.
+              Kies 1 land en voeg meerdere TIN-nummers toe, 1 per regel. Zonder landcode ervoor.
             </p>
 
             <div className="row inputActionsRow">
@@ -1837,7 +1874,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 value={country}
                 onChange={(e) => {
                   setCountry(e.target.value);
-                  setResult(null);
+                  setRows([]);
                   setError("");
                 }}
                 style={{ minWidth: 240 }}
@@ -1849,22 +1886,29 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 ))}
               </select>
 
+              <button className="btn btn-secondary" onClick={openImportDialog} disabled={loading}>
+                Import XLSX/CSV
+              </button>
+
               <input
-                type="text"
-                value={tinInput}
-                onChange={(e) => setTinInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void onValidateTin();
-                }}
-                placeholder="Enter TIN without country code"
-                style={{ flex: 1, minWidth: 280 }}
+                ref={importFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv,.txt"
+                style={{ display: "none" }}
+                onChange={onImportFileChange}
               />
             </div>
+
+            <textarea
+              value={tinInput}
+              onChange={(e) => setTinInput(e.target.value)}
+              placeholder={`123456782\n987654321\n...`}
+            />
 
             <div className="row" style={{ marginTop: 12 }}>
               <button
                 className="btn btn-primary"
-                onClick={onValidateTin}
+                onClick={onValidateTinBatch}
                 disabled={loading || !tinInput.trim()}
               >
                 {loading ? "Validating…" : "Validate"}
@@ -1876,117 +1920,127 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
 
             <div className="callout" style={{ marginTop: 14 }}>
-              <b>Important</b>: this checks structure and syntax where available. It does not confirm identity or whether the number really exists.
+              <b>Important</b>: bulk in jouw tool is meerdere losse calls naar de officiële EC service.
             </div>
           </div>
 
           <div className="card">
-            <h2>Result</h2>
-            <p className="hint">Response from the EC TIN service.</p>
+            <h2>Summary</h2>
+            <p className="hint">Overzicht van de batch.</p>
 
-            <div
-              style={{
-                marginTop: 10,
-                padding: 16,
-                borderRadius: 16,
-                border: "1px solid rgba(0,0,0,0.08)",
-                background: "rgba(255,255,255,0.18)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
-                    Status
-                  </div>
-                  <div
-                    className="mono"
-                    style={{
-                      fontSize: 26,
-                      fontWeight: 800,
-                      color: statusColor,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {statusText}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    background: "rgba(255,255,255,0.40)",
-                    minWidth: 220,
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
-                    Country
-                  </div>
-                  <div className="mono" style={{ fontWeight: 700 }}>
-                    {country}
-                  </div>
-                </div>
+            {error && (
+              <div className="callout" style={{ marginTop: 10 }}>
+                <b style={{ color: "var(--bad)" }}>Error</b>: {error}
               </div>
+            )}
 
-              {error && (
-                <div className="callout" style={{ marginTop: 12 }}>
-                  <b style={{ color: "var(--bad)" }}>Error</b>: {error}
+            {!error && !rows.length && (
+              <div className="callout" style={{ marginTop: 10 }}>
+                No results yet.
+              </div>
+            )}
+
+            {!!rows.length && (
+              <>
+                <div className="stats" style={{ marginTop: 10 }}>
+                  <div className="stat">
+                    <span>Total</span>
+                    <b>{stats.total}</b>
+                  </div>
+                  <div className="stat">
+                    <span>Valid</span>
+                    <b style={{ color: "var(--ok)" }}>{stats.valid}</b>
+                  </div>
+                  <div className="stat">
+                    <span>Invalid</span>
+                    <b style={{ color: "var(--bad)" }}>{stats.invalid}</b>
+                  </div>
+                  <div className="stat">
+                    <span>Error</span>
+                    <b style={{ color: "var(--bad)" }}>{stats.error}</b>
+                  </div>
                 </div>
-              )}
 
-              {!error && !result && (
                 <div className="callout" style={{ marginTop: 12 }}>
-                  No result yet.
+                  <b>Country</b>: {country}
                 </div>
-              )}
+              </>
+            )}
+          </div>
+        </div>
 
-              {result && (
-                <>
-                  <div className="stats" style={{ marginTop: 12 }}>
-                    <div className="stat">
-                      <span>Country</span>
-                      <b>{result.country}</b>
-                    </div>
-<div className="stat">
-  <span>Validation date</span>
-  <b>
-    {result.request_date
-      ? String(result.request_date).slice(0, 10)
-      : "—"}
-  </b>
-</div>
-                    <div className="stat">
-                      <span>Structure</span>
-                      <b>{structureLabel}</b>
-                    </div>
-                    <div className="stat">
-                      <span>Syntax</span>
-                      <b>{syntaxLabel}</b>
-                    </div>
-                  </div>
-
-                  <div className="callout" style={{ marginTop: 12 }}>
-                    <b>Returned TIN</b>:{" "}
-                    <span className="mono">{result.tin_number || "—"}</span>
-                  </div>
-
-                  <div className="callout" style={{ marginTop: 10 }}>
-                    <b>Message</b>: {result.message}
-                  </div>
-                </>
-              )}
+        <div className="tableWrap">
+          <div className="tableHeader">
+            <strong>Results</strong>
+            <div className="muted">
+              Showing <b style={{ color: "var(--text)" }}>{rows.length}</b> rows
             </div>
+          </div>
+
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 180 }}>Status</th>
+                  <th style={{ width: 220 }}>Input TIN</th>
+                  <th style={{ width: 220 }}>Returned TIN</th>
+                  <th style={{ width: 140 }}>Structure</th>
+                  <th style={{ width: 120 }}>Syntax</th>
+                  <th style={{ width: 160 }}>Validation date</th>
+                  <th style={{ width: 320 }}>Message</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {rows.map((r, idx) => {
+                  const cls =
+                    r.status === "valid"
+                      ? "valid"
+                      : r.status === "invalid"
+                      ? "invalid"
+                      : "error";
+
+                  const structureLabel =
+                    r.structure_valid === null || r.structure_valid === undefined
+                      ? "n/a"
+                      : r.structure_valid
+                      ? "true"
+                      : "false";
+
+                  const syntaxLabel =
+                    r.syntax_valid === null || r.syntax_valid === undefined
+                      ? "n/a"
+                      : r.syntax_valid
+                      ? "true"
+                      : "false";
+
+                  return (
+                    <tr key={`${r.input_tin}-${idx}`}>
+                      <td>
+                        <span className={`pill ${cls}`}>
+                          <i aria-hidden="true" />
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="mono nowrap">{r.input_tin || ""}</td>
+                      <td className="mono nowrap">{r.tin_number || ""}</td>
+                      <td>{structureLabel}</td>
+                      <td>{syntaxLabel}</td>
+                      <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
+                      <td title={r.message || ""}>{r.message || ""}</td>
+                    </tr>
+                  );
+                })}
+
+                {!rows.length && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
+                      No results
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
