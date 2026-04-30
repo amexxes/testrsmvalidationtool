@@ -1681,33 +1681,61 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   ];
 
   const countryOptions = [
-    { code: "AT", label: "Austria", support: "pending", example: "See official sheet" },
+    { code: "AT", label: "Austria", support: "pending", example: "See EC sheet" },
     { code: "BE", label: "Belgium", support: "syntax", example: "85073003328" },
-    { code: "BG", label: "Bulgaria", support: "pending", example: "See official sheet" },
-    { code: "CY", label: "Cyprus", support: "pending", example: "See official sheet" },
+    { code: "BG", label: "Bulgaria", support: "pending", example: "See EC sheet" },
+    { code: "CY", label: "Cyprus", support: "pending", example: "See EC sheet" },
     { code: "CZ", label: "Czech Republic", support: "structure", example: "8507301234" },
     { code: "DE", label: "Germany", support: "structure", example: "65012347890" },
     { code: "DK", label: "Denmark", support: "structure", example: "0102031234" },
     { code: "EE", label: "Estonia", support: "syntax", example: "37605030299" },
-    { code: "EL", label: "Greece", support: "pending", example: "See official sheet" },
+    { code: "EL", label: "Greece", support: "pending", example: "See EC sheet" },
     { code: "ES", label: "Spain", support: "syntax", example: "12345678Z" },
     { code: "FI", label: "Finland", support: "syntax", example: "131052-308T" },
     { code: "FR", label: "France", support: "structure", example: "1234567890123" },
     { code: "HR", label: "Croatia", support: "syntax", example: "12345678903" },
-    { code: "HU", label: "Hungary", support: "pending", example: "See official sheet" },
+    { code: "HU", label: "Hungary", support: "pending", example: "See EC sheet" },
     { code: "IE", label: "Ireland", support: "structure", example: "1234567T" },
     { code: "IT", label: "Italy", support: "syntax", example: "RSSMRA85M01H501U" },
     { code: "LT", label: "Lithuania", support: "syntax", example: "39001011234" },
-    { code: "LU", label: "Luxembourg", support: "pending", example: "See official sheet" },
+    { code: "LU", label: "Luxembourg", support: "pending", example: "See EC sheet" },
     { code: "LV", label: "Latvia", support: "structure", example: "01020312345" },
-    { code: "MT", label: "Malta", support: "pending", example: "See official sheet" },
+    { code: "MT", label: "Malta", support: "pending", example: "See EC sheet" },
     { code: "NL", label: "Netherlands", support: "syntax", example: "123456782" },
     { code: "PL", label: "Poland", support: "syntax", example: "02070803628" },
     { code: "PT", label: "Portugal", support: "syntax", example: "123456789" },
     { code: "RO", label: "Romania", support: "syntax", example: "1800101221144" },
     { code: "SE", label: "Sweden", support: "syntax", example: "8507099805" },
-    { code: "SI", label: "Slovenia", support: "pending", example: "See official sheet" },
+    { code: "SI", label: "Slovenia", support: "pending", example: "See EC sheet" },
     { code: "SK", label: "Slovakia", support: "structure", example: "8507301234" },
+  ];
+
+  const techSections = [
+    {
+      key: "structure_summary",
+      title: "TIN structures",
+      text: "Kort overzicht van de gebruikte TIN-formaten.",
+    },
+    {
+      key: "structure_specs",
+      title: "TIN structures and specifications",
+      text: "Meer detail over formaat, regels en bijzonderheden.",
+    },
+    {
+      key: "documents",
+      title: "Official documents",
+      text: "Voorbeelden van documenten waarop het TIN staat.",
+    },
+    {
+      key: "websites",
+      title: "National reference websites",
+      text: "Officiële nationale websites met extra uitleg.",
+    },
+    {
+      key: "contacts",
+      title: "National contact points",
+      text: "Contactpunten voor TIN-vragen.",
+    },
   ];
 
   const selectedCountry =
@@ -1850,8 +1878,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Natural persons only. Subject is now included. For countries already implemented,
-              the current version still uses one generic country rule.
+              Natural persons only. This page now shows both the check result and the official technical info structure.
             </p>
 
             <div className="row inputActionsRow">
@@ -1900,7 +1927,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
 
             <div className="callout" style={{ marginTop: 10 }}>
-              <b>Subject</b>: {selectedSubject.label}
+              <b>Person type (helper)</b>: {selectedSubject.label}
               <br />
               <b>Country</b>: {selectedCountry.code} — {selectedCountry.label}
               <br />
@@ -1928,128 +1955,195 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
           </div>
 
-          <div className="card">
-            <h2>Result</h2>
-            <p className="hint">
-              Result card now includes country, subject and whether the subject-specific rule was applied.
-            </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, minHeight: 0 }}>
+            <div className="card">
+              <h2>Result</h2>
+              <p className="hint">
+                Validation result for the selected TIN.
+              </p>
 
-            <div
-              style={{
-                marginTop: 10,
-                padding: 16,
-                borderRadius: 16,
-                border: "1px solid rgba(0,0,0,0.08)",
-                background: "rgba(255,255,255,0.18)",
-                backdropFilter: "blur(6px)",
-                WebkitBackdropFilter: "blur(6px)",
-              }}
-            >
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
+                  marginTop: 10,
+                  padding: 16,
+                  borderRadius: 16,
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  background: "rgba(255,255,255,0.18)",
+                  backdropFilter: "blur(6px)",
+                  WebkitBackdropFilter: "blur(6px)",
                 }}
               >
-                <div>
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
-                    Status
-                  </div>
-                  <div
-                    className="mono"
-                    style={{
-                      fontSize: 26,
-                      fontWeight: 800,
-                      color: statusColor,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {statusText}
-                  </div>
-                </div>
-
                 <div
                   style={{
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    background: "rgba(255,255,255,0.40)",
-                    minWidth: 220,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
                   }}
                 >
-                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
-                    Mode
+                  <div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
+                      Status
+                    </div>
+                    <div
+                      className="mono"
+                      style={{
+                        fontSize: 26,
+                        fontWeight: 800,
+                        color: statusColor,
+                        lineHeight: 1.1,
+                      }}
+                    >
+                      {statusText}
+                    </div>
                   </div>
-                  <div className="mono" style={{ fontWeight: 700 }}>
-                    {supportLabel}
+
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "rgba(255,255,255,0.40)",
+                      minWidth: 220,
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
+                      Mode
+                    </div>
+                    <div className="mono" style={{ fontWeight: 700 }}>
+                      {supportLabel}
+                    </div>
                   </div>
                 </div>
+
+                {error && (
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    <b style={{ color: "var(--bad)" }}>Error</b>: {error}
+                  </div>
+                )}
+
+                {!error && !result && (
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    No result yet.
+                  </div>
+                )}
+
+                {result && (
+                  <>
+                    <div className="stats" style={{ marginTop: 12 }}>
+                      <div className="stat">
+                        <span>Country</span>
+                        <b>{result.country}</b>
+                      </div>
+                      <div className="stat">
+                        <span>Subject</span>
+                        <b>{result.subject}</b>
+                      </div>
+                      <div className="stat">
+                        <span>Check</span>
+                        <b>{result.check_level}</b>
+                      </div>
+                      <div className="stat">
+                        <span>Structure</span>
+                        <b>
+                          {result.structure_valid === null
+                            ? "n/a"
+                            : result.structure_valid
+                            ? "true"
+                            : "false"}
+                        </b>
+                      </div>
+                      <div className="stat">
+                        <span>Syntax</span>
+                        <b>{syntaxLabel}</b>
+                      </div>
+                    </div>
+
+                    <div className="callout" style={{ marginTop: 12 }}>
+                      <b>Normalized</b>:{" "}
+                      <span className="mono">{result.normalized || "—"}</span>
+                    </div>
+
+                    <div className="callout" style={{ marginTop: 10 }}>
+                      <b>Message</b>: {result.message}
+                    </div>
+
+                    <div className="callout" style={{ marginTop: 10 }}>
+                      <b>Disclaimer</b>: {result.disclaimer}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="card">
+              <h2>Official technical info</h2>
+              <p className="hint">
+                Same 5 info blocks as the EC technical info page.
+              </p>
+
+              <div className="callout" style={{ marginTop: 10 }}>
+                <b>Selected country</b>: {selectedCountry.code} — {selectedCountry.label}
+                <br />
+                <b>Current validation in your tool</b>: {supportLabel}
               </div>
 
-              {error && (
-                <div className="callout" style={{ marginTop: 12 }}>
-                  <b style={{ color: "var(--bad)" }}>Error</b>: {error}
-                </div>
-              )}
-
-              {!error && !result && (
-                <div className="callout" style={{ marginTop: 12 }}>
-                  No result yet.
-                </div>
-              )}
-
-              {result && (
-                <>
-                  <div className="stats" style={{ marginTop: 12 }}>
-                    <div className="stat">
-                      <span>Country</span>
-                      <b>{result.country}</b>
+              <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+                {techSections.map((item) => (
+                  <div
+                    key={item.key}
+                    style={{
+                      padding: 12,
+                      borderRadius: 14,
+                      border: "1px solid rgba(0,0,0,0.08)",
+                      background: "rgba(255,255,255,0.18)",
+                      backdropFilter: "blur(6px)",
+                      WebkitBackdropFilter: "blur(6px)",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, color: "#0B2E5F", marginBottom: 4 }}>
+                      {item.title}
                     </div>
-                    <div className="stat">
-                      <span>Subject</span>
-                      <b>{result.subject}</b>
-                    </div>
-                    <div className="stat">
-                      <span>Check</span>
-                      <b>{result.check_level}</b>
-                    </div>
-                    <div className="stat">
-                      <span>Structure</span>
-                      <b>
-                        {result.structure_valid === null
-                          ? "n/a"
-                          : result.structure_valid
-                          ? "true"
-                          : "false"}
-                      </b>
-                    </div>
-                    <div className="stat">
-                      <span>Syntax</span>
-                      <b>{syntaxLabel}</b>
-                    </div>
-                    <div className="stat">
-                      <span>Subject rule</span>
-                      <b>{result.subject_applied ? "applied" : "generic / pending"}</b>
+                    <div style={{ fontSize: 14, color: "var(--text)" }}>
+                      {item.text}
                     </div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="callout" style={{ marginTop: 12 }}>
-                    <b>Normalized</b>:{" "}
-                    <span className="mono">{result.normalized || "—"}</span>
-                  </div>
+              <div className="callout" style={{ marginTop: 12 }}>
+                <b>What this means</b>: your tool checks the number, and this block tells the user what official info exists around that number.
+              </div>
 
-                  <div className="callout" style={{ marginTop: 10 }}>
-                    <b>Message</b>: {result.message}
-                  </div>
+              <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
+                <a
+                  className="btn btn-secondary"
+                  href="https://taxation-customs.ec.europa.eu/online-services/online-services-and-databases-taxation/taxpayer-identification-number-tin_en"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open EC TIN page
+                </a>
 
-                  <div className="callout" style={{ marginTop: 10 }}>
-                    <b>Disclaimer</b>: {result.disclaimer}
-                  </div>
-                </>
-              )}
+                <a
+                  className="btn btn-secondary"
+                  href="https://ec.europa.eu/taxation_customs/tin/tinByCountry.html"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open country sheets
+                </a>
+
+                <a
+                  className="btn btn-secondary"
+                  href="https://ec.europa.eu/taxation_customs/tin/tinBySubject.html"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open subject sheets
+                </a>
+              </div>
             </div>
           </div>
         </div>
