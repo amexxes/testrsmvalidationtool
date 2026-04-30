@@ -1674,20 +1674,34 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [error, setError] = useState("");
 
   const countryOptions = [
-    { code: "BE", label: "Belgium" },
-    { code: "DE", label: "Germany" },
-    { code: "DK", label: "Denmark" },
-    { code: "ES", label: "Spain" },
-    { code: "FI", label: "Finland" },
-    { code: "FR", label: "France" },
-    { code: "IT", label: "Italy" },
-    { code: "NL", label: "Netherlands" },
-    { code: "PL", label: "Poland" },
-    { code: "PT", label: "Portugal" },
-    { code: "SE", label: "Sweden" },
+    { code: "BE", label: "Belgium", support: "syntax", example: "85073003328" },
+    { code: "CZ", label: "Czech Republic", support: "structure", example: "8507301234" },
+    { code: "DE", label: "Germany", support: "structure", example: "65012347890" },
+    { code: "DK", label: "Denmark", support: "structure", example: "0102031234" },
+    { code: "EE", label: "Estonia", support: "syntax", example: "37605030299" },
+    { code: "ES", label: "Spain", support: "syntax", example: "12345678Z" },
+    { code: "FI", label: "Finland", support: "syntax", example: "131052-308T" },
+    { code: "FR", label: "France", support: "structure", example: "1234567890123" },
+    { code: "HR", label: "Croatia", support: "syntax", example: "12345678903" },
+    { code: "IE", label: "Ireland", support: "structure", example: "1234567T" },
+    { code: "IT", label: "Italy", support: "syntax", example: "RSSMRA85M01H501U" },
+    { code: "LT", label: "Lithuania", support: "syntax", example: "39001011234" },
+    { code: "LV", label: "Latvia", support: "structure", example: "01020312345" },
+    { code: "NL", label: "Netherlands", support: "syntax", example: "123456782" },
+    { code: "PL", label: "Poland", support: "syntax", example: "02070803628" },
+    { code: "PT", label: "Portugal", support: "syntax", example: "123456789" },
+    { code: "RO", label: "Romania", support: "syntax", example: "1800101221144" },
+    { code: "SE", label: "Sweden", support: "syntax", example: "8507099805" },
+    { code: "SK", label: "Slovakia", support: "structure", example: "8507301234" },
   ];
 
+  const selectedCountry =
+    countryOptions.find((c) => c.code === country) || countryOptions[0];
+
   async function onValidateTin() {
+    const trimmed = tinInput.trim();
+    if (!trimmed) return;
+
     setLoading(true);
     setError("");
     setResult(null);
@@ -1696,10 +1710,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       const resp = await fetch("/api/tin-validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          country,
-          tin: tinInput,
-        }),
+        body: JSON.stringify({ country, tin: trimmed }),
       });
 
       const data = await resp.json();
@@ -1723,11 +1734,24 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     setError("");
   }
 
+  const statusText = !result
+    ? "Not checked"
+    : result.status === "valid"
+    ? "Valid"
+    : "Invalid";
+
   const statusColor = !result
     ? "var(--text)"
     : result.status === "valid"
     ? "var(--ok)"
     : "var(--bad)";
+
+  const syntaxLabel =
+    result?.syntax_valid === null
+      ? "n/a"
+      : result?.syntax_valid
+      ? "true"
+      : "false";
 
   return (
     <>
@@ -1793,14 +1817,19 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Natural persons only. This check validates structure and, where available in this first version, syntax.
+              Natural persons only. Structure is checked for all listed countries below.
+              Syntax is checked where implemented.
             </p>
 
             <div className="row inputActionsRow">
               <select
                 value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                style={{ minWidth: 220 }}
+                onChange={(e) => {
+                  setCountry(e.target.value);
+                  setResult(null);
+                  setError("");
+                }}
+                style={{ minWidth: 240 }}
               >
                 {countryOptions.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -1816,87 +1845,148 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void onValidateTin();
                 }}
-                placeholder="Enter TIN"
-                style={{ flex: 1, minWidth: 260 }}
+                placeholder={`Example: ${selectedCountry.example}`}
+                style={{ flex: 1, minWidth: 280 }}
               />
             </div>
 
             <div className="callout" style={{ marginTop: 10 }}>
-              <b>Coverage in this first version</b>: syntax for <span className="mono">BE, ES, FI, IT, NL, PL, PT, SE</span> ·
-              structure only for <span className="mono">DE, DK, FR</span>
+              <b>Country</b>: {selectedCountry.code} — {selectedCountry.label}
+              <br />
+              <b>Check mode</b>:{" "}
+              {selectedCountry.support === "syntax" ? "structure + syntax" : "structure only"}
+              <br />
+              <b>Example</b>: <span className="mono">{selectedCountry.example}</span>
             </div>
 
             <div className="row" style={{ marginTop: 12 }}>
-              <button className="btn btn-primary" onClick={onValidateTin} disabled={loading || !tinInput.trim()}>
+              <button
+                className="btn btn-primary"
+                onClick={onValidateTin}
+                disabled={loading || !tinInput.trim()}
+              >
                 {loading ? "Validating…" : "Validate"}
               </button>
 
-              <button className="btn btn-secondary" onClick={onClearTin} disabled={loading && !tinInput}>
+              <button className="btn btn-secondary" onClick={onClearTin} disabled={loading}>
                 Clear
               </button>
             </div>
 
             <div className="callout" style={{ marginTop: 14 }}>
-              <b>Important</b>: this does not confirm that the TIN exists or that it belongs to the person.
+              <b>Important</b>: this does not confirm that the TIN exists or belongs to the person.
             </div>
           </div>
 
           <div className="card">
             <h2>Result</h2>
-            <p className="hint">Same principle as the EU TIN portal: structure first, syntax where available.</p>
+            <p className="hint">
+              Result card aligned with the VAT page layout.
+            </p>
 
-            {error && (
-              <div className="callout" style={{ marginTop: 10 }}>
-                <b style={{ color: "var(--bad)" }}>Error</b>: {error}
+            <div
+              style={{
+                marginTop: 10,
+                padding: 16,
+                borderRadius: 16,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(255,255,255,0.18)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 6 }}>
+                    Status
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 26,
+                      fontWeight: 800,
+                      color: statusColor,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {statusText}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    background: "rgba(255,255,255,0.40)",
+                    minWidth: 180,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
+                    Mode
+                  </div>
+                  <div className="mono" style={{ fontWeight: 700 }}>
+                    {selectedCountry.support === "syntax" ? "structure + syntax" : "structure only"}
+                  </div>
+                </div>
               </div>
-            )}
 
-            {!error && !result && (
-              <div className="callout" style={{ marginTop: 10 }}>
-                No result yet.
-              </div>
-            )}
-
-            {result && (
-              <>
-                <div className="stats">
-                  <div className="stat">
-                    <span>Status</span>
-                    <b style={{ color: statusColor }}>{result.status}</b>
-                  </div>
-                  <div className="stat">
-                    <span>Check</span>
-                    <b>{result.check_level}</b>
-                  </div>
-                  <div className="stat">
-                    <span>Country</span>
-                    <b>{result.country}</b>
-                  </div>
-                  <div className="stat">
-                    <span>Syntax</span>
-                    <b>
-                      {result.syntax_valid === null
-                        ? "n/a"
-                        : result.syntax_valid
-                        ? "true"
-                        : "false"}
-                    </b>
-                  </div>
+              {error && (
+                <div className="callout" style={{ marginTop: 12 }}>
+                  <b style={{ color: "var(--bad)" }}>Error</b>: {error}
                 </div>
+              )}
 
-                <div className="callout" style={{ marginTop: 10 }}>
-                  <b>Normalized</b>: <span className="mono">{result.normalized || "—"}</span>
+              {!error && !result && (
+                <div className="callout" style={{ marginTop: 12 }}>
+                  No result yet.
                 </div>
+              )}
 
-                <div className="callout" style={{ marginTop: 10 }}>
-                  <b>Message</b>: {result.message}
-                </div>
+              {result && (
+                <>
+                  <div className="stats" style={{ marginTop: 12 }}>
+                    <div className="stat">
+                      <span>Country</span>
+                      <b>{result.country}</b>
+                    </div>
+                    <div className="stat">
+                      <span>Check</span>
+                      <b>{result.check_level}</b>
+                    </div>
+                    <div className="stat">
+                      <span>Structure</span>
+                      <b>{result.structure_valid ? "true" : "false"}</b>
+                    </div>
+                    <div className="stat">
+                      <span>Syntax</span>
+                      <b>{syntaxLabel}</b>
+                    </div>
+                  </div>
 
-                <div className="callout" style={{ marginTop: 10 }}>
-                  <b>Disclaimer</b>: {result.disclaimer}
-                </div>
-              </>
-            )}
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    <b>Normalized</b>:{" "}
+                    <span className="mono">{result.normalized || "—"}</span>
+                  </div>
+
+                  <div className="callout" style={{ marginTop: 10 }}>
+                    <b>Message</b>: {result.message}
+                  </div>
+
+                  <div className="callout" style={{ marginTop: 10 }}>
+                    <b>Disclaimer</b>: {result.disclaimer}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
