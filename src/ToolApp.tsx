@@ -1233,42 +1233,37 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             <div className="title">VAT validation</div>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-              gap: 16,
-              flexWrap: "wrap",
-              width: "100%",
-              maxWidth: 980,
-              marginLeft: "auto",
-            }}
-          >
-            <div
-              className="chipsRow"
-              style={{
-                marginTop: 0,
-                width: "auto",
-                maxWidth: "none",
-                flex: "0 1 auto",
-              }}
-            >
-              <div className="chip">
-                <span>FR job</span>
-                <b className="nowrap">{frText}</b>
-              </div>
+ <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 16,
+    flexWrap: "wrap",
+    width: "100%",
+    maxWidth: 980,
+    marginLeft: "auto",
+  }}
+>
+  <div
+    className="chipsRow"
+    style={{
+      marginTop: 0,
+      width: "auto",
+      maxWidth: "none",
+      flex: "0 1 auto",
+    }}
+  >
+    <div className="chip">
+      <span>Last update</span>
+      <b className="nowrap">{lastUpdate}</b>
+    </div>
+  </div>
 
-              <div className="chip">
-                <span>Last update</span>
-                <b className="nowrap">{lastUpdate}</b>
-              </div>
-            </div>
-
-            <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
-              <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
-            </div>
-          </div>
+  <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
+    <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+  </div>
+</div>
         </div>
       </div>
 
