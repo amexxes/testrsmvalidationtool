@@ -1245,19 +1245,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               marginLeft: "auto",
             }}
           >
-            <div
-              className="chipsRow"
-              style={{
-                marginTop: 0,
-                width: "auto",
-                maxWidth: "none",
-                flex: "0 1 auto",
-              }}
-            >
-              <div className="chip">
-                <span>FR job</span>
-                <b className="nowrap">{frText}</b>
-              </div>
+
 
               <div className="chip">
                 <span>Last update</span>
