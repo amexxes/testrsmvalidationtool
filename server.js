@@ -15,6 +15,27 @@ const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || "")
 // Official EC VIES REST API
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 
+function getRequestUser(req) {
+  const email = String(req.headers["x-user-email"] || "").trim().toLowerCase();
+  const role = ADMIN_EMAILS.includes(email) ? "admin" : "user";
+  return { email, role };
+}
+
+function requireAdmin(req, res, next) {
+  const user = getRequestUser(req);
+
+  if (!user.email) {
+    return res.status(401).json({ error: "Missing user email" });
+  }
+
+  if (user.role !== "admin") {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  req.user = user;
+  next();
+}
+
 // Optional "qualified" requester (env vars in Render)
 const REQUESTER_MS = (process.env.REQUESTER_MS || "").toUpperCase();
 const REQUESTER_VAT = process.env.REQUESTER_VAT || "";
@@ -64,11 +85,28 @@ function logUsageEvent(event) {
 }
 
 function getUsageSummary() {
-  const uniqueCaseRefs = new Set(
+  const emails = new Set(
     usageEvents
-      .map((e) => e.case_ref)
+      .map((e) => String(e.actorEmail || "").trim().toLowerCase())
       .filter(Boolean)
   );
+
+  let adminUsers = 0;
+  let normalUsers = 0;
+
+  for (const email of emails) {
+    if (ADMIN_EMAILS.includes(email)) adminUsers++;
+    else normalUsers++;
+  }
+
+  return {
+    totalUsers: emails.size,
+    activeUsers: emails.size,
+    adminUsers,
+    normalUsers,
+    totalEvents: usageEvents.length,
+  };
+}
 
   const uniqueVatChecks = new Set(
     usageEvents
