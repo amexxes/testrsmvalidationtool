@@ -1216,14 +1216,14 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 110,
+    minWidth: 132,
   }}
 >
   <img
     src="/RSMLOGO.png"
     alt="RSM"
     style={{
-      height: 28,
+      height: 34,
       width: "auto",
       display: "block",
       objectFit: "contain",
@@ -2097,17 +2097,31 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       <div className="banner">
         <div className="banner-accent" />
         <div className="banner-inner">
-          <div className="brand">
-            <div className="mark" aria-hidden="true">
-              <div className="mark-bars">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="mark-text">RSM</div>
-            </div>
-            <div className="title">TIN validation</div>
-          </div>
+<div className="brand">
+  <div
+    className="mark"
+    aria-hidden="true"
+    style={{
+      padding: "6px 12px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: 132,
+    }}
+  >
+    <img
+      src="/RSMLOGO.png"
+      alt="RSM"
+      style={{
+        height: 34,
+        width: "auto",
+        display: "block",
+        objectFit: "contain",
+      }}
+    />
+  </div>
+  <div className="title">TIN validation</div>
+</div>
 
           <div
             style={{
