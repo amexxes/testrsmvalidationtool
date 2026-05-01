@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import ToolApp from "./ToolApp";
 import LoginPage from "./LoginPage";
 import AdminUsersPanel from "./AdminUsersPanel";
-import ResetPasswordPage from "./ResetPasswordPage";
 import ChangePasswordPanel from "./ChangePasswordPanel";
+import AccountMenu from "./AccountMenu";
 
 type AuthUser = {
   id: string;
@@ -12,19 +12,6 @@ type AuthUser = {
   active: boolean;
   createdAt: string;
 };
-
-function getResetTokenFromUrl() {
-  if (typeof window === "undefined") return "";
-  const url = new URL(window.location.href);
-  return url.searchParams.get("resetToken") || "";
-}
-
-function removeResetTokenFromUrl() {
-  if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  url.searchParams.delete("resetToken");
-  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-}
 
 async function readApiResponse(resp: Response) {
   const text = await resp.text();
@@ -41,10 +28,8 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const [resetToken, setResetToken] = useState("");
 
   useEffect(() => {
-    setResetToken(getResetTokenFromUrl());
     void loadSession();
   }, []);
 
@@ -81,15 +66,6 @@ export default function App() {
       setAdminOpen(false);
       setChangePasswordOpen(false);
     }
-  }
-
-  function closeResetPage() {
-    removeResetTokenFromUrl();
-    setResetToken("");
-  }
-
-  if (resetToken) {
-    return <ResetPasswordPage token={resetToken} onDone={closeResetPage} />;
   }
 
   if (checking) {
@@ -130,43 +106,16 @@ export default function App() {
           <div style={{ minWidth: 0 }}>
             <div style={headerTitleStyle}>RSM Validation Portal</div>
             <div style={headerSubtitleStyle}>
-              VAT VIES checker and TIN checker
+              Official VAT VIES and TIN validation
             </div>
           </div>
 
-          <div style={headerRightStyle}>
-            <div style={userChipStyle}>
-              <span style={{ opacity: 0.7 }}>Signed in as</span>
-              <b>{user.email}</b>
-              {user.role === "admin" && <span style={adminBadgeStyle}>Admin</span>}
-            </div>
-
-            {user.role === "admin" && (
-              <button
-                type="button"
-                onClick={() => setAdminOpen(true)}
-                style={headerSecondaryButton}
-              >
-                Users
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setChangePasswordOpen(true)}
-              style={headerSecondaryButton}
-            >
-              Change password
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              style={headerPrimaryButton}
-            >
-              Logout
-            </button>
-          </div>
+          <AccountMenu
+            user={user}
+            onOpenUsers={() => setAdminOpen(true)}
+            onOpenChangePassword={() => setChangePasswordOpen(true)}
+            onLogout={handleLogout}
+          />
         </div>
       </div>
 
@@ -217,55 +166,4 @@ const headerSubtitleStyle: React.CSSProperties = {
   color: "#5d708d",
   fontSize: 13,
   marginTop: 4,
-};
-
-const headerRightStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-};
-
-const userChipStyle: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  padding: "10px 12px",
-  borderRadius: 14,
-  background: "rgba(255,255,255,0.92)",
-  border: "1px solid rgba(0,0,0,0.08)",
-  color: "#0B2E5F",
-  fontSize: 13,
-};
-
-const adminBadgeStyle: React.CSSProperties = {
-  padding: "4px 8px",
-  borderRadius: 999,
-  background: "rgba(43,179,230,0.12)",
-  border: "1px solid rgba(43,179,230,0.18)",
-  fontWeight: 700,
-  fontSize: 12,
-};
-
-const headerPrimaryButton: React.CSSProperties = {
-  padding: "12px 14px",
-  borderRadius: 14,
-  border: "1px solid #0B2E5F",
-  background: "#0B2E5F",
-  color: "#fff",
-  fontWeight: 700,
-  cursor: "pointer",
-  boxShadow: "0 10px 24px rgba(11,46,95,0.14)",
-};
-
-const headerSecondaryButton: React.CSSProperties = {
-  padding: "12px 14px",
-  borderRadius: 14,
-  border: "1px solid rgba(11,46,95,0.12)",
-  background: "rgba(255,255,255,0.94)",
-  color: "#0B2E5F",
-  fontWeight: 700,
-  cursor: "pointer",
-  boxShadow: "0 10px 24px rgba(11,46,95,0.08)",
 };
