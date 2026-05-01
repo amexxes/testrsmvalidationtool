@@ -25,7 +25,7 @@ type Props = {
 };
 
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_SETUP_KEY || "";
-console.log("ADMIN KEY LOADED:", ADMIN_KEY);
+
 export default function AdminUsageDashboard({ open, onClose }: Props) {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [events, setEvents] = useState<UsageEvent[]>([]);
@@ -43,7 +43,7 @@ export default function AdminUsageDashboard({ open, onClose }: Props) {
 
     try {
       if (!ADMIN_KEY) {
-        setError("VITE_ADMIN_PORTAL_KEY ontbreekt in frontend environment");
+        setError("VITE_ADMIN_SETUP_KEY ontbreekt in frontend environment");
         return;
       }
 
@@ -85,7 +85,9 @@ export default function AdminUsageDashboard({ open, onClose }: Props) {
       if (!summaryResp.ok) {
         setError(
           summaryData?.error ||
-            `Summary failed (${summaryResp.status}) ${typeof summaryData?.raw === "string" ? summaryData.raw.slice(0, 120) : ""}`
+            `Summary failed (${summaryResp.status}) ${
+              typeof summaryData?.raw === "string" ? summaryData.raw.slice(0, 120) : ""
+            }`
         );
         return;
       }
@@ -93,7 +95,9 @@ export default function AdminUsageDashboard({ open, onClose }: Props) {
       if (!eventsResp.ok) {
         setError(
           eventsData?.error ||
-            `Events failed (${eventsResp.status}) ${typeof eventsData?.raw === "string" ? eventsData.raw.slice(0, 120) : ""}`
+            `Events failed (${eventsResp.status}) ${
+              typeof eventsData?.raw === "string" ? eventsData.raw.slice(0, 120) : ""
+            }`
         );
         return;
       }
