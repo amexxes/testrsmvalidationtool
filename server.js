@@ -5,32 +5,6 @@ import { randomUUID } from "crypto";
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
-const ADMIN_PORTAL_KEY = String(process.env.ADMIN_SETUP_KEY || "").trim();
-
-function requireAdmin(req, res, next) {
-  try {
-    const adminKey = String(req.headers["x-admin-key"] || "").trim();
-
-    if (!ADMIN_PORTAL_KEY) {
-      return res.status(500).json({ error: "ADMIN_SETUP_KEY not configured" });
-    }
-
-    if (!adminKey) {
-      return res.status(401).json({ error: "Missing admin key" });
-    }
-
-    if (adminKey !== ADMIN_PORTAL_KEY) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
-
-    next();
-  } catch (err) {
-    return res.status(500).json({
-      error: err instanceof Error ? err.message : "Admin auth failed",
-    });
-  }
-}
-
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 
 const REQUESTER_MS = (process.env.REQUESTER_MS || "").toUpperCase();
@@ -56,30 +30,6 @@ function cacheGet(key) {
 
 function cacheSet(key, row) {
   cache.set(key, { ts: Date.now(), row });
-}
-
-const usageEvents = [];
-
-function logUsageEvent(event) {
-  usageEvents.unshift({
-    id: randomUUID(),
-    createdAt: new Date().toISOString(),
-    ...event,
-  });
-
-  if (usageEvents.length > 1000) {
-    usageEvents.length = 1000;
-  }
-}
-
-function getUsageSummary() {
-  return {
-    totalUsers: 0,
-    activeUsers: 0,
-    adminUsers: 0,
-    normalUsers: 0,
-    totalEvents: usageEvents.length,
-  };
 }
 
 let statusCache = null;
@@ -488,53 +438,12 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/admin/usage/summary", requireAdmin, (req, res) => {
-  try {
-    return res.status(200).json({
-      summary: getUsageSummary(),
-    });
-  } catch (err) {
-    console.error("usage summary error:", err);
-    return res.status(500).json({
-      error: err instanceof Error ? err.message : "Usage summary failed",
-    });
-  }
-});
-
-app.get("/api/admin/usage/events", requireAdmin, (req, res) => {
-  try {
-    return res.status(200).json({
-      events: usageEvents.slice(0, 50),
-    });
-  } catch (err) {
-    console.error("usage events error:", err);
-    return res.status(500).json({
-      error: err instanceof Error ? err.message : "Usage events failed",
-    });
-  }
-});
-
 app.post("/api/validate-batch", async (req, res) => {
   try {
     const vat_numbers = Array.isArray(req.body?.vat_numbers) ? req.body.vat_numbers : [];
     const case_ref = (req.body?.case_ref || "").toString().slice(0, 80);
 
-    logUsageEvent({
-      type: "batch_validation_started",
-      case_ref,
-      count_submitted: vat_numbers.length,
-    });
-
     const parsed = vat_numbers.map(parseVat).filter(Boolean);
-
-    for (const p of parsed) {
-      logUsageEvent({
-        type: "vat_check_started",
-        case_ref,
-        vat_number: p.vat_number,
-        country_code: p.countryCode,
-      });
-    }
 
     const seen = new Set();
     const unique = [];
@@ -690,11 +599,6 @@ app.post("/api/validate-batch", async (req, res) => {
 
 app.get("/api/fr-job/:jobId", (req, res) => {
   try {
-    logUsageEvent({
-      type: "fr_job_polled",
-      job_id: req.params.jobId,
-    });
-
     const jobEntry = jobs.get(req.params.jobId);
     if (!jobEntry) {
       return res.status(404).json({ error: "Not found" });
