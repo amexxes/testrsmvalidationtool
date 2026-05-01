@@ -6,6 +6,7 @@ type UserRow = {
   role: "admin" | "user";
   active: boolean;
   createdAt: string;
+  updatedAt?: string | null;
 };
 
 type Props = {
@@ -17,6 +18,7 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [actionLoadingEmail, setActionLoadingEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -85,6 +87,71 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
     }
   }
 
+  async function resetPassword(email: string) {
+    const newPassword = window.prompt(`Enter a new password for ${email}`);
+
+    if (!newPassword) return;
+
+    setActionLoadingEmail(email);
+    setError("");
+    setSuccess("");
+
+    try {
+      const resp = await fetch("/api/admin/users/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, newPassword }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.error || data?.message || "Could not reset password");
+        return;
+      }
+
+      setSuccess(`Password reset for ${email}`);
+      await loadUsers();
+    } catch {
+      setError("Could not reset password");
+    } finally {
+      setActionLoadingEmail("");
+    }
+  }
+
+  async function deleteUser(email: string) {
+    const ok = window.confirm(`Delete user ${email}?`);
+    if (!ok) return;
+
+    setActionLoadingEmail(email);
+    setError("");
+    setSuccess("");
+
+    try {
+      const resp = await fetch("/api/admin/users/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.error || data?.message || "Could not delete user");
+        return;
+      }
+
+      setSuccess(`Deleted ${email}`);
+      await loadUsers();
+    } catch {
+      setError("Could not delete user");
+    } finally {
+      setActionLoadingEmail("");
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -94,7 +161,7 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
           <div>
             <h2 style={{ margin: 0, color: "#0B2E5F" }}>User management</h2>
             <p style={{ margin: "6px 0 0", color: "#607089" }}>
-              Create users and let them sign in from multiple browsers.
+              Create, reset and delete users.
             </p>
           </div>
 
@@ -170,21 +237,45 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
                   <tr>
                     <th style={thStyle}>Email</th>
                     <th style={thStyle}>Role</th>
-                    <th style={thStyle}>Active</th>
                     <th style={thStyle}>Created</th>
+                    <th style={thStyle}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td style={tdStyle}>{user.email}</td>
-                      <td style={tdStyle}>{user.role}</td>
-                      <td style={tdStyle}>{user.active ? "Yes" : "No"}</td>
-                      <td style={tdStyle}>
-                        {user.createdAt ? new Date(user.createdAt).toLocaleString("en-GB") : "—"}
-                      </td>
-                    </tr>
-                  ))}
+                  {users.map((user) => {
+                    const busy = actionLoadingEmail === user.email;
+
+                    return (
+                      <tr key={user.id}>
+                        <td style={tdStyle}>{user.email}</td>
+                        <td style={tdStyle}>{user.role}</td>
+                        <td style={tdStyle}>
+                          {user.createdAt ? new Date(user.createdAt).toLocaleString("en-GB") : "—"}
+                        </td>
+                        <td style={tdStyle}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              style={smallButtonStyle}
+                              onClick={() => resetPassword(user.email)}
+                              disabled={busy}
+                            >
+                              Reset password
+                            </button>
+
+                            <button
+                              type="button"
+                              style={smallDangerButtonStyle}
+                              onClick={() => deleteUser(user.email)}
+                              disabled={busy}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
@@ -242,6 +333,26 @@ const secondaryButtonStyle: React.CSSProperties = {
   border: "1px solid rgba(11,46,95,0.12)",
   background: "#fff",
   color: "#0B2E5F",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const smallButtonStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "#fff",
+  color: "#0B2E5F",
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const smallDangerButtonStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid rgba(185,28,28,0.12)",
+  background: "rgba(185,28,28,0.06)",
+  color: "#8f1d1d",
   fontWeight: 700,
   cursor: "pointer",
 };
