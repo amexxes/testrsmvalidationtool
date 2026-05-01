@@ -1339,16 +1339,18 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               </div>
             )}
 
-            <textarea
-              value={vatInput}
-              onChange={(e) => setVatInput(e.target.value)}
-              placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-            />
+ <textarea
+  value={vatInput}
+  onChange={(e) => setVatInput(e.target.value)}
+  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+/>
+
 <UserDraftsPanel
   activePage="vat"
   referenceValue={caseRef}
   inputValue={vatInput}
   onRestoreDraft={(draft) => {
+    onCancel();
     setCaseRef(draft.referenceValue || "");
     setVatInput(draft.inputValue || "");
     setRows([]);
@@ -1361,22 +1363,23 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     setProgressText("0/0");
     setSortState({ colIndex: null, asc: true });
     setSortLabel("");
+    setFrDebugOn(false);
+    setFrDebug(null);
   }}
 />
 
 <div className="callout" style={{ marginTop: 10 }}>
-            <div className="callout" style={{ marginTop: 10 }}>
-              <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates ·{" "}
-              {precheck.badFormat} format issues
-              {precheck.badExamples.length > 0 && (
-                <details style={{ marginTop: 8 }}>
-                  <summary>Examples</summary>
-                  <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
-                    {precheck.badExamples.join("\n")}
-                  </div>
-                </details>
-              )}
-            </div>
+  <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates ·{" "}
+  {precheck.badFormat} format issues
+  {precheck.badExamples.length > 0 && (
+    <details style={{ marginTop: 8 }}>
+      <summary>Examples</summary>
+      <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+        {precheck.badExamples.join("\n")}
+      </div>
+    </details>
+  )}
+</div>
 
             <div className="row">
               <button className="btn btn-primary" onClick={onValidate} disabled={loading}>
