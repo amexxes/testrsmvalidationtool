@@ -1216,14 +1216,14 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 132,
+    minWidth: 152,
   }}
 >
   <img
     src="/RSMLOGO.png"
     alt="RSM"
     style={{
-      height: 34,
+      height: 40,
       width: "auto",
       display: "block",
       objectFit: "contain",
@@ -2106,14 +2106,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      minWidth: 132,
+      minWidth: 152,
     }}
   >
     <img
       src="/RSMLOGO.png"
       alt="RSM"
       style={{
-        height: 34,
+        height: 40,
         width: "auto",
         display: "block",
         objectFit: "contain",
