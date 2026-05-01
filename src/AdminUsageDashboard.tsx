@@ -11,15 +11,20 @@ type UsageSummary = {
 type UsageEvent = {
   id: string;
   type: string;
-  actorEmail: string;
-  targetEmail?: string | null;
   createdAt: string;
+  case_ref?: string;
+  vat_number?: string;
+  country_code?: string;
+  count_submitted?: number;
+  job_id?: string;
 };
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
+
+const ADMIN_KEY = import.meta.env.VITE_ADMIN_PORTAL_KEY || "";
 
 export default function AdminUsageDashboard({ open, onClose }: Props) {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
@@ -37,38 +42,66 @@ export default function AdminUsageDashboard({ open, onClose }: Props) {
     setError("");
 
     try {
-const [summaryResp, eventsResp] = await Promise.all([
-  fetch("/api/admin/usage/summary", {
-    credentials: "include",
-    headers: {
-      "x-admin-key": "een-lange-geheime-sleutel",
-    },
-  }),
-  fetch("/api/admin/usage/events", {
-    credentials: "include",
-    headers: {
-      "x-admin-key": "een-lange-geheime-sleutel",
-    },
-  }),
-]);
+      if (!ADMIN_KEY) {
+        setError("VITE_ADMIN_PORTAL_KEY ontbreekt in frontend environment");
+        return;
+      }
 
-      const summaryData = await summaryResp.json();
-      const eventsData = await eventsResp.json();
+      const [summaryResp, eventsResp] = await Promise.all([
+        fetch("/api/admin/usage/summary", {
+          method: "GET",
+          headers: {
+            "x-admin-key": ADMIN_KEY,
+            Accept: "application/json",
+          },
+        }),
+        fetch("/api/admin/usage/events", {
+          method: "GET",
+          headers: {
+            "x-admin-key": ADMIN_KEY,
+            Accept: "application/json",
+          },
+        }),
+      ]);
+
+      const summaryText = await summaryResp.text();
+      const eventsText = await eventsResp.text();
+
+      let summaryData: any = null;
+      let eventsData: any = null;
+
+      try {
+        summaryData = summaryText ? JSON.parse(summaryText) : null;
+      } catch {
+        summaryData = { raw: summaryText };
+      }
+
+      try {
+        eventsData = eventsText ? JSON.parse(eventsText) : null;
+      } catch {
+        eventsData = { raw: eventsText };
+      }
 
       if (!summaryResp.ok) {
-        setError(summaryData?.error || "Could not load summary");
+        setError(
+          summaryData?.error ||
+            `Summary failed (${summaryResp.status}) ${typeof summaryData?.raw === "string" ? summaryData.raw.slice(0, 120) : ""}`
+        );
         return;
       }
 
       if (!eventsResp.ok) {
-        setError(eventsData?.error || "Could not load events");
+        setError(
+          eventsData?.error ||
+            `Events failed (${eventsResp.status}) ${typeof eventsData?.raw === "string" ? eventsData.raw.slice(0, 120) : ""}`
+        );
         return;
       }
 
-      setSummary(summaryData.summary || null);
-      setEvents(Array.isArray(eventsData.events) ? eventsData.events : []);
-    } catch {
-      setError("Could not load dashboard");
+      setSummary(summaryData?.summary || null);
+      setEvents(Array.isArray(eventsData?.events) ? eventsData.events : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load dashboard");
     } finally {
       setLoading(false);
     }
@@ -137,17 +170,19 @@ const [summaryResp, eventsResp] = await Promise.all([
                     <thead>
                       <tr>
                         <th style={thStyle}>Type</th>
-                        <th style={thStyle}>Actor</th>
-                        <th style={thStyle}>Target</th>
+                        <th style={thStyle}>Case ref</th>
+                        <th style={thStyle}>VAT</th>
+                        <th style={thStyle}>Country</th>
                         <th style={thStyle}>Created</th>
                       </tr>
                     </thead>
                     <tbody>
                       {events.map((event) => (
                         <tr key={event.id}>
-                          <td style={tdStyle}>{event.type}</td>
-                          <td style={tdStyle}>{event.actorEmail}</td>
-                          <td style={tdStyle}>{event.targetEmail || "—"}</td>
+                          <td style={tdStyle}>{event.type || "—"}</td>
+                          <td style={tdStyle}>{event.case_ref || "—"}</td>
+                          <td style={tdStyle}>{event.vat_number || "—"}</td>
+                          <td style={tdStyle}>{event.country_code || "—"}</td>
                           <td style={tdStyle}>
                             {event.createdAt
                               ? new Date(event.createdAt).toLocaleString("nl-NL")
