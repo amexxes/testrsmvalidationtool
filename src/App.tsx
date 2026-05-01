@@ -101,26 +101,22 @@ export default function App() {
 
   return (
     <>
-      <div style={headerOuterStyle}>
-        <div style={headerInnerStyle}>
-          <div style={{ minWidth: 0 }}>
-            <div style={headerTitleStyle}>RSM Validation Portal</div>
-            <div style={headerSubtitleStyle}>
-              Official VAT VIES and TIN validation
-            </div>
-          </div>
+      <ToolApp />
 
-          <AccountMenu
-            user={user}
-            onOpenUsers={() => setAdminOpen(true)}
-            onOpenChangePassword={() => setChangePasswordOpen(true)}
-            onLogout={handleLogout}
-          />
-        </div>
-      </div>
-
-      <div style={{ paddingTop: 88 }}>
-        <ToolApp />
+      <div
+        style={{
+          position: "fixed",
+          right: 18,
+          bottom: 18,
+          zIndex: 14000,
+        }}
+      >
+        <AccountMenu
+          user={user}
+          onOpenUsers={() => setAdminOpen(true)}
+          onOpenChangePassword={() => setChangePasswordOpen(true)}
+          onLogout={handleLogout}
+        />
       </div>
 
       <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
@@ -131,39 +127,3 @@ export default function App() {
     </>
   );
 }
-
-const headerOuterStyle: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  zIndex: 14000,
-  padding: "14px 18px",
-  background: "rgba(245,248,252,0.78)",
-  backdropFilter: "blur(10px)",
-  WebkitBackdropFilter: "blur(10px)",
-  borderBottom: "1px solid rgba(11,46,95,0.08)",
-};
-
-const headerInnerStyle: React.CSSProperties = {
-  maxWidth: 1400,
-  margin: "0 auto",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 16,
-  flexWrap: "wrap",
-};
-
-const headerTitleStyle: React.CSSProperties = {
-  color: "#0B2E5F",
-  fontWeight: 800,
-  fontSize: 18,
-  lineHeight: 1.1,
-};
-
-const headerSubtitleStyle: React.CSSProperties = {
-  color: "#5d708d",
-  fontSize: 13,
-  marginTop: 4,
-};
