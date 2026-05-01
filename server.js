@@ -39,6 +39,53 @@ function cacheSet(key, row) {
   cache.set(key, { ts: Date.now(), row });
 }
 
+// -------------------- Usage dashboard data --------------------
+/**
+ * Simpele in-memory usage data.
+ * Later kun je dit vervangen door database-opslag.
+ */
+const usageEvents = [];
+
+function logUsageEvent(event) {
+  usageEvents.unshift({
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+    ...event,
+  });
+
+  if (usageEvents.length > 1000) {
+    usageEvents.length = 1000;
+  }
+}
+
+function getUsageSummary() {
+  const uniqueCaseRefs = new Set(
+    usageEvents
+      .map((e) => e.case_ref)
+      .filter(Boolean)
+  );
+
+  const uniqueVatChecks = new Set(
+    usageEvents
+      .filter((e) => e.type === "vat_check_started" && e.vat_number)
+      .map((e) => e.vat_number)
+  );
+
+  const frJobPolls = usageEvents.filter((e) => e.type === "fr_job_polled").length;
+  const viesStatusChecks = usageEvents.filter((e) => e.type === "vies_status_checked").length;
+  const batchRuns = usageEvents.filter((e) => e.type === "batch_validation_started").length;
+
+  return {
+    totalEvents: usageEvents.length,
+    totalBatchRuns: batchRuns,
+    totalUniqueCaseRefs: uniqueCaseRefs.size,
+    totalUniqueVatChecks: uniqueVatChecks.size,
+    totalFrJobPolls: frJobPolls,
+    totalViesStatusChecks: viesStatusChecks,
+    lastActivityAt: usageEvents[0]?.createdAt || null,
+  };
+}
+
 // -------------------- VIES status cache --------------------
 let statusCache = null; // { ts, data }
 
@@ -429,18 +476,51 @@ setInterval(() => {
 }, 10 * 60 * 1000).unref();
 
 // -------------------- API --------------------
-app.get("/api/health", (req, res) => res.json({ ok: true }));
+app.get("/api/health", (req, res) => {
+  res.json({ ok: true });
+});
 
 app.get("/api/vies-status", async (req, res) => {
+  logUsageEvent({
+    type: "vies_status_checked",
+  });
+
   const r = await fetchJson(`${VIES_BASE}/check-status`, { method: "GET" }, 10_000);
   res.status(r.ok ? 200 : r.status || 500).json(r.data);
+});
+
+app.get("/api/admin/usage/summary", (req, res) => {
+  res.json({
+    summary: getUsageSummary(),
+  });
+});
+
+app.get("/api/admin/usage/events", (req, res) => {
+  res.json({
+    events: usageEvents.slice(0, 50),
+  });
 });
 
 app.post("/api/validate-batch", async (req, res) => {
   const vat_numbers = Array.isArray(req.body?.vat_numbers) ? req.body.vat_numbers : [];
   const case_ref = (req.body?.case_ref || "").toString().slice(0, 80);
 
+  logUsageEvent({
+    type: "batch_validation_started",
+    case_ref,
+    count_submitted: vat_numbers.length,
+  });
+
   const parsed = vat_numbers.map(parseVat).filter(Boolean);
+
+  for (const p of parsed) {
+    logUsageEvent({
+      type: "vat_check_started",
+      case_ref,
+      vat_number: p.vat_number,
+      country_code: p.countryCode,
+    });
+  }
 
   // dedupe
   const seen = new Set();
@@ -470,7 +550,7 @@ app.post("/api/validate-batch", async (req, res) => {
     "HTTP_429",
     "HTTP_503",
   ]);
-  const isRetryable = (code) => RETRYABLE.has(String(code || "").trim());
+  const isRetryableLocal = (code) => RETRYABLE.has(String(code || "").trim());
 
   // status snapshot (for UI table)
   let vies_status = null;
@@ -482,7 +562,7 @@ app.post("/api/validate-batch", async (req, res) => {
     vies_status = null;
   }
 
-    // FR async job (we gebruiken dezelfde queue ook voor retryable errors van andere landen)
+  // FR async job (we gebruiken dezelfde queue ook voor retryable errors van andere landen)
   let fr_job_id = null;
   let jobEntry = null;
 
@@ -508,7 +588,9 @@ app.post("/api/validate-batch", async (req, res) => {
   const otherResults = await mapLimit(other, 6, async (p) => {
     const key = `${p.countryCode}:${p.vatNumber}`;
     const cached = cacheGet(key);
-    if (cached) return { ...cached, input: p.input, vat_number: p.vat_number, case_ref, checked_at: Date.now() };
+    if (cached) {
+      return { ...cached, input: p.input, vat_number: p.vat_number, case_ref, checked_at: Date.now() };
+    }
 
     const r = await viesCheck(p);
     if (r.ok) {
@@ -520,7 +602,7 @@ app.post("/api/validate-batch", async (req, res) => {
     const code = r.errorCode || `HTTP_${r.status || 0}`;
     const details = r.message || JSON.stringify(r.data);
 
-    if (isRetryable(code)) {
+    if (isRetryableLocal(code)) {
       ensureJob();
       if (!jobEntry.results.has(key)) {
         jobEntry.job.total++;
@@ -537,7 +619,6 @@ app.post("/api/validate-batch", async (req, res) => {
   });
 
   // FR async job
-
   let frRows = [];
 
   if (fr.length) {
@@ -565,7 +646,6 @@ app.post("/api/validate-batch", async (req, res) => {
   }
 
   res.json({
-
     count: otherResults.length + frRows.length,
     fr_job_id,
     duplicates_ignored,
@@ -575,6 +655,11 @@ app.post("/api/validate-batch", async (req, res) => {
 });
 
 app.get("/api/fr-job/:jobId", (req, res) => {
+  logUsageEvent({
+    type: "fr_job_polled",
+    job_id: req.params.jobId,
+  });
+
   const jobEntry = jobs.get(req.params.jobId);
   if (!jobEntry) return res.status(404).json({ error: "Not found" });
 
