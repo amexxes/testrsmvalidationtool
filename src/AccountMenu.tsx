@@ -51,7 +51,14 @@ export default function AccountMenu({
       >
         <span style={avatarStyle}>{initials}</span>
 
-        <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
+        <span
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            minWidth: 0,
+          }}
+        >
           <span style={{ fontSize: 12, opacity: 0.7 }}>Account</span>
           <span
             style={{
@@ -147,8 +154,8 @@ const avatarStyle: React.CSSProperties = {
 
 const menuStyle: React.CSSProperties = {
   position: "absolute",
-  top: "calc(100% + 10px)",
   right: 0,
+  bottom: "calc(100% + 10px)",
   width: 280,
   borderRadius: 18,
   overflow: "hidden",
