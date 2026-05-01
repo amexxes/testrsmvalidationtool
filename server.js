@@ -7,6 +7,11 @@ import { randomUUID } from "crypto";
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
+const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
+
 // Official EC VIES REST API
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 
