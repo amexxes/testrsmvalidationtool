@@ -6,6 +6,7 @@ type Props = {
     role: "admin" | "user";
   };
   onOpenUsers: () => void;
+  onOpenUsage: () => void;
   onOpenChangePassword: () => void;
   onLogout: () => void;
 };
@@ -13,6 +14,7 @@ type Props = {
 export default function AccountMenu({
   user,
   onOpenUsers,
+  onOpenUsage,
   onOpenChangePassword,
   onLogout,
 }: Props) {
@@ -86,16 +88,29 @@ export default function AccountMenu({
           </div>
 
           {user.role === "admin" && (
-            <button
-              type="button"
-              style={menuItemStyle}
-              onClick={() => {
-                setOpen(false);
-                onOpenUsers();
-              }}
-            >
-              Manage users
-            </button>
+            <>
+              <button
+                type="button"
+                style={menuItemStyle}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenUsers();
+                }}
+              >
+                Manage users
+              </button>
+
+              <button
+                type="button"
+                style={menuItemStyle}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenUsage();
+                }}
+              >
+                Usage dashboard
+              </button>
+            </>
           )}
 
           <button
