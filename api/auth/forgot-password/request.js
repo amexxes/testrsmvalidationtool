@@ -17,7 +17,9 @@ async function sendResetEmail({ to, resetUrl }) {
   const from = process.env.PASSWORD_RESET_FROM_EMAIL;
 
   if (!apiKey || !from) {
-    throw new Error("Password reset email is not configured");
+    throw new Error(
+      "Forgot password email is not configured. Add RESEND_API_KEY and PASSWORD_RESET_FROM_EMAIL in Vercel."
+    );
   }
 
   const resp = await fetch("https://api.resend.com/emails", {
@@ -46,9 +48,22 @@ async function sendResetEmail({ to, resetUrl }) {
     }),
   });
 
+  const text = await resp.text();
+
+  let data = null;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    data = null;
+  }
+
   if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Email send failed: ${text}`);
+    throw new Error(
+      data?.message ||
+        data?.error ||
+        text ||
+        `Email send failed (${resp.status})`
+    );
   }
 }
 
