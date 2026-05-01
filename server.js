@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json({ limit: "2mb" }));
 
 // Admin portal key
-const ADMIN_PORTAL_KEY = String(process.env.ADMIN_PORTAL_KEY || "").trim();
+const ADMIN_PORTAL_KEY = String(process.env.ADMIN_SETUP_KEY || "").trim();
 
 function requireAdmin(req, res, next) {
   const adminKey = String(req.headers["x-admin-key"] || "").trim();
