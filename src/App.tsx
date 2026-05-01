@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import ToolApp from "./ToolApp";
 import LoginPage from "./LoginPage";
 import AdminUsersPanel from "./AdminUsersPanel";
+import ResetPasswordPage from "./ResetPasswordPage";
 
 type AuthUser = {
   id: string;
@@ -11,12 +12,27 @@ type AuthUser = {
   createdAt: string;
 };
 
+function getResetTokenFromUrl() {
+  if (typeof window === "undefined") return "";
+  const url = new URL(window.location.href);
+  return url.searchParams.get("resetToken") || "";
+}
+
+function removeResetTokenFromUrl() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("resetToken");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 export default function App() {
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [resetToken, setResetToken] = useState("");
 
   useEffect(() => {
+    setResetToken(getResetTokenFromUrl());
     void loadSession();
   }, []);
 
@@ -52,6 +68,15 @@ export default function App() {
       setUser(null);
       setAdminOpen(false);
     }
+  }
+
+  function closeResetPage() {
+    removeResetTokenFromUrl();
+    setResetToken("");
+  }
+
+  if (resetToken) {
+    return <ResetPasswordPage token={resetToken} onDone={closeResetPage} />;
   }
 
   if (checking) {
