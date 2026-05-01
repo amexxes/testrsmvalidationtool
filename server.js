@@ -1,5 +1,4 @@
 // server.js
-import "dotenv/config";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -8,31 +7,37 @@ import { randomUUID } from "crypto";
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
-// Admin portal key
+// Admin key
 const ADMIN_PORTAL_KEY = String(process.env.ADMIN_SETUP_KEY || "").trim();
 
 function requireAdmin(req, res, next) {
-  const adminKey = String(req.headers["x-admin-key"] || "").trim();
+  try {
+    const adminKey = String(req.headers["x-admin-key"] || "").trim();
 
-  if (!ADMIN_PORTAL_KEY) {
-    return res.status(500).json({ error: "ADMIN_PORTAL_KEY not configured" });
+    if (!ADMIN_PORTAL_KEY) {
+      return res.status(500).json({ error: "ADMIN_SETUP_KEY not configured" });
+    }
+
+    if (!adminKey) {
+      return res.status(401).json({ error: "Missing admin key" });
+    }
+
+    if (adminKey !== ADMIN_PORTAL_KEY) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    next();
+  } catch (err) {
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "Admin auth failed",
+    });
   }
-
-  if (!adminKey) {
-    return res.status(401).json({ error: "Missing admin key" });
-  }
-
-  if (adminKey !== ADMIN_PORTAL_KEY) {
-    return res.status(403).json({ error: "Forbidden" });
-  }
-
-  next();
 }
 
 // Official EC VIES REST API
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 
-// Optional "qualified" requester (env vars in Render)
+// Optional qualified requester
 const REQUESTER_MS = (process.env.REQUESTER_MS || "").toUpperCase();
 const REQUESTER_VAT = process.env.REQUESTER_VAT || "";
 
@@ -41,11 +46,10 @@ const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 20000);
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 24 * 60 * 60 * 1000);
 const MAX_FR_ATTEMPTS = Number(process.env.MAX_FR_ATTEMPTS || 50);
 
-// Backoff ladder (seconds)
+// Backoff ladder
 const FR_BACKOFF_SEC = [10, 20, 40, 60, 90, 120, 180, 240, 300];
 
 // -------------------- Cache --------------------
-/** key -> { ts, row } */
 const cache = new Map();
 
 function cacheGet(key) {
@@ -88,12 +92,17 @@ function getUsageSummary() {
 }
 
 // -------------------- VIES status cache --------------------
-let statusCache = null; // { ts, data }
+let statusCache = null;
 
 async function getViesStatus() {
-  if (statusCache && Date.now() - statusCache.ts < 30_000) return statusCache.data;
-  const r = await fetchJson(`${VIES_BASE}/check-status`, { method: "GET" }, 10_000);
-  if (r.ok) statusCache = { ts: Date.now(), data: r.data };
+  if (statusCache && Date.now() - statusCache.ts < 30000) {
+    return statusCache.data;
+  }
+
+  const r = await fetchJson(`${VIES_BASE}/check-status`, { method: "GET" }, 10000);
+  if (r.ok) {
+    statusCache = { ts: Date.now(), data: r.data };
+  }
   return r.data;
 }
 
@@ -119,7 +128,7 @@ function parseVat(line) {
   let countryCode = v.slice(0, 2);
   if (!/^[A-Z]{2}$/.test(countryCode)) return null;
 
-  if (countryCode === "GR") countryCode = "EL"; // VIES uses EL
+  if (countryCode === "GR") countryCode = "EL";
 
   const vatNumber = v.slice(2);
   if (!vatNumber) return null;
@@ -138,13 +147,16 @@ async function fetchJson(url, init, timeoutMs = VIES_TIMEOUT_MS) {
       signal: ctrl.signal,
       headers: { Accept: "application/json", ...(init?.headers || {}) },
     });
+
     const text = await resp.text();
     let data;
+
     try {
       data = text ? JSON.parse(text) : null;
     } catch {
       data = { raw: text };
     }
+
     return { ok: resp.ok, status: resp.status, data };
   } catch (e) {
     return {
@@ -360,12 +372,15 @@ function takeNextReadyTask() {
       bestTime = t.nextRunAt;
     }
   }
+
   if (bestIdx === -1) return null;
   return frQueue.splice(bestIdx, 1)[0];
 }
 
 function finalizeJobIfDone(jobEntry) {
-  if (jobEntry.job.done >= jobEntry.job.total) jobEntry.job.status = "completed";
+  if (jobEntry.job.done >= jobEntry.job.total) {
+    jobEntry.job.status = "completed";
+  }
 }
 
 async function processFrTask(task) {
@@ -469,16 +484,20 @@ async function runWorker() {
   }
 }
 
-// Cleanup (in-memory)
+// Cleanup
 setInterval(() => {
   const now = Date.now();
 
   for (const [jobId, jobEntry] of jobs.entries()) {
-    if (now - jobEntry.job.created_at > 6 * 60 * 60 * 1000) jobs.delete(jobId);
+    if (now - jobEntry.job.created_at > 6 * 60 * 60 * 1000) {
+      jobs.delete(jobId);
+    }
   }
 
   for (const [k, v] of cache.entries()) {
-    if (now - v.ts > CACHE_TTL_MS) cache.delete(k);
+    if (now - v.ts > CACHE_TTL_MS) {
+      cache.delete(k);
+    }
   }
 }, 10 * 60 * 1000).unref();
 
@@ -488,208 +507,245 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/api/admin/usage/summary", requireAdmin, (req, res) => {
-  res.json({
-    summary: getUsageSummary(),
-  });
+  try {
+    return res.status(200).json({
+      summary: getUsageSummary(),
+    });
+  } catch (err) {
+    console.error("usage summary error:", err);
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "Usage summary failed",
+    });
+  }
 });
 
 app.get("/api/admin/usage/events", requireAdmin, (req, res) => {
-  res.json({
-    events: usageEvents.slice(0, 50),
-  });
+  try {
+    return res.status(200).json({
+      events: usageEvents.slice(0, 50),
+    });
+  } catch (err) {
+    console.error("usage events error:", err);
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "Usage events failed",
+    });
+  }
 });
 
 app.post("/api/validate-batch", async (req, res) => {
-  const vat_numbers = Array.isArray(req.body?.vat_numbers) ? req.body.vat_numbers : [];
-  const case_ref = (req.body?.case_ref || "").toString().slice(0, 80);
-
-  logUsageEvent({
-    type: "batch_validation_started",
-    case_ref,
-    count_submitted: vat_numbers.length,
-  });
-
-  const parsed = vat_numbers.map(parseVat).filter(Boolean);
-
-  for (const p of parsed) {
-    logUsageEvent({
-      type: "vat_check_started",
-      case_ref,
-      vat_number: p.vat_number,
-      country_code: p.countryCode,
-    });
-  }
-
-  const seen = new Set();
-  const unique = [];
-  let duplicates_ignored = 0;
-
-  for (const p of parsed) {
-    const key = `${p.countryCode}:${p.vatNumber}`;
-    if (seen.has(key)) {
-      duplicates_ignored++;
-      continue;
-    }
-    seen.add(key);
-    unique.push(p);
-  }
-
-  const fr = unique.filter((p) => p.countryCode === "FR");
-  const other = unique.filter((p) => p.countryCode !== "FR");
-
-  const RETRYABLE = new Set([
-    "MS_MAX_CONCURRENT_REQ",
-    "MS_UNAVAILABLE",
-    "TIMEOUT",
-    "GLOBAL_MAX_CONCURRENT_REQ",
-    "SERVICE_UNAVAILABLE",
-    "NETWORK_ERROR",
-    "HTTP_429",
-    "HTTP_503",
-  ]);
-
-  const isRetryableLocal = (code) => RETRYABLE.has(String(code || "").trim());
-
-  let vies_status = null;
-
   try {
-    const st = await getViesStatus();
-    vies_status =
-      st?.countries?.map((c) => ({
-        countryCode: c.countryCode,
-        availability: c.availability,
-      })) || null;
-  } catch {
-    vies_status = null;
-  }
+    const vat_numbers = Array.isArray(req.body?.vat_numbers) ? req.body.vat_numbers : [];
+    const case_ref = (req.body?.case_ref || "").toString().slice(0, 80);
 
-  let fr_job_id = null;
-  let jobEntry = null;
+    logUsageEvent({
+      type: "batch_validation_started",
+      case_ref,
+      count_submitted: vat_numbers.length,
+    });
 
-  const ensureJob = () => {
-    if (jobEntry) return;
-    fr_job_id = randomUUID();
-    jobEntry = {
-      job: {
-        job_id: fr_job_id,
-        status: "queued",
-        total: 0,
-        done: 0,
-        updated_at: Date.now(),
-        created_at: Date.now(),
-        message: null,
-      },
-      results: new Map(),
-    };
-    jobs.set(fr_job_id, jobEntry);
-  };
+    const parsed = vat_numbers.map(parseVat).filter(Boolean);
 
-  const otherResults = await mapLimit(other, 6, async (p) => {
-    const key = `${p.countryCode}:${p.vatNumber}`;
-    const cached = cacheGet(key);
-    if (cached) {
-      return {
-        ...cached,
-        input: p.input,
-        vat_number: p.vat_number,
+    for (const p of parsed) {
+      logUsageEvent({
+        type: "vat_check_started",
         case_ref,
-        checked_at: Date.now(),
-      };
+        vat_number: p.vat_number,
+        country_code: p.countryCode,
+      });
     }
 
-    const r = await viesCheck(p);
-    if (r.ok) {
-      const row = rowFromOk(p, r.data, case_ref);
-      cacheSet(key, row);
-      return row;
-    }
+    const seen = new Set();
+    const unique = [];
+    let duplicates_ignored = 0;
 
-    const code = r.errorCode || `HTTP_${r.status || 0}`;
-    const details = r.message || JSON.stringify(r.data);
-
-    if (isRetryableLocal(code)) {
-      ensureJob();
-      if (!jobEntry.results.has(key)) {
-        jobEntry.job.total++;
-        jobEntry.results.set(key, rowFromQueued(p, case_ref));
-        frQueue.push({ jobId: fr_job_id, key, p, attempt: 0, nextRunAt: Date.now(), case_ref });
+    for (const p of parsed) {
+      const key = `${p.countryCode}:${p.vatNumber}`;
+      if (seen.has(key)) {
+        duplicates_ignored++;
+        continue;
       }
-      jobEntry.job.status = "running";
-      jobEntry.job.updated_at = Date.now();
-      scheduleWorker();
-      return rowFromQueued(p, case_ref);
+      seen.add(key);
+      unique.push(p);
     }
 
-    return rowFromError(p, code, details, case_ref);
-  });
+    const fr = unique.filter((p) => p.countryCode === "FR");
+    const other = unique.filter((p) => p.countryCode !== "FR");
 
-  let frRows = [];
+    const RETRYABLE = new Set([
+      "MS_MAX_CONCURRENT_REQ",
+      "MS_UNAVAILABLE",
+      "TIMEOUT",
+      "GLOBAL_MAX_CONCURRENT_REQ",
+      "SERVICE_UNAVAILABLE",
+      "NETWORK_ERROR",
+      "HTTP_429",
+      "HTTP_503",
+    ]);
 
-  if (fr.length) {
-    ensureJob();
-    jobEntry.job.total += fr.length;
+    const isRetryableLocal = (code) => RETRYABLE.has(String(code || "").trim());
 
-    for (const p of fr) {
+    let vies_status = null;
+
+    try {
+      const st = await getViesStatus();
+      vies_status =
+        st?.countries?.map((c) => ({
+          countryCode: c.countryCode,
+          availability: c.availability,
+        })) || null;
+    } catch {
+      vies_status = null;
+    }
+
+    let fr_job_id = null;
+    let jobEntry = null;
+
+    const ensureJob = () => {
+      if (jobEntry) return;
+      fr_job_id = randomUUID();
+      jobEntry = {
+        job: {
+          job_id: fr_job_id,
+          status: "queued",
+          total: 0,
+          done: 0,
+          updated_at: Date.now(),
+          created_at: Date.now(),
+          message: null,
+        },
+        results: new Map(),
+      };
+      jobs.set(fr_job_id, jobEntry);
+    };
+
+    const otherResults = await mapLimit(other, 6, async (p) => {
       const key = `${p.countryCode}:${p.vatNumber}`;
       const cached = cacheGet(key);
 
       if (cached) {
-        jobEntry.results.set(key, {
+        return {
           ...cached,
           input: p.input,
           vat_number: p.vat_number,
           case_ref,
           checked_at: Date.now(),
-        });
-        jobEntry.job.done++;
-      } else {
-        jobEntry.results.set(key, rowFromQueued(p, case_ref));
-        frQueue.push({ jobId: fr_job_id, key, p, attempt: 0, nextRunAt: Date.now(), case_ref });
+        };
       }
+
+      const r = await viesCheck(p);
+
+      if (r.ok) {
+        const row = rowFromOk(p, r.data, case_ref);
+        cacheSet(key, row);
+        return row;
+      }
+
+      const code = r.errorCode || `HTTP_${r.status || 0}`;
+      const details = r.message || JSON.stringify(r.data);
+
+      if (isRetryableLocal(code)) {
+        ensureJob();
+        if (!jobEntry.results.has(key)) {
+          jobEntry.job.total++;
+          jobEntry.results.set(key, rowFromQueued(p, case_ref));
+          frQueue.push({ jobId: fr_job_id, key, p, attempt: 0, nextRunAt: Date.now(), case_ref });
+        }
+        jobEntry.job.status = "running";
+        jobEntry.job.updated_at = Date.now();
+        scheduleWorker();
+        return rowFromQueued(p, case_ref);
+      }
+
+      return rowFromError(p, code, details, case_ref);
+    });
+
+    let frRows = [];
+
+    if (fr.length) {
+      ensureJob();
+      jobEntry.job.total += fr.length;
+
+      for (const p of fr) {
+        const key = `${p.countryCode}:${p.vatNumber}`;
+        const cached = cacheGet(key);
+
+        if (cached) {
+          jobEntry.results.set(key, {
+            ...cached,
+            input: p.input,
+            vat_number: p.vat_number,
+            case_ref,
+            checked_at: Date.now(),
+          });
+          jobEntry.job.done++;
+        } else {
+          jobEntry.results.set(key, rowFromQueued(p, case_ref));
+          frQueue.push({ jobId: fr_job_id, key, p, attempt: 0, nextRunAt: Date.now(), case_ref });
+        }
+      }
+
+      jobEntry.job.status = jobEntry.job.done >= jobEntry.job.total ? "completed" : "running";
+      jobEntry.job.updated_at = Date.now();
+      scheduleWorker();
+
+      frRows = Array.from(jobEntry.results.values());
     }
 
-    jobEntry.job.status = jobEntry.job.done >= jobEntry.job.total ? "completed" : "running";
-    jobEntry.job.updated_at = Date.now();
-    scheduleWorker();
-
-    frRows = Array.from(jobEntry.results.values());
+    return res.json({
+      count: otherResults.length + frRows.length,
+      fr_job_id,
+      duplicates_ignored,
+      vies_status,
+      results: [...otherResults, ...frRows],
+    });
+  } catch (err) {
+    console.error("validate batch error:", err);
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "Validation failed",
+    });
   }
-
-  res.json({
-    count: otherResults.length + frRows.length,
-    fr_job_id,
-    duplicates_ignored,
-    vies_status,
-    results: [...otherResults, ...frRows],
-  });
 });
 
 app.get("/api/fr-job/:jobId", (req, res) => {
-  logUsageEvent({
-    type: "fr_job_polled",
-    job_id: req.params.jobId,
-  });
+  try {
+    logUsageEvent({
+      type: "fr_job_polled",
+      job_id: req.params.jobId,
+    });
 
-  const jobEntry = jobs.get(req.params.jobId);
-  if (!jobEntry) return res.status(404).json({ error: "Not found" });
+    const jobEntry = jobs.get(req.params.jobId);
+    if (!jobEntry) {
+      return res.status(404).json({ error: "Not found" });
+    }
 
-  res.json({
-    job: jobEntry.job,
-    results: Array.from(jobEntry.results.values()),
-  });
+    return res.json({
+      job: jobEntry.job,
+      results: Array.from(jobEntry.results.values()),
+    });
+  } catch (err) {
+    console.error("fr job error:", err);
+    return res.status(500).json({
+      error: err instanceof Error ? err.message : "FR job failed",
+    });
+  }
 });
 
-// --- Vite build (dist) serve ---
+// --- Static serve ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "dist")));
 
-// SPA fallback
 app.get("*", (req, res) => {
-  if (req.path.startsWith("/api/")) return res.status(404).json({ error: "Not found" });
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({ error: "Not found" });
+  }
+  return res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Listening on ${port}`));
+if (!process.env.VERCEL) {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => console.log(`Listening on ${port}`));
+}
+
+export default app;
