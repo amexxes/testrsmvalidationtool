@@ -1,3 +1,4 @@
+// src/LoginPage.tsx
 import React, { useEffect, useState } from "react";
 
 type AuthUser = {
@@ -159,74 +160,90 @@ export default function LoginPage({ onLoggedIn }: Props) {
             WebkitBackdropFilter: "blur(10px)",
             boxShadow: "0 24px 60px rgba(11,46,95,0.12)",
             color: "#0B2E5F",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
           }}
         >
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "10px 14px",
-              borderRadius: 999,
-              background: "rgba(11,46,95,0.08)",
-              fontWeight: 700,
-              marginBottom: 18,
-            }}
-          >
-            <span>RSM</span>
-            <span style={{ opacity: 0.5 }}>•</span>
-            <span>Validation Portal</span>
-          </div>
-
-          <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.08 }}>
-            Secure access to the
-            <br />
-            VAT VIES checker and
-            <br />
-            TIN checker
-          </h1>
-
-          <p style={{ marginTop: 16, color: "#4b607c", fontSize: 16, lineHeight: 1.6 }}>
-            One login for official VAT VIES validation, official EC TIN validation,
-            bulk uploads, filtering and exports.
-          </p>
-
-          <div
-            style={{
-              marginTop: 24,
-              display: "grid",
-              gap: 14,
-            }}
-          >
-            {[
-              "VAT VIES validation and batch checks",
-              "TIN validation through the official EC service",
-              "Bulk upload, filtering and export in one workspace",
-            ].map((item) => (
-              <div
-                key={item}
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <img
+                src="/RSMLOGO.png"
+                alt="RSM"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "12px 14px",
-                  borderRadius: 14,
-                  background: "rgba(255,255,255,0.55)",
-                  border: "1px solid rgba(11,46,95,0.08)",
+                  height: 52,
+                  width: "auto",
+                  display: "block",
+                  objectFit: "contain",
                 }}
-              >
-                <span
+              />
+            </div>
+
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 14px",
+                borderRadius: 999,
+                background: "rgba(11,46,95,0.08)",
+                fontWeight: 700,
+                marginBottom: 18,
+              }}
+            >
+              <span>Validation Portal</span>
+            </div>
+
+            <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.08 }}>
+              Secure access to the
+              <br />
+              VAT VIES checker and
+              <br />
+              TIN checker
+            </h1>
+
+            <p style={{ marginTop: 16, color: "#4b607c", fontSize: 16, lineHeight: 1.6 }}>
+              One login for official VAT VIES validation, official EC TIN validation,
+              bulk uploads, filtering and exports.
+            </p>
+
+            <div
+              style={{
+                marginTop: 24,
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              {[
+                "VAT VIES validation and batch checks",
+                "TIN validation through the official EC service",
+                "Bulk upload, filtering and export in one workspace",
+              ].map((item) => (
+                <div
+                  key={item}
                   style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 999,
-                    background: "#2BB3E6",
-                    flex: "0 0 auto",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    background: "rgba(255,255,255,0.55)",
+                    border: "1px solid rgba(11,46,95,0.08)",
                   }}
-                />
-                <span style={{ color: "#27456f" }}>{item}</span>
-              </div>
-            ))}
+                >
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: 999,
+                      background: "#2BB3E6",
+                      flex: "0 0 auto",
+                    }}
+                  />
+                  <span style={{ color: "#27456f" }}>{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
