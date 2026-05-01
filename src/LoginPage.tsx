@@ -12,6 +12,18 @@ type Props = {
   onLoggedIn: (user: AuthUser) => void;
 };
 
+async function readApiResponse(resp: Response) {
+  const text = await resp.text();
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      error: resp.ok ? "" : `Request failed (${resp.status})`,
+    };
+  }
+}
+
 export default function LoginPage({ onLoggedIn }: Props) {
   const [bootstrapped, setBootstrapped] = useState(true);
   const [checkingStatus, setCheckingStatus] = useState(true);
@@ -41,7 +53,7 @@ export default function LoginPage({ onLoggedIn }: Props) {
         const resp = await fetch("/api/auth/status", {
           credentials: "include",
         });
-        const data = await resp.json();
+        const data = await readApiResponse(resp);
 
         if (!mounted) return;
         setBootstrapped(Boolean(data?.bootstrapped));
@@ -74,16 +86,16 @@ export default function LoginPage({ onLoggedIn }: Props) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await resp.json();
+      const data = await readApiResponse(resp);
 
       if (!resp.ok) {
-        setLoginError(data?.error || data?.message || "Login failed");
+        setLoginError(data?.error || data?.message || `Request failed (${resp.status})`);
         return;
       }
 
       onLoggedIn(data.user);
     } catch {
-      setLoginError("Login failed");
+      setLoginError("Request failed");
     } finally {
       setLoginLoading(false);
     }
@@ -103,10 +115,10 @@ export default function LoginPage({ onLoggedIn }: Props) {
         body: JSON.stringify({ email: forgotEmail }),
       });
 
-      const data = await resp.json();
+      const data = await readApiResponse(resp);
 
       if (!resp.ok) {
-        setForgotError(data?.error || data?.message || "Request failed");
+        setForgotError(data?.error || data?.message || `Request failed (${resp.status})`);
         return;
       }
 
@@ -135,16 +147,16 @@ export default function LoginPage({ onLoggedIn }: Props) {
         }),
       });
 
-      const data = await resp.json();
+      const data = await readApiResponse(resp);
 
       if (!resp.ok) {
-        setBootstrapError(data?.error || data?.message || "Setup failed");
+        setBootstrapError(data?.error || data?.message || `Request failed (${resp.status})`);
         return;
       }
 
       onLoggedIn(data.user);
     } catch {
-      setBootstrapError("Setup failed");
+      setBootstrapError("Request failed");
     } finally {
       setBootstrapLoading(false);
     }
@@ -198,17 +210,20 @@ export default function LoginPage({ onLoggedIn }: Props) {
           >
             <span>RSM</span>
             <span style={{ opacity: 0.5 }}>•</span>
-            <span>Secure Access</span>
+            <span>Validation Portal</span>
           </div>
 
           <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.08 }}>
-            Login for your
+            Secure access to the
             <br />
-            validation tool
+            VAT VIES checker and
+            <br />
+            TIN checker
           </h1>
 
           <p style={{ marginTop: 16, color: "#4b607c", fontSize: 16, lineHeight: 1.6 }}>
-            Clean login, simple user management and automatic logout after 1 hour.
+            One login for official VAT VIES validation, official EC TIN validation,
+            bulk uploads, filtering and exports.
           </p>
 
           <div
@@ -219,9 +234,9 @@ export default function LoginPage({ onLoggedIn }: Props) {
             }}
           >
             {[
-              "Users can be logged in on multiple browsers at the same time",
-              "Sessions expire automatically after 1 hour",
-              "Admins can create, reset and delete users inside the app",
+              "VAT VIES validation and batch checks",
+              "TIN validation through the official EC service",
+              "Bulk upload, filtering and export in one workspace",
             ].map((item) => (
               <div
                 key={item}
