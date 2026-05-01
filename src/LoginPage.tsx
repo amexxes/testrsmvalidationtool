@@ -33,12 +33,6 @@ export default function LoginPage({ onLoggedIn }: Props) {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
 
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState("");
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [forgotError, setForgotError] = useState("");
-  const [forgotSuccess, setForgotSuccess] = useState("");
-
   const [setupKey, setSetupKey] = useState("");
   const [setupEmail, setSetupEmail] = useState("");
   const [setupPassword, setSetupPassword] = useState("");
@@ -98,35 +92,6 @@ export default function LoginPage({ onLoggedIn }: Props) {
       setLoginError("Request failed");
     } finally {
       setLoginLoading(false);
-    }
-  }
-
-  async function handleForgotPassword(e: React.FormEvent) {
-    e.preventDefault();
-    setForgotLoading(true);
-    setForgotError("");
-    setForgotSuccess("");
-
-    try {
-      const resp = await fetch("/api/auth/forgot-password/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email: forgotEmail }),
-      });
-
-      const data = await readApiResponse(resp);
-
-      if (!resp.ok) {
-        setForgotError(data?.error || data?.message || `Request failed (${resp.status})`);
-        return;
-      }
-
-      setForgotSuccess(data?.message || "If this email exists, a reset link has been sent.");
-    } catch {
-      setForgotError("Request failed");
-    } finally {
-      setForgotLoading(false);
     }
   }
 
@@ -306,40 +271,6 @@ export default function LoginPage({ onLoggedIn }: Props) {
             </button>
           </form>
 
-          <div style={{ marginTop: 14 }}>
-            <button
-              type="button"
-              onClick={() => {
-                setForgotOpen((prev) => !prev);
-                setForgotError("");
-                setForgotSuccess("");
-              }}
-              style={linkButtonStyle}
-            >
-              Forgot password?
-            </button>
-          </div>
-
-          {forgotOpen && (
-            <form onSubmit={handleForgotPassword} style={{ display: "grid", gap: 12, marginTop: 14 }}>
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                style={inputStyle}
-                autoComplete="email"
-              />
-
-              {forgotError && <div style={errorStyle}>{forgotError}</div>}
-              {forgotSuccess && <div style={successStyle}>{forgotSuccess}</div>}
-
-              <button type="submit" style={secondaryButtonStyle} disabled={forgotLoading}>
-                {forgotLoading ? "Sending..." : "Send reset link"}
-              </button>
-            </form>
-          )}
-
           {!checkingStatus && !bootstrapped && (
             <div
               style={{
@@ -421,29 +352,11 @@ const secondaryButtonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const linkButtonStyle: React.CSSProperties = {
-  padding: 0,
-  border: 0,
-  background: "transparent",
-  color: "#0B2E5F",
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
 const errorStyle: React.CSSProperties = {
   padding: "12px 14px",
   borderRadius: 12,
   background: "rgba(185,28,28,0.08)",
   border: "1px solid rgba(185,28,28,0.12)",
   color: "#8f1d1d",
-  fontSize: 14,
-};
-
-const successStyle: React.CSSProperties = {
-  padding: "12px 14px",
-  borderRadius: 12,
-  background: "rgba(10,122,61,0.08)",
-  border: "1px solid rgba(10,122,61,0.12)",
-  color: "#0a6a38",
   fontSize: 14,
 };
