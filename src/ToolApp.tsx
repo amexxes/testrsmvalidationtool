@@ -5,6 +5,7 @@ import ReactCountryFlag from "react-country-flag";
 import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import * as XLSX from "xlsx";
 import pptxgen from "pptxgenjs";
+import UserDraftsPanel from "./UserDraftsPanel";
 
 type SortState = { colIndex: number | null; asc: boolean };
 type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
@@ -1343,7 +1344,27 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               onChange={(e) => setVatInput(e.target.value)}
               placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
             />
+<UserDraftsPanel
+  activePage="vat"
+  referenceValue={caseRef}
+  inputValue={vatInput}
+  onRestoreDraft={(draft) => {
+    setCaseRef(draft.referenceValue || "");
+    setVatInput(draft.inputValue || "");
+    setRows([]);
+    setFilter("");
+    setExpandedKey(null);
+    setDuplicatesIgnored(0);
+    setViesStatus([]);
+    setFrText("-");
+    setLastUpdate("-");
+    setProgressText("0/0");
+    setSortState({ colIndex: null, asc: true });
+    setSortLabel("");
+  }}
+/>
 
+<div className="callout" style={{ marginTop: 10 }}>
             <div className="callout" style={{ marginTop: 10 }}>
               <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates ·{" "}
               {precheck.badFormat} format issues
@@ -2212,7 +2233,22 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               onChange={(e) => setTinInput(e.target.value)}
               placeholder={`123456782\n987654321\n...`}
             />
-
+<UserDraftsPanel
+  activePage="tin"
+  referenceValue={country}
+  inputValue={tinInput}
+  onRestoreDraft={(draft) => {
+    setCountry(draft.referenceValue || "NL");
+    setTinInput(draft.inputValue || "");
+    setRows([]);
+    setError("");
+    setInfoMessage("");
+    setSearch("");
+    setStatusFilter("all");
+    setSortKey("status");
+    setSortAsc(true);
+  }}
+/>
             {infoMessage && (
               <div className="callout" style={{ marginTop: 10 }}>
                 {infoMessage}
