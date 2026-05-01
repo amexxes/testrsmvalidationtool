@@ -37,10 +37,20 @@ export default function AdminUsageDashboard({ open, onClose }: Props) {
     setError("");
 
     try {
-      const [summaryResp, eventsResp] = await Promise.all([
-        fetch("/api/admin/usage/summary", { credentials: "include" }),
-        fetch("/api/admin/usage/events", { credentials: "include" }),
-      ]);
+const [summaryResp, eventsResp] = await Promise.all([
+  fetch("/api/admin/usage/summary", {
+    credentials: "include",
+    headers: {
+      "x-admin-key": "een-lange-geheime-sleutel",
+    },
+  }),
+  fetch("/api/admin/usage/events", {
+    credentials: "include",
+    headers: {
+      "x-admin-key": "een-lange-geheime-sleutel",
+    },
+  }),
+]);
 
       const summaryData = await summaryResp.json();
       const eventsData = await eventsResp.json();
