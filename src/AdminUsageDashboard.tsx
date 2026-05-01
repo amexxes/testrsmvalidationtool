@@ -24,8 +24,6 @@ type Props = {
   onClose: () => void;
 };
 
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_SETUP_KEY || "";
-
 export default function AdminUsageDashboard({ open, onClose }: Props) {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [events, setEvents] = useState<UsageEvent[]>([]);
@@ -42,63 +40,25 @@ export default function AdminUsageDashboard({ open, onClose }: Props) {
     setError("");
 
     try {
-      if (!ADMIN_KEY) {
-        setError("VITE_ADMIN_SETUP_KEY ontbreekt in frontend environment");
-        return;
-      }
-
       const [summaryResp, eventsResp] = await Promise.all([
         fetch("/api/admin/usage/summary", {
-          method: "GET",
-          headers: {
-            "x-admin-key": ADMIN_KEY,
-            Accept: "application/json",
-          },
+          credentials: "include",
         }),
         fetch("/api/admin/usage/events", {
-          method: "GET",
-          headers: {
-            "x-admin-key": ADMIN_KEY,
-            Accept: "application/json",
-          },
+          credentials: "include",
         }),
       ]);
 
-      const summaryText = await summaryResp.text();
-      const eventsText = await eventsResp.text();
-
-      let summaryData: any = null;
-      let eventsData: any = null;
-
-      try {
-        summaryData = summaryText ? JSON.parse(summaryText) : null;
-      } catch {
-        summaryData = { raw: summaryText };
-      }
-
-      try {
-        eventsData = eventsText ? JSON.parse(eventsText) : null;
-      } catch {
-        eventsData = { raw: eventsText };
-      }
+      const summaryData = await summaryResp.json();
+      const eventsData = await eventsResp.json();
 
       if (!summaryResp.ok) {
-        setError(
-          summaryData?.error ||
-            `Summary failed (${summaryResp.status}) ${
-              typeof summaryData?.raw === "string" ? summaryData.raw.slice(0, 120) : ""
-            }`
-        );
+        setError(summaryData?.error || summaryData?.message || "Could not load summary");
         return;
       }
 
       if (!eventsResp.ok) {
-        setError(
-          eventsData?.error ||
-            `Events failed (${eventsResp.status}) ${
-              typeof eventsData?.raw === "string" ? eventsData.raw.slice(0, 120) : ""
-            }`
-        );
+        setError(eventsData?.error || eventsData?.message || "Could not load events");
         return;
       }
 
