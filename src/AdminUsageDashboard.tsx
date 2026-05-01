@@ -25,7 +25,7 @@ type Props = {
 };
 
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_PORTAL_KEY || "";
-
+console.log("ADMIN KEY LOADED:", ADMIN_KEY);
 export default function AdminUsageDashboard({ open, onClose }: Props) {
   const [summary, setSummary] = useState<UsageSummary | null>(null);
   const [events, setEvents] = useState<UsageEvent[]>([]);
