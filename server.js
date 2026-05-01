@@ -1,13 +1,10 @@
 // server.js
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
-// Admin key
 const ADMIN_PORTAL_KEY = String(process.env.ADMIN_SETUP_KEY || "").trim();
 
 function requireAdmin(req, res, next) {
@@ -34,22 +31,17 @@ function requireAdmin(req, res, next) {
   }
 }
 
-// Official EC VIES REST API
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 
-// Optional qualified requester
 const REQUESTER_MS = (process.env.REQUESTER_MS || "").toUpperCase();
 const REQUESTER_VAT = process.env.REQUESTER_VAT || "";
 
-// Tuning
 const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 20000);
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 24 * 60 * 60 * 1000);
 const MAX_FR_ATTEMPTS = Number(process.env.MAX_FR_ATTEMPTS || 50);
 
-// Backoff ladder
 const FR_BACKOFF_SEC = [10, 20, 40, 60, 90, 120, 180, 240, 300];
 
-// -------------------- Cache --------------------
 const cache = new Map();
 
 function cacheGet(key) {
@@ -66,7 +58,6 @@ function cacheSet(key, row) {
   cache.set(key, { ts: Date.now(), row });
 }
 
-// -------------------- Usage dashboard data --------------------
 const usageEvents = [];
 
 function logUsageEvent(event) {
@@ -91,7 +82,6 @@ function getUsageSummary() {
   };
 }
 
-// -------------------- VIES status cache --------------------
 let statusCache = null;
 
 async function getViesStatus() {
@@ -112,7 +102,6 @@ function memberStateAvailable(statusJson, countryCode) {
   return !entry || entry.availability === "Available";
 }
 
-// -------------------- Parsing --------------------
 function normalizeVatLine(s) {
   return String(s || "")
     .trim()
@@ -136,7 +125,6 @@ function parseVat(line) {
   return { input: line, countryCode, vatNumber, vat_number: v };
 }
 
-// -------------------- Fetch JSON + timeout --------------------
 async function fetchJson(url, init, timeoutMs = VIES_TIMEOUT_MS) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -187,7 +175,6 @@ function extractErrorMessage(data) {
   return "";
 }
 
-// Retryable error codes
 const RETRYABLE_CODES = new Set([
   "SERVICE_UNAVAILABLE",
   "MS_UNAVAILABLE",
@@ -205,7 +192,6 @@ function isRetryable(errorCode, httpStatus) {
   return false;
 }
 
-// -------------------- Row factories --------------------
 function requesterString() {
   if (!REQUESTER_MS || !REQUESTER_VAT) return "";
   const reqNo = normalizeVatLine(REQUESTER_VAT).replace(/^[A-Z]{2}/, "");
@@ -279,7 +265,6 @@ function rowFromError(p, errorCode, details, case_ref) {
   };
 }
 
-// -------------------- VIES call --------------------
 async function viesCheck(p) {
   const body = { countryCode: p.countryCode, vatNumber: p.vatNumber };
 
@@ -317,7 +302,6 @@ async function viesCheck(p) {
   return { ok: true, status: r.status, data: r.data };
 }
 
-// -------------------- Non-FR concurrency --------------------
 async function mapLimit(arr, limit, fn) {
   const out = new Array(arr.length);
   let i = 0;
@@ -334,7 +318,6 @@ async function mapLimit(arr, limit, fn) {
   return out;
 }
 
-// -------------------- FR async job system --------------------
 const jobs = new Map();
 const frQueue = [];
 let workerTimer = null;
@@ -484,7 +467,6 @@ async function runWorker() {
   }
 }
 
-// Cleanup
 setInterval(() => {
   const now = Date.now();
 
@@ -501,7 +483,7 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
-// -------------------- API --------------------
+// API
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
@@ -730,22 +712,11 @@ app.get("/api/fr-job/:jobId", (req, res) => {
   }
 });
 
-// --- Static serve ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(express.static(path.join(__dirname, "dist")));
-
-app.get("*", (req, res) => {
-  if (req.path.startsWith("/api/")) {
-    return res.status(404).json({ error: "Not found" });
-  }
-  return res.sendFile(path.join(__dirname, "dist", "index.html"));
-});
-
 if (!process.env.VERCEL) {
   const port = process.env.PORT || 3000;
-  app.listen(port, () => console.log(`Listening on ${port}`));
+  app.listen(port, () => {
+    console.log(`Listening on ${port}`);
+  });
 }
 
 export default app;
