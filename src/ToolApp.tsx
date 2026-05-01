@@ -2165,7 +2165,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           <div className="card">
             <h2>Input</h2>
             <p className="hint">
-              Choose one country and add one or more TIN numbers, one per line, without the country code.
+               
             </p>
 
             <div className="row inputActionsRow">
