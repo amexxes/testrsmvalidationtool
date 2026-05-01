@@ -7,34 +7,29 @@ import { randomUUID } from "crypto";
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 
-const ADMIN_EMAILS = String(process.env.ADMIN_EMAILS || "")
-  .split(",")
-  .map((s) => s.trim().toLowerCase())
-  .filter(Boolean);
-
-// Official EC VIES REST API
-const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
-
-function getRequestUser(req) {
-  const email = String(req.headers["x-user-email"] || "").trim().toLowerCase();
-  const role = ADMIN_EMAILS.includes(email) ? "admin" : "user";
-  return { email, role };
-}
+// Admin portal key
+const ADMIN_PORTAL_KEY = String(process.env.ADMIN_PORTAL_KEY || "").trim();
 
 function requireAdmin(req, res, next) {
-  const user = getRequestUser(req);
+  const adminKey = String(req.headers["x-admin-key"] || "").trim();
 
-  if (!user.email) {
-    return res.status(401).json({ error: "Missing user email" });
+  if (!ADMIN_PORTAL_KEY) {
+    return res.status(500).json({ error: "ADMIN_PORTAL_KEY not configured" });
   }
 
-  if (user.role !== "admin") {
+  if (!adminKey) {
+    return res.status(401).json({ error: "Missing admin key" });
+  }
+
+  if (adminKey !== ADMIN_PORTAL_KEY) {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  req.user = user;
   next();
 }
+
+// Official EC VIES REST API
+const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 
 // Optional "qualified" requester (env vars in Render)
 const REQUESTER_MS = (process.env.REQUESTER_MS || "").toUpperCase();
@@ -61,15 +56,12 @@ function cacheGet(key) {
   }
   return hit.row;
 }
+
 function cacheSet(key, row) {
   cache.set(key, { ts: Date.now(), row });
 }
 
 // -------------------- Usage dashboard data --------------------
-/**
- * Simpele in-memory usage data.
- * Later kun je dit vervangen door database-opslag.
- */
 const usageEvents = [];
 
 function logUsageEvent(event) {
@@ -85,47 +77,12 @@ function logUsageEvent(event) {
 }
 
 function getUsageSummary() {
-  const emails = new Set(
-    usageEvents
-      .map((e) => String(e.actorEmail || "").trim().toLowerCase())
-      .filter(Boolean)
-  );
-
-  let adminUsers = 0;
-  let normalUsers = 0;
-
-  for (const email of emails) {
-    if (ADMIN_EMAILS.includes(email)) adminUsers++;
-    else normalUsers++;
-  }
-
   return {
-    totalUsers: emails.size,
-    activeUsers: emails.size,
-    adminUsers,
-    normalUsers,
+    totalUsers: 0,
+    activeUsers: 0,
+    adminUsers: 0,
+    normalUsers: 0,
     totalEvents: usageEvents.length,
-  };
-}
-
-  const uniqueVatChecks = new Set(
-    usageEvents
-      .filter((e) => e.type === "vat_check_started" && e.vat_number)
-      .map((e) => e.vat_number)
-  );
-
-  const frJobPolls = usageEvents.filter((e) => e.type === "fr_job_polled").length;
-  const viesStatusChecks = usageEvents.filter((e) => e.type === "vies_status_checked").length;
-  const batchRuns = usageEvents.filter((e) => e.type === "batch_validation_started").length;
-
-  return {
-    totalEvents: usageEvents.length,
-    totalBatchRuns: batchRuns,
-    totalUniqueCaseRefs: uniqueCaseRefs.size,
-    totalUniqueVatChecks: uniqueVatChecks.size,
-    totalFrJobPolls: frJobPolls,
-    totalViesStatusChecks: viesStatusChecks,
-    lastActivityAt: usageEvents[0]?.createdAt || null,
   };
 }
 
@@ -163,7 +120,6 @@ function parseVat(line) {
 
   if (countryCode === "GR") countryCode = "EL"; // VIES uses EL
 
-  // REST API expects vatNumber without prefix
   const vatNumber = v.slice(2);
   if (!vatNumber) return null;
 
@@ -190,7 +146,11 @@ async function fetchJson(url, init, timeoutMs = VIES_TIMEOUT_MS) {
     }
     return { ok: resp.ok, status: resp.status, data };
   } catch (e) {
-    return { ok: false, status: 0, data: { error: "NETWORK_ERROR", message: String(e?.message || e) } };
+    return {
+      ok: false,
+      status: 0,
+      data: { error: "NETWORK_ERROR", message: String(e?.message || e) },
+    };
   } finally {
     clearTimeout(t);
   }
@@ -199,12 +159,14 @@ async function fetchJson(url, init, timeoutMs = VIES_TIMEOUT_MS) {
 function isCommonResponse(data) {
   return data && typeof data === "object" && "actionSucceed" in data && "errorWrappers" in data;
 }
+
 function extractErrorCode(data) {
   const wrappers = data?.errorWrappers;
   if (Array.isArray(wrappers) && wrappers.length) return wrappers[0]?.error || null;
   if (typeof data?.error === "string") return data.error;
   return null;
 }
+
 function extractErrorMessage(data) {
   const wrappers = data?.errorWrappers;
   if (Array.isArray(wrappers) && wrappers.length) return wrappers[0]?.message || "";
@@ -360,14 +322,7 @@ async function mapLimit(arr, limit, fn) {
 }
 
 // -------------------- FR async job system --------------------
-/**
- * jobs: jobId -> { job, results: Map<key,row> }
- */
 const jobs = new Map();
-
-/**
- * queue tasks: { jobId, key, p, attempt, nextRunAt, case_ref }
- */
 const frQueue = [];
 let workerTimer = null;
 let workerRunning = false;
@@ -423,13 +378,15 @@ async function processFrTask(task) {
   const cur = results.get(task.key) || rowFromQueued(task.p, task.case_ref);
   results.set(task.key, { ...cur, state: "processing", checked_at: Date.now() });
 
-  // check-status gate (FR unavailable => retry later)
   const status = await getViesStatus();
   if (status && !memberStateAvailable(status, "FR")) {
     const attempt = task.attempt + 1;
 
     if (attempt > MAX_FR_ATTEMPTS) {
-      results.set(task.key, rowFromError(task.p, "RETRY_EXHAUSTED", "FR unavailable (check-status)", task.case_ref));
+      results.set(
+        task.key,
+        rowFromError(task.p, "RETRY_EXHAUSTED", "FR unavailable (check-status)", task.case_ref)
+      );
       job.done++;
       job.updated_at = Date.now();
       finalizeJobIfDone(jobEntry);
@@ -437,7 +394,10 @@ async function processFrTask(task) {
     }
 
     const nextRunAt = Date.now() + frBackoffMs(attempt);
-    results.set(task.key, rowFromRetry(task.p, "MS_UNAVAILABLE", "check-status: Unavailable", attempt, nextRunAt, task.case_ref));
+    results.set(
+      task.key,
+      rowFromRetry(task.p, "MS_UNAVAILABLE", "check-status: Unavailable", attempt, nextRunAt, task.case_ref)
+    );
     task.attempt = attempt;
     task.nextRunAt = nextRunAt;
     frQueue.push(task);
@@ -466,7 +426,10 @@ async function processFrTask(task) {
     const attempt = task.attempt + 1;
 
     if (attempt > MAX_FR_ATTEMPTS) {
-      results.set(task.key, rowFromError(task.p, "RETRY_EXHAUSTED", `${code} (${attempt - 1} retries)`, task.case_ref));
+      results.set(
+        task.key,
+        rowFromError(task.p, "RETRY_EXHAUSTED", `${code} (${attempt - 1} retries)`, task.case_ref)
+      );
       job.done++;
       job.updated_at = Date.now();
       finalizeJobIfDone(jobEntry);
@@ -523,22 +486,13 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/vies-status", async (req, res) => {
-  logUsageEvent({
-    type: "vies_status_checked",
-  });
-
-  const r = await fetchJson(`${VIES_BASE}/check-status`, { method: "GET" }, 10_000);
-  res.status(r.ok ? 200 : r.status || 500).json(r.data);
-});
-
-app.get("/api/admin/usage/summary", (req, res) => {
+app.get("/api/admin/usage/summary", requireAdmin, (req, res) => {
   res.json({
     summary: getUsageSummary(),
   });
 });
 
-app.get("/api/admin/usage/events", (req, res) => {
+app.get("/api/admin/usage/events", requireAdmin, (req, res) => {
   res.json({
     events: usageEvents.slice(0, 50),
   });
@@ -565,7 +519,6 @@ app.post("/api/validate-batch", async (req, res) => {
     });
   }
 
-  // dedupe
   const seen = new Set();
   const unique = [];
   let duplicates_ignored = 0;
@@ -593,19 +546,22 @@ app.post("/api/validate-batch", async (req, res) => {
     "HTTP_429",
     "HTTP_503",
   ]);
+
   const isRetryableLocal = (code) => RETRYABLE.has(String(code || "").trim());
 
-  // status snapshot (for UI table)
   let vies_status = null;
 
   try {
     const st = await getViesStatus();
-    vies_status = st?.countries?.map((c) => ({ countryCode: c.countryCode, availability: c.availability })) || null;
+    vies_status =
+      st?.countries?.map((c) => ({
+        countryCode: c.countryCode,
+        availability: c.availability,
+      })) || null;
   } catch {
     vies_status = null;
   }
 
-  // FR async job (we gebruiken dezelfde queue ook voor retryable errors van andere landen)
   let fr_job_id = null;
   let jobEntry = null;
 
@@ -627,12 +583,17 @@ app.post("/api/validate-batch", async (req, res) => {
     jobs.set(fr_job_id, jobEntry);
   };
 
-  // Non-FR realtime (maar bij retryable error -> queue zoals FR)
   const otherResults = await mapLimit(other, 6, async (p) => {
     const key = `${p.countryCode}:${p.vatNumber}`;
     const cached = cacheGet(key);
     if (cached) {
-      return { ...cached, input: p.input, vat_number: p.vat_number, case_ref, checked_at: Date.now() };
+      return {
+        ...cached,
+        input: p.input,
+        vat_number: p.vat_number,
+        case_ref,
+        checked_at: Date.now(),
+      };
     }
 
     const r = await viesCheck(p);
@@ -661,7 +622,6 @@ app.post("/api/validate-batch", async (req, res) => {
     return rowFromError(p, code, details, case_ref);
   });
 
-  // FR async job
   let frRows = [];
 
   if (fr.length) {
@@ -673,7 +633,13 @@ app.post("/api/validate-batch", async (req, res) => {
       const cached = cacheGet(key);
 
       if (cached) {
-        jobEntry.results.set(key, { ...cached, input: p.input, vat_number: p.vat_number, case_ref, checked_at: Date.now() });
+        jobEntry.results.set(key, {
+          ...cached,
+          input: p.input,
+          vat_number: p.vat_number,
+          case_ref,
+          checked_at: Date.now(),
+        });
         jobEntry.job.done++;
       } else {
         jobEntry.results.set(key, rowFromQueued(p, case_ref));
