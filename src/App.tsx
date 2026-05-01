@@ -4,6 +4,7 @@ import LoginPage from "./LoginPage";
 import AdminUsersPanel from "./AdminUsersPanel";
 import ChangePasswordPanel from "./ChangePasswordPanel";
 import AccountMenu from "./AccountMenu";
+import AdminUsageDashboard from "./AdminUsageDashboard";
 
 type AuthUser = {
   id: string;
@@ -28,6 +29,7 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [adminOpen, setAdminOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [usageOpen, setUsageOpen] = useState(false);
 
   useEffect(() => {
     void loadSession();
@@ -111,12 +113,17 @@ export default function App() {
           zIndex: 14000,
         }}
       >
-        <AccountMenu
-          user={user}
-          onOpenUsers={() => setAdminOpen(true)}
-          onOpenChangePassword={() => setChangePasswordOpen(true)}
-          onLogout={handleLogout}
-        />
+<AccountMenu
+  user={user}
+  onOpenUsers={() => setAdminOpen(true)}
+  onOpenUsage={() => setUsageOpen(true)}
+  onOpenChangePassword={() => setChangePasswordOpen(true)}
+  onLogout={handleLogout}
+/>
+<AdminUsageDashboard
+  open={usageOpen}
+  onClose={() => setUsageOpen(false)}
+/>        
       </div>
 
       <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
