@@ -333,44 +333,42 @@ function InputCountryBarChart({
 }
 
 function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
-  const buttonStyle = (active: boolean): React.CSSProperties => ({
-    padding: "8px 12px",
-    borderRadius: 10,
-    border: active ? "1px solid #0B2E5F" : "1px solid rgba(11,46,95,0.14)",
-    background: active ? "#0B2E5F" : "rgba(255,255,255,0.92)",
-    color: active ? "#FFFFFF" : "#0B2E5F",
-    fontWeight: 700,
-    fontSize: 13,
-    cursor: "pointer",
-    boxSizing: "border-box",
-    whiteSpace: "nowrap",
-  });
-
   return (
     <div
       style={{
-        display: "flex",
+        display: "inline-flex",
         gap: 8,
         alignItems: "center",
         justifyContent: "flex-end",
         flexWrap: "wrap",
+        padding: 6,
+        borderRadius: 18,
+        background: "rgba(255,255,255,0.82)",
+        border: "1px solid rgba(226,232,240,0.95)",
+        boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)",
       }}
     >
-      <button
+      <Button
         type="button"
+        variant={activePage === "vat" ? "primary" : "secondary"}
+        size="sm"
         onClick={() => setActivePage("vat")}
-        style={buttonStyle(activePage === "vat")}
+        style={{ minWidth: 158 }}
       >
         VAT VIES Validation
-      </button>
+      </Button>
 
-      <button
+      <Button
         type="button"
+        variant={activePage === "tin" ? "primary" : "secondary"}
+        size="sm"
         onClick={() => setActivePage("tin")}
-        style={buttonStyle(activePage === "tin")}
+        style={{ minWidth: 120 }}
       >
         TIN Validation
-      </button>
+      </Button>
     </div>
   );
 }
