@@ -1204,31 +1204,81 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
   return (
     <>
-      <div className="banner">
-        <div className="banner-accent" />
-        <div className="banner-inner">
-          <div className="brand">
-<div
-  className="mark"
-  aria-hidden="true"
-  style={{
-    padding: "8px 12px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minWidth: 152,
-  }}
->
-  <img
-    src="/RSMLOGO.png"
-    alt="RSM"
+   <div className="banner">
+  <div className="banner-accent" />
+  <div
+    className="banner-inner"
     style={{
-      height: 40,
-      width: "auto",
-      display: "block",
-      objectFit: "contain",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 18,
+      flexWrap: "wrap",
     }}
-  />
+  >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        minWidth: 0,
+      }}
+    >
+      <div
+        className="mark"
+        aria-hidden="true"
+        style={{
+          padding: "8px 12px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minWidth: 152,
+        }}
+      >
+        <img
+          src="/RSMLOGO.png"
+          alt="RSM"
+          style={{
+            height: 40,
+            width: "auto",
+            display: "block",
+            objectFit: "contain",
+          }}
+        />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+        <div className="title" style={{ fontSize: 20 }}>
+          VAT validation
+        </div>
+        <div style={{ fontSize: 13, color: "var(--muted)" }}>
+          Customer portal for VAT batch checks and review.
+        </div>
+      </div>
+    </div>
+
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap",
+        marginLeft: "auto",
+      }}
+    >
+      <div className="chip">
+        <span>Mode</span>
+        <b className="nowrap">VAT / VIES</b>
+      </div>
+
+      <div className="chip">
+        <span>Last update</span>
+        <b className="nowrap">{lastUpdate}</b>
+      </div>
+
+      <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+    </div>
+  </div>
 </div>
             <div className="title">VAT validation</div>
           </div>
