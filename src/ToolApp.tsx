@@ -6,6 +6,7 @@ import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import * as XLSX from "xlsx";
 import pptxgen from "pptxgenjs";
 import UserDraftsPanel from "./UserDraftsPanel";
+import { Button } from "@/components/ui/button";
 
 type SortState = { colIndex: number | null; asc: boolean };
 type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
