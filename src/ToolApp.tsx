@@ -110,11 +110,10 @@ const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
 };
 
 const BANNER_ROW_STYLE: React.CSSProperties = {
-  display: "flex",
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, 1fr) max-content",
   alignItems: "center",
-  justifyContent: "space-between",
-  gap: 18,
-  flexWrap: "nowrap",
+  columnGap: 18,
   width: "100%",
 };
 
@@ -123,25 +122,27 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
   alignItems: "center",
   gap: 16,
   minWidth: 0,
-  flex: "1 1 auto",
 };
 
 const BANNER_RIGHT_STYLE: React.CSSProperties = {
-  display: "flex",
+  display: "grid",
+  gridAutoFlow: "column",
+  gridAutoColumns: "max-content",
   alignItems: "center",
-  justifyContent: "flex-end",
-  gap: 8,
-  marginLeft: "auto",
-  flex: "0 0 auto",
-  flexWrap: "nowrap",
+  justifyContent: "end",
+  columnGap: 8,
   whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   height: 36,
-  display: "inline-flex",
+  minHeight: 36,
+  display: "flex",
+  flexDirection: "row",
   alignItems: "center",
-  gap: 10,
+  justifyContent: "center",
+  flexWrap: "nowrap",
+  gap: 8,
   padding: "0 12px",
   borderRadius: 999,
   border: "1px solid rgba(11,46,95,0.10)",
@@ -151,41 +152,42 @@ const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   fontSize: 12,
   lineHeight: "36px",
   whiteSpace: "nowrap",
-  flex: "0 0 auto",
 };
 
 const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
   display: "inline-flex",
+  flexDirection: "row",
   alignItems: "center",
   gap: 5,
   height: 36,
-  lineHeight: "36px",
+  whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
+  display: "inline",
   fontWeight: 600,
   opacity: 0.72,
-  height: 36,
-  lineHeight: "36px",
+  whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
+  display: "inline",
   fontWeight: 800,
-  height: 36,
-  lineHeight: "36px",
+  whiteSpace: "nowrap",
 };
 
 const BANNER_DOT_STYLE: React.CSSProperties = {
   opacity: 0.35,
-  lineHeight: "36px",
+  whiteSpace: "nowrap",
 };
 
 const BANNER_CONTROL_STYLE: React.CSSProperties = {
   height: 36,
+  minHeight: 36,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  flex: "0 0 auto",
+  whiteSpace: "nowrap",
 };
 
 type PageSwitcherProps = {
@@ -795,6 +797,11 @@ function PortalBanner({
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
+  const statusItems = [
+    { label: t(language, "mode"), value: modeValue },
+    ...meta,
+  ];
+
   return (
     <div className="banner">
       <div className="banner-accent" />
@@ -846,14 +853,10 @@ function PortalBanner({
 
         <div style={BANNER_RIGHT_STYLE}>
           <div style={BANNER_STATUS_BAR_STYLE}>
-            <span style={BANNER_STATUS_ITEM_STYLE}>
-              <span style={BANNER_STATUS_LABEL_STYLE}>{t(language, "mode")}</span>
-              <b style={BANNER_STATUS_VALUE_STYLE}>{modeValue}</b>
-            </span>
+            {statusItems.map((item, index) => (
+              <React.Fragment key={`${item.label}-${index}`}>
+                {index > 0 && <span style={BANNER_DOT_STYLE}>•</span>}
 
-            {meta.map((item) => (
-              <React.Fragment key={item.label}>
-                <span style={BANNER_DOT_STYLE}>•</span>
                 <span style={BANNER_STATUS_ITEM_STYLE}>
                   <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
                   <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
