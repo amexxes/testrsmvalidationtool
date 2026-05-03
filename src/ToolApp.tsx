@@ -1,13 +1,9 @@
 // /src/ToolApp.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import L from "leaflet";
-import ReactCountryFlag from "react-country-flag";
+import * as XLSX from "xlsx";
+import UserDraftsPanel, { type UserDraft } from "./UserDraftsPanel";
 import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import type { PortalRunSummary } from "./portalRunHistory";
-import * as XLSX from "xlsx";
-import UserDraftsPanel from "./UserDraftsPanel";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LANGUAGES,
   getStoredLanguage,
@@ -16,8 +12,8 @@ import {
   type PortalLanguage,
 } from "./i18n";
 
-type SortState = { colIndex: number | null; asc: boolean };
-type ActivePage = "vat" | "tin";
+type ActivePage = "vat" | "tin";  
+type RowTone = "valid" | "invalid" | "pending" | "error";
 
 type ClientBranding = {
   id?: string;
@@ -36,6 +32,24 @@ type ToolAppProps = {
   onRunCompleted?: (summary: PortalRunSummary) => void;
 };
 
+type TinRow = {
+  index?: number;
+  input_tin?: string;
+  status?: "valid" | "invalid" | "error" | string;
+  country?: string;
+  tin_number?: string;
+  request_date?: string | null;
+  structure_valid?: boolean | null;
+  syntax_valid?: boolean | null;
+  message?: string;
+};
+
+type Metric = {
+  label: string;
+  value: React.ReactNode;
+  tone?: RowTone;
+};
+
 const DEFAULT_BRANDING: ClientBranding = {
   id: "default",
   clientName: "RSM Netherlands",
@@ -50,281 +64,93 @@ const DEFAULT_BRANDING: ClientBranding = {
 const PORTAL_FONT =
   "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
-const PAGE_TITLE_STYLE: React.CSSProperties = {
-  fontFamily: PORTAL_FONT,
-  fontSize: 20,
-  lineHeight: 1.2,
-  fontWeight: 700,
-  color: "#0B2E5F",
-  margin: 0,
-};
-
-const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
-  fontFamily: PORTAL_FONT,
-  fontSize: 14,
-  lineHeight: 1.55,
-  fontWeight: 500,
-  color: "#0B2E5F",
-  marginTop: 6,
-};
-
-const SMALL_HEADER_STYLE: React.CSSProperties = {
-  fontFamily: PORTAL_FONT,
-  fontSize: 13,
-  lineHeight: 1.35,
-  fontWeight: 800,
-  color: "#0B2E5F",
-};
-
-const TABLE_HEADER_STYLE: React.CSSProperties = {
-  fontFamily: PORTAL_FONT,
-  fontSize: 14,
-  lineHeight: 1.35,
-  fontWeight: 800,
-  color: "#0B2E5F",
-};
-
-const TABLE_META_STYLE: React.CSSProperties = {
-  fontFamily: PORTAL_FONT,
-  fontSize: 13,
-  lineHeight: 1.35,
-  fontWeight: 500,
-};
-
-const TH_STYLE: React.CSSProperties = {
-  fontFamily: PORTAL_FONT,
-  fontSize: 12,
-  lineHeight: 1.35,
-  fontWeight: 800,
-  letterSpacing: "0.02em",
-  color: "#0B2E5F",
-  cursor: "pointer",
-};
-
 const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
-  width: "100%",
-  minWidth: 0,
-  maxWidth: "100%",
+  width: 420,
+  minWidth: 420,
+  maxWidth: 420,
   height: 38,
-  minHeight: 38,
   boxSizing: "border-box",
-  display: "block",
 };
 
 const ACTION_ROW_STYLE: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 150px 150px",
+  gridTemplateColumns: "420px 170px 170px",
   alignItems: "center",
+  justifyContent: "start",
   gap: 10,
   width: "100%",
-  height: 38,
+  overflowX: "auto",
+  paddingBottom: 2,
 };
 
 const ACTION_BUTTON_STYLE: React.CSSProperties = {
-  width: "100%",
-  minWidth: 0,
+  width: 170,
+  minWidth: 170,
+  maxWidth: 170,
   height: 38,
-  minHeight: 38,
-  boxSizing: "border-box",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   textAlign: "center",
   whiteSpace: "nowrap",
-  lineHeight: "38px",
-  paddingTop: 0,
-  paddingBottom: 0,
-  alignSelf: "center",
-};
-
-const BANNER_INNER_STYLE: React.CSSProperties = {
-  width: "100%",
   boxSizing: "border-box",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 18,
-  flexWrap: "nowrap",
-  padding: "18px 22px",
-};
-
-const BANNER_LEFT_STYLE: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 16,
-  minWidth: 0,
-  flex: "0 1 360px",
-  maxWidth: 360,
-};
-
-const BANNER_RIGHT_STYLE: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: 8,
-  minWidth: 0,
-  flex: "1 1 auto",
-  flexWrap: "nowrap",
-  whiteSpace: "nowrap",
-  overflowX: "auto",
-  overflowY: "hidden",
-};
-
-const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
-  height: 36,
-  display: "inline-flex",
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  flexWrap: "nowrap",
-  gap: 8,
-  padding: "0 12px",
-  borderRadius: 999,
-  border: "1px solid rgba(11,46,95,0.10)",
-  background: "rgba(255,255,255,0.82)",
+  borderRadius: 12,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "#FFFFFF",
   color: "#0B2E5F",
   fontFamily: PORTAL_FONT,
-  fontSize: 12,
-  lineHeight: "36px",
-  whiteSpace: "nowrap",
-  flex: "0 0 auto",
-};
-
-const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
-  height: 36,
-  display: "inline-flex",
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 5,
-  whiteSpace: "nowrap",
-  flex: "0 0 auto",
-};
-
-const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
-  fontWeight: 600,
-  opacity: 0.72,
-  whiteSpace: "nowrap",
-};
-
-const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
+  fontSize: 13,
   fontWeight: 800,
-  whiteSpace: "nowrap",
+  lineHeight: "38px",
+  cursor: "pointer",
 };
 
-const BANNER_DOT_STYLE: React.CSSProperties = {
-  opacity: 0.35,
-  whiteSpace: "nowrap",
+const BATCH_TEXTAREA_STYLE: React.CSSProperties = {
+  width: "100%",
+  minHeight: 210,
+  marginTop: 8,
+  boxSizing: "border-box",
+  resize: "vertical",
+  borderRadius: 18,
+  border: "1px solid rgba(11,46,95,0.10)",
+  background: "#FFFFFF",
+  padding: 14,
+  color: "#0B2E5F",
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  fontSize: 13,
+  lineHeight: 1.55,
+  outline: "none",
 };
 
-const BANNER_CONTROL_STYLE: React.CSSProperties = {
-  height: 36,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  whiteSpace: "nowrap",
-  flex: "0 0 auto",
-};
-
-type PageSwitcherProps = {
-  activePage: ActivePage;
-  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
-  language: PortalLanguage;
-};
-
-type BrandedPageProps = {
-  activePage: ActivePage;
-  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
-  branding: ClientBranding;
-  language: PortalLanguage;
-  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
-  onRunCompleted?: (summary: PortalRunSummary) => void;
-};
-
-type LanguageSwitcherProps = {
-  language: PortalLanguage;
-  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
-};
-
-type PortalBannerProps = {
-  title: string;
-  modeValue: string;
-  meta: { label: string; value: string }[];
-  activePage: ActivePage;
-  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
-  branding: ClientBranding;
-  language: PortalLanguage;
-  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
-};
-
-const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
-  AT: { lat: 48.2082, lon: 16.3738 },
-  BE: { lat: 50.8503, lon: 4.3517 },
-  BG: { lat: 42.6977, lon: 23.3219 },
-  CY: { lat: 35.1856, lon: 33.3823 },
-  CZ: { lat: 50.0755, lon: 14.4378 },
-  DE: { lat: 52.52, lon: 13.405 },
-  DK: { lat: 55.6761, lon: 12.5683 },
-  EE: { lat: 59.437, lon: 24.7536 },
-  EL: { lat: 37.9838, lon: 23.7275 },
-  ES: { lat: 40.4168, lon: -3.7038 },
-  FI: { lat: 60.1699, lon: 24.9384 },
-  FR: { lat: 48.8566, lon: 2.3522 },
-  HR: { lat: 45.815, lon: 15.9819 },
-  HU: { lat: 47.4979, lon: 19.0402 },
-  IE: { lat: 53.3498, lon: -6.2603 },
-  IT: { lat: 41.9028, lon: 12.4964 },
-  LT: { lat: 54.6872, lon: 25.2797 },
-  LU: { lat: 49.6116, lon: 6.1319 },
-  LV: { lat: 56.9496, lon: 24.1052 },
-  MT: { lat: 35.8989, lon: 14.5146 },
-  NL: { lat: 52.3676, lon: 4.9041 },
-  PL: { lat: 52.2297, lon: 21.0122 },
-  PT: { lat: 38.7223, lon: -9.1393 },
-  RO: { lat: 44.4268, lon: 26.1025 },
-  SE: { lat: 59.3293, lon: 18.0686 },
-  SI: { lat: 46.0569, lon: 14.5058 },
-  SK: { lat: 48.1486, lon: 17.1077 },
-  XI: { lat: 54.5973, lon: -5.9301 },
-};
-
-const ERROR_MAP: Record<string, Partial<Record<PortalLanguage, string>> & { en: string }> = {
-  MS_MAX_CONCURRENT_REQ: {
-    en: "Member State has too many concurrent checks; we will try again later.",
-    nl: "De lidstaat heeft te veel gelijktijdige controles; we proberen het later opnieuw.",
-    de: "Der Mitgliedstaat hat zu viele gleichzeitige Prüfungen; wir versuchen es später erneut.",
-    fr: "L’État membre a trop de contrôles simultanés ; nous réessaierons plus tard.",
-  },
-  MS_UNAVAILABLE: {
-    en: "Member State is temporarily unavailable; we will try again later.",
-    nl: "De lidstaat is tijdelijk niet beschikbaar; we proberen het later opnieuw.",
-    de: "Der Mitgliedstaat ist vorübergehend nicht verfügbar; wir versuchen es später erneut.",
-    fr: "L’État membre est temporairement indisponible ; nous réessaierons plus tard.",
-  },
-  TIMEOUT: {
-    en: "Timeout when calling VIES; we will try again later.",
-    nl: "Timeout bij het aanroepen van VIES; we proberen het later opnieuw.",
-    de: "Zeitüberschreitung beim Aufruf von VIES; wir versuchen es später erneut.",
-    fr: "Délai dépassé lors de l’appel à VIES ; nous réessaierons plus tard.",
-  },
-  GLOBAL_MAX_CONCURRENT_REQ: {
-    en: "VIES is busy; we will try again later.",
-    nl: "VIES is druk; we proberen het later opnieuw.",
-    de: "VIES ist ausgelastet; wir versuchen es später erneut.",
-    fr: "VIES est occupé ; nous réessaierons plus tard.",
-  },
-  SERVICE_UNAVAILABLE: {
-    en: "VIES service is unavailable; we will try again later.",
-    nl: "De VIES-service is niet beschikbaar; we proberen het later opnieuw.",
-    de: "Der VIES-Dienst ist nicht verfügbar; wir versuchen es später erneut.",
-    fr: "Le service VIES est indisponible ; nous réessaierons plus tard.",
-  },
-  NETWORK_ERROR: {
-    en: "Network error when calling VIES; we will try again later.",
-    nl: "Netwerkfout bij het aanroepen van VIES; we proberen het later opnieuw.",
-    de: "Netzwerkfehler beim Aufruf von VIES; wir versuchen es später erneut.",
-    fr: "Erreur réseau lors de l’appel à VIES ; nous réessaierons plus tard.",
-  },
-};
+const COUNTRY_OPTIONS = [
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "CY", name: "Cyprus" },
+  { code: "CZ", name: "Czech Republic" },
+  { code: "DE", name: "Germany" },
+  { code: "DK", name: "Denmark" },
+  { code: "EE", name: "Estonia" },
+  { code: "EL", name: "Greece" },
+  { code: "ES", name: "Spain" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "HR", name: "Croatia" },
+  { code: "HU", name: "Hungary" },
+  { code: "IE", name: "Ireland" },
+  { code: "IT", name: "Italy" },
+  { code: "LT", name: "Lithuania" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "LV", name: "Latvia" },
+  { code: "MT", name: "Malta" },
+  { code: "NL", name: "Netherlands" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "RO", name: "Romania" },
+  { code: "SE", name: "Sweden" },
+  { code: "SI", name: "Slovenia" },
+  { code: "SK", name: "Slovakia" },
+];
 
 const VAT_PATTERNS: Record<string, RegExp> = {
   AT: /^U\d{8}$/,
@@ -357,260 +183,68 @@ const VAT_PATTERNS: Record<string, RegExp> = {
   XI: /^(?:\d{9}|\d{12}|GD\d{3}|HA\d{3})$/,
 };
 
-type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error";
-
-function normalizeLine(s: string): string {
-  return String(s || "")
+function normalizeLine(value: string): string {
+  return String(value || "")
     .trim()
     .replace(/\s+/g, "")
     .replace(/[^A-Za-z0-9]/g, "")
     .toUpperCase();
 }
 
-function normalizeVatCandidate(v: string): string {
-  let n = normalizeLine(v);
-  if (n.startsWith("GR")) n = "EL" + n.slice(2);
-  return n;
+function normalizeVatCandidate(value: string): string {
+  const normalized = normalizeLine(value);
+  return normalized.startsWith("GR") ? `EL${normalized.slice(2)}` : normalized;
 }
 
-function normalizeTsMs(ts: any): number | undefined {
-  const n = typeof ts === "number" ? ts : Number(ts);
-  if (!Number.isFinite(n) || n <= 0) return undefined;
-  if (n < 1_000_000_000_000) return n * 1000;
-  return n;
+function normalizeTinCandidate(value: string, country: string): string {
+  let tin = String(value || "").trim();
+  const cc = normalizeCountry(country);
+  const altCc = cc === "EL" ? "GR" : cc;
+  const upper = tin.toUpperCase();
+  if (upper.startsWith(`${cc} `) || upper.startsWith(`${altCc} `)) tin = tin.slice(3);
+  else if (upper.startsWith(cc) || upper.startsWith(altCc)) tin = tin.slice(2);
+  return tin.trim();
 }
 
-function rowKeyStable(r: Partial<VatRow>, fallbackIdx?: number): string {
-  const vat = String((r as any).vat_number || "").trim();
-  const input = String((r as any).input || "").trim();
-  const cc = String((r as any).country_code || "").trim();
-  const part = String((r as any).vat_part || "").trim();
-
-  if (vat) return `vat:${normalizeVatCandidate(vat)}`;
-  if (input) return `in:${normalizeVatCandidate(input)}`;
-  if (cc || part) return `cc:${cc}:${part}`;
-  return `idx:${fallbackIdx ?? 0}`;
+function normalizeCountry(country: string): string {
+  const value = String(country || "").toUpperCase().trim();
+  return value === "GR" ? "EL" : value;
 }
 
-function stateClass(state?: string): string {
-  const s = String(state || "").toLowerCase();
-  if (["valid", "invalid", "retry", "queued", "processing", "error"].includes(s)) return s;
-  return "queued";
-}
-
-function stateLabel(state: string | undefined, language: PortalLanguage): string {
-  const s = String(state || "").toLowerCase();
-
-  if (s === "valid") return t(language, "valid");
-  if (s === "invalid") return t(language, "invalid");
-  if (s === "queued") return t(language, "pending");
-  if (s === "processing") return t(language, "pending");
-  if (s === "error") return t(language, "error");
-
-  if (s === "retry") {
-    if (language === "nl") return "Opnieuw";
-    if (language === "de") return "Erneut";
-    if (language === "fr") return "Réessai";
-    return "Retry";
-  }
-
-  return s || "unknown";
-}
-
-function humanError(code?: string, fallback?: string, language: PortalLanguage = "en") {
-  const c = (code || "").trim();
-  const mapped = ERROR_MAP[c];
-
-  if (mapped) {
-    return mapped[language] || mapped.en;
-  }
-
-  return fallback || c || "";
-}
-
-function localText(language: PortalLanguage, key: string): string {
-  const copy: Record<string, Record<string, string>> = {
-    en: {
-      unique: "unique",
-      lines: "lines",
-      duplicates: "duplicates",
-      formatIssues: "format issues",
-      countries: "countries",
-      mapUnavailable: "Map unavailable",
-      eta: "ETA",
-      bad: "Bad",
-      ok: "OK",
-      asc: "asc",
-      desc: "desc",
-      tinValidationFailed: "TIN validation failed",
-      vatInfographic: "VAT validation — infographic",
-    },
-    nl: {
-      unique: "uniek",
-      lines: "regels",
-      duplicates: "duplicaten",
-      formatIssues: "formaatproblemen",
-      countries: "landen",
-      mapUnavailable: "Kaart niet beschikbaar",
-      eta: "ETA",
-      bad: "Fout",
-      ok: "OK",
-      asc: "oplopend",
-      desc: "aflopend",
-      tinValidationFailed: "TIN-validatie mislukt",
-      vatInfographic: "VAT-validatie — infographic",
-    },
-    de: {
-      unique: "eindeutig",
-      lines: "Zeilen",
-      duplicates: "Duplikate",
-      formatIssues: "Formatprobleme",
-      countries: "Länder",
-      mapUnavailable: "Karte nicht verfügbar",
-      eta: "ETA",
-      bad: "Fehlerhaft",
-      ok: "OK",
-      asc: "aufsteigend",
-      desc: "absteigend",
-      tinValidationFailed: "TIN-Prüfung fehlgeschlagen",
-      vatInfographic: "VAT-Prüfung — Infografik",
-    },
-    fr: {
-      unique: "uniques",
-      lines: "lignes",
-      duplicates: "doublons",
-      formatIssues: "problèmes de format",
-      countries: "pays",
-      mapUnavailable: "Carte indisponible",
-      eta: "ETA",
-      bad: "Incorrect",
-      ok: "OK",
-      asc: "croissant",
-      desc: "décroissant",
-      tinValidationFailed: "Échec de la validation TIN",
-      vatInfographic: "Validation VAT — infographie",
-    },
-  };
-
-  return copy[language]?.[key] || copy.en[key] || key;
-}
-
-function formatEta(ts?: number) {
-  if (!ts) return "";
-  const diff = Math.max(0, ts - Date.now());
-  const s = Math.round(diff / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.round(s / 60);
-  return `${m}m`;
-}
-
-function validateFormatStrict(vatNumberWithPrefix: string) {
-  const v = normalizeVatCandidate(vatNumberWithPrefix);
-  if (v.length < 3) return { ok: false, reason: "Too short" };
-
-  const cc = v.slice(0, 2);
-  if (!/^[A-Z]{2}$/.test(cc)) return { ok: false, reason: "Missing country prefix" };
-
-  const rest = v.slice(2);
-  if (!rest) return { ok: false, reason: "Missing VAT digits" };
-  if (!/^[A-Z0-9]+$/.test(rest)) return { ok: false, reason: "Invalid characters" };
-
-  const re = VAT_PATTERNS[cc];
-  if (re && !re.test(rest)) return { ok: false, reason: `Invalid format for ${cc}` };
-
+function validateVatFormat(value: string): { ok: boolean; reason: string } {
+  const normalized = normalizeVatCandidate(value);
+  if (normalized.length < 3) return { ok: false, reason: "Too short" };
+  const country = normalized.slice(0, 2);
+  const vatPart = normalized.slice(2);
+  if (!/^[A-Z]{2}$/.test(country)) return { ok: false, reason: "Missing country prefix" };
+  if (!vatPart) return { ok: false, reason: "Missing VAT digits" };
+  if (!/^[A-Z0-9]+$/.test(vatPart)) return { ok: false, reason: "Invalid characters" };
+  const pattern = VAT_PATTERNS[country];
+  if (pattern && !pattern.test(vatPart)) return { ok: false, reason: `Invalid format for ${country}` };
   return { ok: true, reason: "" };
 }
 
-function validateFormat(vatNumberWithPrefix: string) {
-  const v = normalizeLine(vatNumberWithPrefix);
-  if (v.length < 3) return { ok: false, reason: "Too short" };
-  const cc = v.slice(0, 2);
-  if (!/^[A-Z]{2}$/.test(cc)) return { ok: false, reason: "Missing country prefix" };
-  const rest = v.slice(2);
-  if (!rest) return { ok: false, reason: "Missing VAT digits" };
-  if (!/^[A-Z0-9]+$/.test(rest)) return { ok: false, reason: "Invalid characters" };
-  return { ok: true, reason: "" };
+function splitInputLines(value: string): string[] {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
-function isRetryableError(codeOrError?: string, details?: string) {
-  const c = String(codeOrError || "").trim().toUpperCase();
-  const d = String(details || "").toLowerCase();
-
-  if (
-    c === "NETWORK_ERROR" ||
-    c === "TIMEOUT" ||
-    c === "SERVICE_UNAVAILABLE" ||
-    c === "GLOBAL_MAX_CONCURRENT_REQ" ||
-    c === "MS_MAX_CONCURRENT_REQ" ||
-    c === "MS_UNAVAILABLE"
-  ) {
-    return true;
-  }
-
-  if (d.includes("abort") || d.includes("aborted") || d.includes("timeout")) return true;
-
-  return false;
-}
-
-function displayState(r: VatRow): RowState {
-  const raw = String((r as any).state || "").toLowerCase();
-  const v = (r as any).valid;
-
-  if (raw === "error") return "error";
-  if (typeof v === "boolean") return v ? "valid" : "invalid";
-
-  const errorCode = String((r as any).error_code || "").trim();
-  const errorText = String((r as any).error || "").trim();
-  const details = String((r as any).details || "").trim();
-
-  const retryable = isRetryableError(errorCode || errorText, details);
-
-  if ((raw === "queued" || raw === "processing") && retryable) return "retry";
-
-  const hasResult = Boolean(String((r as any).name || "").trim() || String((r as any).address || "").trim());
-  if (raw === "retry" && hasResult && !errorCode && !errorText) return "valid";
-
-  if (
-    raw === "valid" ||
-    raw === "invalid" ||
-    raw === "retry" ||
-    raw === "queued" ||
-    raw === "processing"
-  ) {
-    return raw as RowState;
-  }
-
-  return "queued";
-}
-
-function computeCountryCountsFromInput(text: string): Record<string, number> {
-  const lines = text.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+function uniqueValues(values: string[]): { values: string[]; duplicates: number } {
   const seen = new Set<string>();
-  const counts: Record<string, number> = {};
-
-  for (const line of lines) {
-    const v = normalizeLine(line);
-    if (!v || v.length < 2) continue;
-
-    let cc = v.slice(0, 2);
-    if (!/^[A-Z]{2}$/.test(cc)) continue;
-    if (cc === "GR") cc = "EL";
-
-    const key = cc + v.slice(2);
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    counts[cc] = (counts[cc] || 0) + 1;
+  const out: string[] = [];
+  let duplicates = 0;
+  for (const value of values) {
+    if (!value) continue;
+    if (seen.has(value)) {
+      duplicates += 1;
+      continue;
+    }
+    seen.add(value);
+    out.push(value);
   }
-
-  return counts;
-}
-
-function vatCcToIso2ForFlag(ccRaw: string): string {
-  let cc = String(ccRaw || "").toUpperCase().trim();
-  if (cc === "EL") cc = "GR";
-  if (cc === "XI") cc = "GB";
-  return cc;
+  return { values: out, duplicates };
 }
 
 function localeForLanguage(language: PortalLanguage): string {
@@ -620,209 +254,350 @@ function localeForLanguage(language: PortalLanguage): string {
   return "en-GB";
 }
 
-function countryName(code: string, language: PortalLanguage): string {
-  const displayCode = code === "EL" ? "GR" : code;
+function formatDate(value: unknown, language: PortalLanguage): string {
+  if (value === null || value === undefined || value === "") return "";
+  let date: Date | null = null;
+  if (typeof value === "number") {
+    date = new Date(value < 1_000_000_000_000 ? value * 1000 : value);
+  } else if (typeof value === "string") {
+    const parsed = new Date(value);
+    date = Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (!date || Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(localeForLanguage(language));
+}
 
+function statusTone(status: string | undefined): RowTone {
+  const value = String(status || "").toLowerCase();
+  if (value === "valid") return "valid";
+  if (value === "invalid") return "invalid";
+  if (value === "error") return "error";
+  return "pending";
+}
+
+function vatStatus(row: VatRow): RowTone {
+  const raw = String((row as any).state || "").toLowerCase();
+  if (raw === "error") return "error";
+  if (typeof (row as any).valid === "boolean") return (row as any).valid ? "valid" : "invalid";
+  if (raw === "valid" || raw === "invalid" || raw === "pending" || raw === "error") return raw as RowTone;
+  return "pending";
+}
+
+function statusLabel(language: PortalLanguage, status: RowTone): string {
+  if (status === "valid") return t(language, "valid");
+  if (status === "invalid") return t(language, "invalid");
+  if (status === "error") return t(language, "error");
+  return t(language, "pending");
+}
+
+function rowBorder(tone: RowTone): string {
+  if (tone === "valid") return "rgba(22,163,74,0.22)";
+  if (tone === "invalid") return "rgba(220,38,38,0.20)";
+  if (tone === "error") return "rgba(185,28,28,0.25)";
+  return "rgba(11,46,95,0.10)";
+}
+
+function toneBackground(tone: RowTone): string {
+  if (tone === "valid") return "rgba(22,163,74,0.08)";
+  if (tone === "invalid") return "rgba(220,38,38,0.07)";
+  if (tone === "error") return "rgba(185,28,28,0.08)";
+  return "rgba(99,199,242,0.10)";
+}
+
+function countryName(code: string, language: PortalLanguage): string {
+  const normalized = normalizeCountry(code);
+  const displayCode = normalized === "EL" ? "GR" : normalized;
   try {
     const DisplayNames = (Intl as any).DisplayNames;
-    if (!DisplayNames) return code;
-
+    if (!DisplayNames) return displayCode;
     const names = new DisplayNames([localeForLanguage(language)], { type: "region" });
-    return names.of(displayCode) || code;
+    return names.of(displayCode) || displayCode;
   } catch {
-    return code;
+    return displayCode;
   }
 }
 
-function InputCountryBarChart({
-  inputEntries,
-  maxInputCount,
-  language,
-}: {
-  inputEntries: Array<[string, number]>;
-  maxInputCount: number;
-  language: PortalLanguage;
-}) {
-  if (!inputEntries.length) return null;
+function localText(language: PortalLanguage, key: string): string {
+  const copy: Record<PortalLanguage, Record<string, string>> = {
+    en: {
+      unique: "unique",
+      lines: "lines",
+      formatIssues: "format issues",
+      clientCase: "Client / Case",
+      vatPlaceholder: "Paste VAT numbers, one per line",
+      tinPlaceholder: "Paste TINs, one per line",
+      selectCountry: "Select country",
+      job: "Job",
+      ready: "Ready",
+      imported: "Imported",
+      validationFailed: "Validation failed",
+      exportEmpty: "Nothing to export yet",
+      inputCard: "Input card",
+    },
+    nl: {
+      unique: "uniek",
+      lines: "regels",
+      formatIssues: "formaatproblemen",
+      clientCase: "Klant / dossier",
+      vatPlaceholder: "Plak btw-nummers, één per regel",
+      tinPlaceholder: "Plak TINs, één per regel",
+      selectCountry: "Selecteer land",
+      job: "Taak",
+      ready: "Gereed",
+      imported: "Geïmporteerd",
+      validationFailed: "Validatie mislukt",
+      exportEmpty: "Nog niets om te exporteren",
+      inputCard: "Invoerkaart",
+    },
+    de: {
+      unique: "eindeutig",
+      lines: "Zeilen",
+      formatIssues: "Formatprobleme",
+      clientCase: "Kunde / Fall",
+      vatPlaceholder: "USt-IdNr. einfügen, eine pro Zeile",
+      tinPlaceholder: "TINs einfügen, eine pro Zeile",
+      selectCountry: "Land wählen",
+      job: "Aufgabe",
+      ready: "Bereit",
+      imported: "Importiert",
+      validationFailed: "Validierung fehlgeschlagen",
+      exportEmpty: "Noch nichts zu exportieren",
+      inputCard: "Eingabekarte",
+    },
+    fr: {
+      unique: "uniques",
+      lines: "lignes",
+      formatIssues: "problèmes de format",
+      clientCase: "Client / dossier",
+      vatPlaceholder: "Collez les numéros VAT, un par ligne",
+      tinPlaceholder: "Collez les TINs, un par ligne",
+      selectCountry: "Sélectionnez le pays",
+      job: "Tâche",
+      ready: "Prêt",
+      imported: "Importé",
+      validationFailed: "Validation échouée",
+      exportEmpty: "Rien à exporter pour le moment",
+      inputCard: "Carte de saisie",
+    },
+  };
+  return copy[language]?.[key] || copy.en[key] || key;
+}
 
-  const total = inputEntries.reduce((s, [, n]) => s + n, 0);
+async function readJson(resp: Response): Promise<any> {
+  const text = await resp.text();
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return null;
+  }
+}
 
+async function readTabularFile(file: File): Promise<string[]> {
+  const name = String(file.name || "").toLowerCase();
+  if (name.endsWith(".csv") || name.endsWith(".txt")) {
+    const text = await file.text();
+    return text
+      .split(/\r?\n|,|;|\t/)
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
+  }
+
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const firstSheetName = workbook.SheetNames?.[0];
+  const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : null;
+  if (!sheet) return [];
+
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    raw: false,
+    defval: "",
+  }) as unknown[][];
+
+  return rows
+    .flat()
+    .map((x) => String(x || "").trim())
+    .filter(Boolean);
+}
+
+function writeWorkbook(filename: string, sheetName: string, headers: string[], rows: unknown[][]) {
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  worksheet["!cols"] = headers.map((header) => ({ wch: Math.max(14, header.length + 2) }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  XLSX.writeFile(workbook, filename);
+}
+
+function actionButtonStyle(disabled?: boolean, primary?: boolean): React.CSSProperties {
+  return {
+    ...ACTION_BUTTON_STYLE,
+    background: primary ? "#0B2E5F" : "#FFFFFF",
+    color: primary ? "#FFFFFF" : "#0B2E5F",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.55 : 1,
+  };
+}
+
+function textInputStyle(): React.CSSProperties {
+  return {
+    ...ACTION_FIRST_FIELD_STYLE,
+    borderRadius: 12,
+    border: "1px solid rgba(11,46,95,0.12)",
+    padding: "0 12px",
+    color: "#0B2E5F",
+    fontFamily: PORTAL_FONT,
+    fontSize: 13,
+    fontWeight: 700,
+    outline: "none",
+    background: "#fff",
+  };
+}
+
+function cardStyle(): React.CSSProperties {
+  return {
+    borderRadius: 22,
+    border: "1px solid rgba(11,46,95,0.08)",
+    background: "rgba(255,255,255,0.92)",
+    boxShadow: "0 14px 42px rgba(15,23,42,0.05)",
+    padding: 18,
+  };
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        marginTop: 10,
-        padding: 10,
-        borderRadius: 14,
-        border: "1px solid rgba(0,0,0,0.08)",
-        background: "rgba(255,255,255,0.18)",
-        backdropFilter: "blur(6px)",
-        WebkitBackdropFilter: "blur(6px)",
+        fontFamily: PORTAL_FONT,
+        fontSize: 20,
+        lineHeight: 1.2,
+        fontWeight: 800,
+        color: "#0B2E5F",
+        margin: 0,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-        <div style={{ ...SMALL_HEADER_STYLE, fontSize: 12 }}>{t(language, "inputByCountry")}</div>
-        <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-          {total} {t(language, "total").toLowerCase()}
-        </div>
-      </div>
-
-      <div style={{ maxHeight: 150, overflow: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-        {inputEntries.map(([cc, n]) => {
-          const pct = maxInputCount ? (n / maxInputCount) * 100 : 0;
-          const iso2 = vatCcToIso2ForFlag(cc);
-
-          return (
-            <div
-              key={cc}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "92px 1fr 34px",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <ReactCountryFlag
-                  countryCode={iso2}
-                  svg
-                  style={{ width: "18px", height: "14px", borderRadius: 3 }}
-                  title={cc}
-                />
-                <span className="mono nowrap">{cc}</span>
-              </div>
-
-              <div
-                title={`${cc}: ${n}`}
-                style={{
-                  height: 10,
-                  borderRadius: 999,
-                  background: "rgba(0,0,0,0.10)",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${pct}%`,
-                    height: "100%",
-                    borderRadius: 999,
-                    background: "linear-gradient(90deg, rgba(43,179,230,0.85), rgba(11,46,95,0.85))",
-                  }}
-                />
-              </div>
-
-              <div className="mono" style={{ textAlign: "right" }}>
-                {n}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {children}
     </div>
   );
 }
 
-function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
+function SectionSubtitle({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        height: 36,
-        display: "inline-grid",
-        gridTemplateColumns: "max-content max-content",
+        fontFamily: PORTAL_FONT,
+        fontSize: 14,
+        lineHeight: 1.55,
+        fontWeight: 500,
+        color: "#42526A",
+        marginTop: 6,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetricGrid({ items }: { items: Metric[] }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(145px, 1fr))",
+        gap: 10,
+      }}
+    >
+      {items.map((item) => (
+        <div
+          key={item.label}
+          style={{
+            borderRadius: 16,
+            border: `1px solid ${rowBorder(item.tone || "pending")}`,
+            background: toneBackground(item.tone || "pending"),
+            padding: "12px 13px",
+          }}
+        >
+          <div
+            style={{
+              color: "#5F6E82",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.02em",
+              textTransform: "uppercase",
+            }}
+          >
+            {item.label}
+          </div>
+          <div style={{ marginTop: 7, color: "#0B2E5F", fontSize: 22, fontWeight: 900 }}>
+            {item.value}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatusPill({ tone, children }: { tone: RowTone; children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 6,
-        padding: 3,
+        minWidth: 84,
+        height: 26,
+        padding: "0 10px",
         borderRadius: 999,
-        background: "rgba(255,255,255,0.82)",
-        border: "1px solid rgba(226,232,240,0.95)",
-        boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
+        border: `1px solid ${rowBorder(tone)}`,
+        background: toneBackground(tone),
+        color: tone === "invalid" || tone === "error" ? "#8F1D1D" : "#0B2E5F",
+        fontSize: 12,
+        fontWeight: 900,
         whiteSpace: "nowrap",
-        flex: "0 0 auto",
       }}
     >
-      <Button
-        type="button"
-        variant={activePage === "vat" ? "primary" : "secondary"}
-        size="sm"
-        onClick={() => setActivePage("vat")}
-        style={{
-          height: 28,
-          minWidth: 148,
-          padding: "0 12px",
-          whiteSpace: "nowrap",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {t(language, "vatTab")}
-      </Button>
-
-      <Button
-        type="button"
-        variant={activePage === "tin" ? "primary" : "secondary"}
-        size="sm"
-        onClick={() => setActivePage("tin")}
-        style={{
-          height: 28,
-          minWidth: 112,
-          padding: "0 12px",
-          whiteSpace: "nowrap",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {t(language, "tinTab")}
-      </Button>
-    </div>
+      {children}
+    </span>
   );
 }
 
-function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
+function LanguageSwitcher({
+  language,
+  setLanguage,
+}: {
+  language: PortalLanguage;
+  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
+}) {
   return (
     <div
       style={{
         height: 36,
         display: "inline-flex",
         alignItems: "center",
-        justifyContent: "center",
         gap: 4,
         padding: 4,
         borderRadius: 999,
         border: "1px solid rgba(11,46,95,0.10)",
-        background: "rgba(255,255,255,0.76)",
-        boxShadow: "0 8px 22px rgba(11,46,95,0.045)",
-        whiteSpace: "nowrap",
+        background: "rgba(255,255,255,0.88)",
         flex: "0 0 auto",
       }}
-      aria-label="Language selector"
     >
       {LANGUAGES.map((item) => {
         const active = item.code === language;
-
         return (
           <button
             key={item.code}
             type="button"
             onClick={() => setLanguage(item.code)}
             style={{
+              width: 34,
               height: 28,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
               border: 0,
               borderRadius: 999,
-              padding: "0 9px",
-              background: active ? "rgba(11,46,95,0.96)" : "transparent",
-              color: active ? "#fff" : "#0B2E5F",
+              background: active ? "#0B2E5F" : "transparent",
+              color: active ? "#FFFFFF" : "#0B2E5F",
               fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: "0.04em",
+              fontWeight: 900,
               cursor: "pointer",
-              whiteSpace: "nowrap",
             }}
           >
             {item.label}
@@ -833,60 +608,158 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
   );
 }
 
-function PortalBanner({
-  title,
-  modeValue,
-  meta = [],
+function PageSwitcher({
   activePage,
   setActivePage,
-  branding = DEFAULT_BRANDING,
+  language,
+}: {
+  activePage: ActivePage;
+  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+  language: PortalLanguage;
+}) {
+  return (
+    <div
+      style={{
+        height: 36,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: 4,
+        borderRadius: 999,
+        border: "1px solid rgba(11,46,95,0.10)",
+        background: "rgba(255,255,255,0.88)",
+        flex: "0 0 auto",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setActivePage("vat")}
+        style={{
+          height: 28,
+          minWidth: 148,
+          padding: "0 12px",
+          border: 0,
+          borderRadius: 999,
+          background: activePage === "vat" ? "#0B2E5F" : "transparent",
+          color: activePage === "vat" ? "#FFFFFF" : "#0B2E5F",
+          fontSize: 12,
+          fontWeight: 900,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {t(language, "vatTab")}
+      </button>
+      <button
+        type="button"
+        onClick={() => setActivePage("tin")}
+        style={{
+          height: 28,
+          minWidth: 112,
+          padding: "0 12px",
+          border: 0,
+          borderRadius: 999,
+          background: activePage === "tin" ? "#0B2E5F" : "transparent",
+          color: activePage === "tin" ? "#FFFFFF" : "#0B2E5F",
+          fontSize: 12,
+          fontWeight: 900,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {t(language, "tinTab")}
+      </button>
+    </div>
+  );
+}
+
+function PortalBanner({
+  branding,
+  activePage,
+  setActivePage,
   language,
   setLanguage,
-}: PortalBannerProps) {
+  lastUpdate,
+}: {
+  branding: ClientBranding;
+  activePage: ActivePage;
+  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+  language: PortalLanguage;
+  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
+  lastUpdate: string;
+}) {
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
-  const logoAlt = `${branding.clientName || "RSM"} logo`;
-
-  const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
+  const title = branding.portalTitle || DEFAULT_BRANDING.portalTitle;
+  const modeValue = activePage === "vat" ? t(language, "vatTab") : t(language, "tinTab");
 
   return (
-    <div className="banner">
-      <div className="banner-accent" />
-
-      <div style={BANNER_INNER_STYLE}>
-        <div style={BANNER_LEFT_STYLE}>
+    <div
+      style={{
+        borderRadius: 26,
+        border: "1px solid rgba(11,46,95,0.08)",
+        background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.82))",
+        boxShadow: "0 18px 54px rgba(15,23,42,0.06)",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          height: 4,
+          background: `linear-gradient(90deg, ${branding.primaryColor || "#0B2E5F"}, ${
+            branding.accentColor || "#63C7F2"
+          })`,
+        }}
+      />
+      <div
+        style={{
+          width: "100%",
+          boxSizing: "border-box",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 18,
+          flexWrap: "nowrap",
+          padding: "18px 22px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            minWidth: 0,
+            flex: "0 1 370px",
+          }}
+        >
           <div
-            className="mark"
-            aria-hidden="true"
             style={{
+              minWidth: 152,
               padding: "8px 12px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              minWidth: 152,
-              flex: "0 0 auto",
+              borderRadius: 18,
+              background: "#FFFFFF",
+              border: "1px solid rgba(11,46,95,0.08)",
             }}
           >
             <img
               src={logoUrl}
-              alt={logoAlt}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "/rsmlogo.png";
+              alt={`${branding.clientName || "RSM"} logo`}
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = "/rsmlogo.png";
               }}
-              style={{
-                maxWidth: 150,
-                maxHeight: 58,
-                objectFit: "contain",
-              }}
+              style={{ maxWidth: 150, maxHeight: 58, objectFit: "contain" }}
             />
           </div>
-
           <div style={{ minWidth: 0 }}>
             <div
-              className="title"
               style={{
-                ...PAGE_TITLE_STYLE,
-                fontWeight: 800,
+                color: branding.primaryColor || "#0B2E5F",
+                fontFamily: PORTAL_FONT,
+                fontSize: 20,
+                fontWeight: 900,
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -894,243 +767,191 @@ function PortalBanner({
             >
               {title}
             </div>
+            <div style={{ marginTop: 4, color: "#526174", fontSize: 13, fontWeight: 700 }}>
+              {branding.clientName || DEFAULT_BRANDING.clientName}
+            </div>
           </div>
         </div>
 
-        <div style={BANNER_RIGHT_STYLE}>
-          <div style={BANNER_STATUS_BAR_STYLE}>
-            {statusItems.map((item, index) => (
-              <React.Fragment key={`${item.label}-${index}`}>
-                {index > 0 && <span style={BANNER_DOT_STYLE}>•</span>}
-
-                <span style={BANNER_STATUS_ITEM_STYLE}>
-                  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-                  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
-                </span>
-              </React.Fragment>
-            ))}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 8,
+            minWidth: 0,
+            flex: "1 1 auto",
+            flexWrap: "nowrap",
+            whiteSpace: "nowrap",
+            overflowX: "auto",
+            overflowY: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: 36,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "0 12px",
+              borderRadius: 999,
+              border: "1px solid rgba(11,46,95,0.10)",
+              background: "rgba(255,255,255,0.88)",
+              color: "#0B2E5F",
+              fontSize: 12,
+              fontWeight: 800,
+              flex: "0 0 auto",
+            }}
+          >
+            <span style={{ opacity: 0.72 }}>{t(language, "mode")}</span>
+            <span>{modeValue}</span>
+            <span style={{ opacity: 0.35 }}>•</span>
+            <span style={{ opacity: 0.72 }}>{t(language, "lastUpdate")}</span>
+            <span>{lastUpdate || "—"}</span>
           </div>
-
-          <div style={BANNER_CONTROL_STYLE}>
-            <LanguageSwitcher language={language} setLanguage={setLanguage} />
-          </div>
-
-          <div style={BANNER_CONTROL_STYLE}>
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
-          </div>
+          <LanguageSwitcher language={language} setLanguage={setLanguage} />
+          <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
         </div>
       </div>
     </div>
   );
 }
 
-function MetricGrid({
-  items,
-}: {
-  items: Array<{ label: string; value: React.ReactNode; tone?: "default" | "ok" | "bad" | "warn" }>;
-}) {
+function CreditsVisual({ language }: { language: PortalLanguage }) {
   return (
-    <div className="stats">
-      {items.map((item) => (
-        <div className="stat" key={item.label}>
-          <span>{item.label}</span>
-          <b
-            style={{
-              color:
-                item.tone === "ok"
-                  ? "var(--ok)"
-                  : item.tone === "bad"
-                    ? "var(--bad)"
-                    : item.tone === "warn"
-                      ? "var(--warn)"
-                      : "var(--text)",
-            }}
-          >
-            {item.value}
-          </b>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 14,
+        padding: "12px 14px",
+        borderRadius: 18,
+        border: "1px solid rgba(11,46,95,0.08)",
+        background: "#FFFFFF",
+      }}
+    >
+      <div>
+        <div style={{ color: "#0B2E5F", fontSize: 13, fontWeight: 900 }}>{t(language, "credits")}</div>
+        <div style={{ marginTop: 3, color: "#607089", fontSize: 12, fontWeight: 700 }}>
+          {t(language, "unlimited")}
+        </div>
+      </div>
+      <div style={{ width: 150, height: 9, borderRadius: 999, background: "rgba(11,46,95,0.08)" }}>
+        <div
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 999,
+            background: "linear-gradient(90deg, #0B2E5F, #63C7F2)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InputDistribution({
+  entries,
+  language,
+}: {
+  entries: Array<[string, number]>;
+  language: PortalLanguage;
+}) {
+  if (!entries.length) return null;
+  const max = Math.max(...entries.map(([, count]) => count));
+  return (
+    <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+      <div style={{ color: "#0B2E5F", fontSize: 13, fontWeight: 900 }}>{t(language, "inputByCountry")}</div>
+      {entries.map(([country, count]) => (
+        <div key={country} style={{ display: "grid", gridTemplateColumns: "54px 1fr 44px", gap: 8, alignItems: "center" }}>
+          <div style={{ color: "#0B2E5F", fontSize: 12, fontWeight: 900 }}>{country}</div>
+          <div style={{ height: 9, borderRadius: 999, background: "rgba(11,46,95,0.08)", overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${Math.max(8, (count / max) * 100)}%`,
+                height: "100%",
+                borderRadius: 999,
+                background: "linear-gradient(90deg, #0B2E5F, #63C7F2)",
+              }}
+            />
+          </div>
+          <div style={{ color: "#607089", fontSize: 12, fontWeight: 800, textAlign: "right" }}>{count}</div>
         </div>
       ))}
     </div>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <CardTitle style={PAGE_TITLE_STYLE}>{children}</CardTitle>;
-}
-
-function SectionSubtitle({
-  children,
-  maxWidth = 760,
-}: {
-  children: React.ReactNode;
-  maxWidth?: number;
-}) {
-  return <CardDescription style={{ ...PAGE_SUBTITLE_STYLE, maxWidth }}>{children}</CardDescription>;
-}
-
 function VatPage({
-  activePage,
-  setActivePage,
-  branding,
   language,
-  setLanguage,
   onRunCompleted,
-}: BrandedPageProps) {
-  const [vatInput, setVatInput] = useState<string>("");
-  const [caseRef, setCaseRef] = useState<string>("");
-  const [filter, setFilter] = useState<string>("");
-
+  setLastUpdate,
+}: {
+  language: PortalLanguage;
+  onRunCompleted?: (summary: PortalRunSummary) => void;
+  setLastUpdate: (value: string) => void;
+}) {
+  const [vatInput, setVatInput] = useState("");
+  const [caseRef, setCaseRef] = useState("");
   const [rows, setRows] = useState<VatRow[]>([]);
+  const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const [error, setError] = useState("");
   const [duplicatesIgnored, setDuplicatesIgnored] = useState(0);
-  const [viesStatus, setViesStatus] = useState<Array<{ countryCode: string; availability: string }>>([]);
-
-  const [, setFrText] = useState("-");
-  const [lastUpdate, setLastUpdate] = useState("-");
-  const [progressText, setProgressText] = useState("0/0");
-
-  const [sortState, setSortState] = useState<SortState>({ colIndex: null, asc: true });
-  const [sortLabel, setSortLabel] = useState<string>("");
-
-  const [mapLegend, setMapLegend] = useState("—");
-  const [mapCount, setMapCount] = useState(`0 ${localText(language, "countries")}`);
-  const [mapGeoVersion, setMapGeoVersion] = useState(0);
-
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
-
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const importFileRef = useRef<HTMLInputElement | null>(null);
   const validateAbortRef = useRef<AbortController | null>(null);
   const pollAbortRef = useRef<AbortController | null>(null);
-  const [activeFrJobId, setActiveFrJobId] = useState<string | null>(null);
-
+  const pollTimerRef = useRef<number | null>(null);
   const currentRunIdRef = useRef<string | null>(null);
   const currentRunStartedAtRef = useRef<string>("");
 
-  const [notes, setNotes] = useState<Record<string, { note: string; tag: "whitelist" | "blacklist" | "" }>>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("vat_notes") || "{}");
-    } catch {
-      return {};
+  const inputLines = useMemo(() => splitInputLines(vatInput), [vatInput]);
+
+  const precheck = useMemo(() => {
+    const normalized = inputLines.map(normalizeVatCandidate).filter(Boolean);
+    const unique = uniqueValues(normalized);
+    const formatIssues = unique.values.filter((value) => !validateVatFormat(value).ok).length;
+    return {
+      lines: inputLines.length,
+      unique: unique.values.length,
+      duplicates: unique.duplicates,
+      formatIssues,
+    };
+  }, [inputLines]);
+
+  const countryEntries = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const seen = new Set<string>();
+    for (const line of inputLines) {
+      const normalized = normalizeVatCandidate(line);
+      if (normalized.length < 2 || seen.has(normalized)) continue;
+      seen.add(normalized);
+      const country = normalized.slice(0, 2);
+      if (/^[A-Z]{2}$/.test(country)) counts[country] = (counts[country] || 0) + 1;
     }
-  });
-
-  useEffect(() => {
-    localStorage.setItem("vat_notes", JSON.stringify(notes));
-  }, [notes]);
-
-  const currentFrJobIdRef = useRef<string | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
-
-  const mapRef = useRef<L.Map | null>(null);
-  const markerLayerRef = useRef<L.LayerGroup | null>(null);
-  const geoJsonRef = useRef<any | null>(null);
-  const loggedIsoRef = useRef<Set<string>>(new Set());
-
-  const countryCounts = useMemo(() => computeCountryCountsFromInput(vatInput), [vatInput]);
-
-  const inputEntries = useMemo(() => {
-    return (Object.entries(countryCounts) as Array<[string, number]>)
-      .filter(([, n]) => n > 0)
-      .sort((a, b) => b[1] - a[1]);
-  }, [countryCounts]);
-
-  const maxInputCount = useMemo(() => {
-    return inputEntries.length ? Math.max(...inputEntries.map(([, n]) => n)) : 0;
-  }, [inputEntries]);
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [inputLines]);
 
   const filteredRows = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    const base = !q ? rows : rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
-
-    if (sortState.colIndex !== null) return base;
-
-    const prio = (r: VatRow) => {
-      const s = displayState(r);
-      if (s === "queued" || s === "retry" || s === "processing") return 0;
-      return 1;
-    };
-
-    return [...base].sort((a, b) => {
-      const pa = prio(a);
-      const pb = prio(b);
-      if (pa !== pb) return pa - pb;
-
-      const na = normalizeTsMs((a as any).next_retry_at) ?? Number.POSITIVE_INFINITY;
-      const nb = normalizeTsMs((b as any).next_retry_at) ?? Number.POSITIVE_INFINITY;
-      if (na !== nb) return na - nb;
-
-      return 0;
-    });
-  }, [rows, filter, sortState.colIndex]);
+    if (!q) return rows;
+    return rows.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  }, [filter, rows]);
 
   const stats = useMemo(() => {
     const total = rows.length;
-    let done = 0;
-    let vOk = 0;
-    let vBad = 0;
-    let pending = 0;
-    let err = 0;
-
-    for (const r of rows) {
-      const st = displayState(r);
-      if (st === "valid") {
-        done++;
-        vOk++;
-      } else if (st === "invalid") {
-        done++;
-        vBad++;
-      } else if (st === "error") {
-        done++;
-        err++;
-      } else if (st === "queued" || st === "retry" || st === "processing") {
-        pending++;
-      }
-    }
-
-    return { total, done, vOk, vBad, pending, err };
+    const valid = rows.filter((row) => vatStatus(row) === "valid").length;
+    const invalid = rows.filter((row) => vatStatus(row) === "invalid").length;
+    const errors = rows.filter((row) => vatStatus(row) === "error").length;
+    const pending = Math.max(0, total - valid - invalid - errors);
+    return { total, valid, invalid, pending, errors, done: valid + invalid + errors };
   }, [rows]);
-
-  const progressPct = useMemo(() => {
-    if (!stats.total) return 0;
-    return Math.round((stats.done / stats.total) * 100);
-  }, [stats.total, stats.done]);
-
-  const precheck = useMemo(() => {
-    const rawLines = vatInput
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const seen = new Set<string>();
-    let duplicates = 0;
-    let badFormat = 0;
-    const badExamples: string[] = [];
-
-    for (const line of rawLines) {
-      const n = normalizeVatCandidate(line);
-      if (!n) continue;
-
-      if (seen.has(n)) {
-        duplicates++;
-        continue;
-      }
-
-      seen.add(n);
-
-      const fmt = validateFormatStrict(n);
-      if (!fmt.ok) {
-        badFormat++;
-        if (badExamples.length < 5) badExamples.push(`${line} — ${fmt.reason}`);
-      }
-    }
-
-    return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
-  }, [vatInput]);
 
   useEffect(() => {
     if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
-
     onRunCompleted({
       id: currentRunIdRef.current,
       type: "vat",
@@ -1139,144 +960,91 @@ function VatPage({
       label: "VAT / VIES validation run",
       total: stats.total,
       done: stats.done,
-      valid: stats.vOk,
-      invalid: stats.vBad,
+      valid: stats.valid,
+      invalid: stats.invalid,
       pending: stats.pending,
-      errors: stats.err,
-      formatIssues: precheck.badFormat,
+      errors: stats.errors,
+      formatIssues: precheck.formatIssues,
       caseRef: caseRef || undefined,
     });
-  }, [
-    caseRef,
-    onRunCompleted,
-    precheck.badFormat,
-    rows.length,
-    stats.done,
-    stats.err,
-    stats.pending,
-    stats.total,
-    stats.vBad,
-    stats.vOk,
-  ]);
+  }, [caseRef, onRunCompleted, precheck.formatIssues, rows.length, stats]);
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
 
   function stopPolling() {
     pollAbortRef.current?.abort();
     pollAbortRef.current = null;
-
     if (pollTimerRef.current) {
       window.clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
     }
-
-    currentFrJobIdRef.current = null;
-    setActiveFrJobId(null);
+    setActiveJobId(null);
   }
 
-  function onCancel() {
+  function cancelValidation() {
     validateAbortRef.current?.abort();
     validateAbortRef.current = null;
     stopPolling();
     setLoading(false);
   }
 
-  function enrichRow(r: VatRow): VatRow {
-    const key = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
-    const fmt = validateFormatStrict((r as any).vat_number || (r as any).input || "");
-    const user = notes[key] || { note: "", tag: "" };
-    const nextRetryAt = normalizeTsMs((r as any).next_retry_at);
-
-    return {
-      ...r,
-      next_retry_at: nextRetryAt,
-      format_ok: fmt.ok,
-      format_reason: fmt.reason,
-      note: user.note,
-      tag: user.tag,
-      case_ref: (r as any).case_ref || caseRef,
-    } as any;
+  function clearVat() {
+    cancelValidation();
+    setVatInput("");
+    setCaseRef("");
+    setRows([]);
+    setFilter("");
+    setError("");
+    setDuplicatesIgnored(0);
+    setLastUpdate("—");
+    currentRunIdRef.current = null;
+    currentRunStartedAtRef.current = "";
   }
 
-  async function pollFrJob(jobId: string) {
+  function enrichVatRow(row: VatRow): VatRow {
+    const input = String((row as any).vat_number || (row as any).input || "");
+    const format = validateVatFormat(input);
+    return {
+      ...row,
+      format_ok: format.ok,
+      format_reason: format.reason,
+      case_ref: (row as any).case_ref || caseRef,
+    };
+  }
+
+  async function pollJob(jobId: string) {
     try {
       pollAbortRef.current?.abort();
       const controller = new AbortController();
       pollAbortRef.current = controller;
-
-      const url = `/api/fr-job/${encodeURIComponent(jobId)}`;
-      const resp = await fetch(url, { signal: controller.signal });
+      const resp = await fetch(`/api/fr-job/${encodeURIComponent(jobId)}`, { signal: controller.signal });
       if (!resp.ok) return;
-
       const data = (await resp.json()) as FrJobResponse & any;
-
-      setFrText(`${data.job.done}/${data.job.total} (${data.job.status})`);
-
-      const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
-      const hasPendingRaw = rawResults.some((x) => {
-        const s = String(x?.state || "").toLowerCase();
-        return s === "queued" || s === "retry" || s === "processing";
-      });
-
-      setRows((prev) => {
-        const map = new Map<string, VatRow>();
-
-        for (let i = 0; i < prev.length; i++) {
-          const r = prev[i];
-          map.set(rowKeyStable(r, i), r);
-        }
-
-        let seq = 0;
-
-        for (const raw of rawResults) {
-          const incoming = { ...(raw as any) } as VatRow;
-          (incoming as any).next_retry_at = normalizeTsMs((incoming as any).next_retry_at);
-
-          const k = rowKeyStable(incoming, 100000 + seq++);
-          const existing = map.get(k);
-
-          const merged: any = { ...(existing || {}), ...(incoming as any) };
-          const st = (incoming as any).state;
-
-          if (st === undefined || st === null || st === "") {
-            merged.state = (existing as any)?.state;
-          }
-
-          map.set(k, enrichRow(merged));
-        }
-
-        return Array.from(map.values());
-      });
-
-      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
-
-      if (data.job?.status === "completed" && !hasPendingRaw) {
-        stopPolling();
-      }
-    } catch (e: any) {
-      if (e?.name === "AbortError") return;
+      const nextRows = Array.isArray(data?.results) ? data.results.map((row: VatRow) => enrichVatRow(row)) : [];
+      if (nextRows.length) setRows(nextRows);
+      const updated = new Date().toLocaleString(localeForLanguage(language));
+      setLastUpdate(updated);
+      const status = String(data?.job?.status || "").toLowerCase();
+      const hasPending = nextRows.some((row: VatRow) => vatStatus(row) === "pending");
+      if (status === "completed" && !hasPending) stopPolling();
+    } catch (err) {
+      if ((err as any)?.name !== "AbortError") setError(String((err as Error)?.message || err));
     }
   }
 
-  async function onValidate() {
-    stopPolling();
-    setExpandedKey(null);
-    setRows([]);
-    setFrText("-");
-    setLastUpdate("-");
-    setSortState({ colIndex: null, asc: true });
-    setSortLabel("");
-    setLoading(true);
-    setDuplicatesIgnored(0);
-    setActiveFrJobId(null);
+  async function validateVat() {
+    const normalized = uniqueValues(inputLines.map(normalizeVatCandidate).filter(Boolean)).values;
+    if (!normalized.length) return;
 
+    stopPolling();
+    setLoading(true);
+    setError("");
+    setRows([]);
+    setDuplicatesIgnored(0);
     currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     currentRunStartedAtRef.current = new Date().toISOString();
-
-    const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-
-    if (!lines.length) {
-      setLoading(false);
-      return;
-    }
 
     validateAbortRef.current?.abort();
     const controller = new AbortController();
@@ -1286,157 +1054,48 @@ function VatPage({
       const resp = await fetch("/api/validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vat_numbers: lines, case_ref: caseRef }),
+        body: JSON.stringify({ vat_numbers: normalized, case_ref: caseRef }),
         signal: controller.signal,
       });
+      const data = (await readJson(resp)) as ValidateBatchResponse & any;
+      if (!resp.ok) throw new Error(data?.error || data?.message || localText(language, "validationFailed"));
 
-      const data = (await resp.json()) as ValidateBatchResponse & any;
-
-      setDuplicatesIgnored(data.duplicates_ignored || 0);
-      setViesStatus(Array.isArray(data.vies_status) ? data.vies_status : []);
-
-      const enriched = (data.results || []).map((r: VatRow) =>
-        enrichRow({ ...(r as any), case_ref: caseRef } as any)
-      );
-
-      setRows(enriched);
+      setDuplicatesIgnored(Number(data?.duplicates_ignored || 0));
+      const nextRows = Array.isArray(data?.results) ? data.results.map((row: VatRow) => enrichVatRow(row)) : [];
+      setRows(nextRows);
       setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
 
-      if (data.fr_job_id) {
-        currentFrJobIdRef.current = data.fr_job_id;
-        setActiveFrJobId(data.fr_job_id);
-
-        await pollFrJob(data.fr_job_id);
-
+      if (data?.fr_job_id) {
+        setActiveJobId(String(data.fr_job_id));
+        await pollJob(String(data.fr_job_id));
         pollTimerRef.current = window.setInterval(() => {
-          const id = currentFrJobIdRef.current;
-          if (id) void pollFrJob(id);
+          void pollJob(String(data.fr_job_id));
         }, 1500);
-      } else {
-        setFrText("-");
       }
-    } catch (e: any) {
-      if (e?.name === "AbortError") return;
+    } catch (err) {
+      if ((err as any)?.name !== "AbortError") setError(String((err as Error)?.message || err));
     } finally {
       validateAbortRef.current = null;
       setLoading(false);
     }
   }
 
-  function onClear() {
-    onCancel();
-    setVatInput("");
-    setCaseRef("");
-    setFilter("");
-    setRows([]);
-    setFrText("-");
-    setLastUpdate("-");
-    setProgressText("0/0");
-    setSortState({ colIndex: null, asc: true });
-    setSortLabel("");
-    setDuplicatesIgnored(0);
-    setViesStatus([]);
-    setExpandedKey(null);
-  }
-
-  function getCellText(r: VatRow, colIndex: number): string {
-    const cols: Array<string> = [
-      displayState(r),
-      (r as any).vat_number ?? "",
-      (r as any).name ?? "",
-      (r as any).address ?? "",
-      (r as any).error_code ?? (r as any).error ?? "",
-    ];
-
-    return cols[colIndex] ?? "";
-  }
-
-  function sortByColumn(colIndex: number, label: string) {
-    setSortState((prevSort) => {
-      const asc = prevSort.colIndex === colIndex ? !prevSort.asc : true;
-
-      setRows((prevRows) => {
-        const copy = [...prevRows];
-
-        copy.sort((a, b) => {
-          const ta = getCellText(a, colIndex).toLowerCase();
-          const tb = getCellText(b, colIndex).toLowerCase();
-          const cmp = ta.localeCompare(tb, localeForLanguage(language));
-          return asc ? cmp : -cmp;
-        });
-
-        return copy;
-      });
-
-      setSortLabel(`${t(language, "sort")}: ${label} (${asc ? localText(language, "asc") : localText(language, "desc")})`);
-      return { colIndex, asc };
-    });
-  }
-
-  useEffect(() => {
-    setProgressText(`${stats.done}/${stats.total}`);
-  }, [stats.done, stats.total]);
-
-  function openImportDialog() {
-    importFileRef.current?.click();
-  }
-
   async function importVatFile(file: File) {
-    const name = (file.name || "").toLowerCase();
-    const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
-
-    let candidates: string[] = [];
-
-    if (isCsvLike) {
-      const text = await file.text();
-      candidates = text
-        .split(/\r?\n|,|;|\t/)
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
-    } else {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      const firstSheetName = wb.SheetNames?.[0];
-      const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
-      if (!ws) return;
-
-      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" }) as any[][];
-      candidates = aoa
-        .flat()
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
-    }
-
-    const seen = new Set<string>();
-    const out: string[] = [];
-
-    for (const c of candidates) {
-      const n = normalizeVatCandidate(c);
-      if (!n) continue;
-
-      const fmt = validateFormat(n);
-      if (!fmt.ok) continue;
-
-      if (seen.has(n)) continue;
-      seen.add(n);
-      out.push(n);
-    }
-
-    if (out.length) {
-      setVatInput(out.join("\n"));
-      setExpandedKey(null);
+    const rawValues = await readTabularFile(file);
+    const normalized = rawValues.map(normalizeVatCandidate).filter(Boolean);
+    const unique = uniqueValues(normalized).values.filter((value) => validateVatFormat(value).ok);
+    if (unique.length) {
+      setVatInput(unique.join("\n"));
       setFilter("");
+      setError("");
     }
   }
 
-  function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    void importVatFile(f);
-  }
-
-  function exportExcel() {
+  function exportVatExcel() {
+    if (!rows.length) {
+      setError(localText(language, "exportEmpty"));
+      return;
+    }
     const headers = [
       "case_ref",
       "input",
@@ -1450,1014 +1109,270 @@ function VatPage({
       "error",
       "attempt",
       "next_retry_at",
-      "note",
-      "tag",
       "checked_at",
+      "format_ok",
+      "format_reason",
     ];
-
-    const dateFields = new Set(["checked_at", "next_retry_at", "timestamp"]);
-
-    const toExcelDate = (value: any): Date | "" => {
-      if (value === null || value === undefined || value === "") return "";
-
-      if (value instanceof Date && !Number.isNaN(value.getTime())) {
-        const d = new Date(value);
-        d.setMilliseconds(0);
-        return d;
-      }
-
-      if (typeof value === "string" && !/^\d+$/.test(value.trim())) {
-        const d = new Date(value);
-        if (!Number.isNaN(d.getTime())) {
-          d.setMilliseconds(0);
-          return d;
-        }
-        return "";
-      }
-
-      let n = Number(value);
-      if (!Number.isFinite(n) || n <= 0) return "";
-
-      if (n < 1_000_000_000_000) {
-        n = n * 1000;
-      } else if (n > 10_000_000_000_000) {
-        n = Math.floor(n / 1000);
-      }
-
-      const d = new Date(n);
-      if (Number.isNaN(d.getTime())) return "";
-      d.setMilliseconds(0);
-      return d;
-    };
-
-    const aoa = [
+    writeWorkbook(
+      `vat_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`,
+      "VAT Results",
       headers,
-      ...rows.map((r) =>
-        headers.map((h) => {
-          const v = (r as any)[h];
-          if (dateFields.has(h)) return toExcelDate(v);
-          return v === null || v === undefined ? "" : String(v);
+      rows.map((row) =>
+        headers.map((header) => {
+          const value = (row as any)[header];
+          if (header === "checked_at" || header === "next_retry_at") return formatDate(value, language);
+          return value === null || value === undefined ? "" : value;
         })
-      ),
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(aoa, { cellDates: true });
-
-    for (let rowIdx = 1; rowIdx < aoa.length; rowIdx++) {
-      for (const h of dateFields) {
-        const colIdx = headers.indexOf(h);
-        if (colIdx === -1) continue;
-
-        const addr = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
-        if (ws[addr]) {
-          ws[addr].z = "yyyy-mm-dd hh:mm:ss";
-        }
-      }
-    }
-
-    ws["!cols"] = headers.map((h) => ({ wch: Math.max(12, h.length + 2) }));
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Results");
-
-    const filename = `vat_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
-    XLSX.writeFile(wb, filename);
+      )
+    );
   }
 
-  useEffect(() => {
-    const el = document.getElementById("countryMap");
-    if (!el) return;
-
-    try {
-      const map = L.map(el, {
-        zoomControl: false,
-        attributionControl: false,
-        dragging: true,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false,
-      }).setView([53.5, 10], 3);
-
-      const layer = L.layerGroup().addTo(map);
-
-      mapRef.current = map;
-      markerLayerRef.current = layer;
-
-      fetch("/countries.geojson")
-        .then(async (r) => {
-          if (!r.ok) throw new Error(`countries.geojson HTTP ${r.status}`);
-          return r.json();
-        })
-        .then((j) => {
-          geoJsonRef.current = j;
-          setMapGeoVersion((v) => v + 1);
-        })
-        .catch(() => {
-          geoJsonRef.current = null;
-          setMapGeoVersion((v) => v + 1);
-        });
-    } catch {
-      el.innerHTML = `<div style='padding:12px;color:#6b7280;font-size:12px;'>${localText(language, "mapUnavailable")}</div>`;
-    }
-
-    return () => {
-      if (mapRef.current) mapRef.current.remove();
-      mapRef.current = null;
-      markerLayerRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const entries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
-
-    setMapCount(`${entries.length} ${localText(language, "countries")}`);
-
-    if (!entries.length) {
-      setMapLegend("—");
-    } else {
-      const top = entries
-        .slice(0, 6)
-        .map(([cc, n]) => `${cc}(${n})`)
-        .join(" · ");
-
-      const more = entries.length > 6 ? ` +${entries.length - 6}` : "";
-      setMapLegend(top + more);
-    }
-
-    const map = mapRef.current;
-    const layer = markerLayerRef.current;
-    if (!map || !layer) return;
-
-    layer.clearLayers();
-
-    if (geoJsonRef.current) {
-      L.geoJSON(geoJsonRef.current as any, {
-        style: (feature: any) => {
-          const p = feature?.properties || {};
-
-          const raw =
-            p.ISO_A2 ??
-            p.iso_a2 ??
-            p.ISO2 ??
-            p.iso2 ??
-            p["alpha-2"] ??
-            p["Alpha-2"] ??
-            p["ISO3166-1-Alpha-2"] ??
-            p.ISO_A3 ??
-            p.iso_a3 ??
-            p.ISO3 ??
-            p.iso3 ??
-            p.ADMIN ??
-            p.name ??
-            p.NAME ??
-            p.Name;
-
-          let cc = String(raw || "").toUpperCase().trim();
-
-          if (cc === "FRA") cc = "FR";
-          if (cc === "DEU") cc = "DE";
-          if (cc === "NLD") cc = "NL";
-          if (cc === "BEL") cc = "BE";
-          if (cc === "LUX") cc = "LU";
-          if (cc === "ESP") cc = "ES";
-          if (cc === "PRT") cc = "PT";
-          if (cc === "ITA") cc = "IT";
-          if (cc === "IRL") cc = "IE";
-          if (cc === "GRC") cc = "EL";
-          if (cc === "GBR") cc = "XI";
-
-          if (cc === "GR") cc = "EL";
-          if (cc === "GB") cc = "XI";
-
-          if (cc && !loggedIsoRef.current.has(cc)) {
-            loggedIsoRef.current.add(cc);
-          }
-
-          const n = cc ? countryCounts[cc] || 0 : 0;
-          const max = Math.max(0, ...Object.values(countryCounts));
-          const ratio = max > 0 ? n / max : 0;
-
-          let fill = "#d9f0f7";
-          let stroke = "#b9deea";
-
-          if (ratio >= 0.8) {
-            fill = "#55b9d4";
-            stroke = "#9fd8e8";
-          } else if (ratio >= 0.55) {
-            fill = "#78c8dd";
-            stroke = "#b7e2ed";
-          } else if (ratio >= 0.35) {
-            fill = "#9ed9e9";
-            stroke = "#cdebf3";
-          } else if (ratio >= 0.18) {
-            fill = "#c4e9f3";
-            stroke = "#dff4f8";
-          } else if (ratio > 0) {
-            fill = "#ddf4fa";
-            stroke = "#e9f8fb";
-          }
-
-          return {
-            color: stroke,
-            weight: n ? 0.9 : 0.65,
-            opacity: n ? 0.95 : 0.75,
-            fillColor: fill,
-            fillOpacity: n ? 0.92 : 0.72,
-          };
-        },
-        onEachFeature: (feature: any, lyr: any) => {
-          const p = feature?.properties || {};
-          const raw = p.ISO_A2 ?? p.iso_a2 ?? p.ISO2 ?? p.iso2 ?? p.ISO_A3 ?? p.iso_a3 ?? p.ISO3 ?? p.iso3;
-          let cc = String(raw || "").toUpperCase().trim();
-
-          if (cc === "FRA") cc = "FR";
-          if (cc === "DEU") cc = "DE";
-          if (cc === "NLD") cc = "NL";
-          if (cc === "GRC") cc = "EL";
-          if (cc === "GBR") cc = "XI";
-          if (cc === "GR") cc = "EL";
-          if (cc === "GB") cc = "XI";
-
-          if (!cc) return;
-
-          const n = countryCounts[cc] || 0;
-          lyr.bindTooltip(`${cc} • ${n}`, { direction: "top", opacity: 0.9 });
-        },
-      }).addTo(layer);
-    }
-
-    const coords = Object.entries(countryCounts)
-      .filter(([cc, n]) => n > 0 && COUNTRY_COORDS[cc])
-      .map(([cc]) => {
-        const c = COUNTRY_COORDS[cc];
-        return L.latLng(c.lat, c.lon);
-      });
-
-    if (coords.length) {
-      const b = L.latLngBounds(coords);
-      map.fitBounds(b.pad(0.25), { animate: false, maxZoom: 4 });
-    } else {
-      map.setView([53.5, 10], 3, { animate: false } as any);
-    }
-  }, [countryCounts, mapGeoVersion, language]);
+  function restoreDraft(draft: UserDraft) {
+    setCaseRef(draft.referenceValue || "");
+    setVatInput(draft.inputValue || "");
+    setFilter("");
+    setRows([]);
+    setError("");
+  }
 
   return (
-    <>
-      <PortalBanner
-        title={branding.portalTitle || "RSM Validation Portal"}
-        modeValue="VAT / VIES"
-        meta={[
-          { label: t(language, "credits"), value: t(language, "unlimited") },
-          { label: t(language, "lastUpdate"), value: lastUpdate },
-        ]}
-        activePage={activePage}
-        setActivePage={setActivePage}
-        branding={branding}
-        language={language}
-        setLanguage={setLanguage}
-      />
-
-      <div className="wrap">
-        <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <SectionTitle>{t(language, "input")}</SectionTitle>
-              <SectionSubtitle maxWidth={760}>{t(language, "vatInputHelp")}</SectionSubtitle>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              <div style={ACTION_ROW_STYLE}>
-                <input
-                  type="text"
-                  value={caseRef}
-                  onChange={(e) => setCaseRef(e.target.value)}
-                  placeholder={t(language, "clientCasePlaceholder")}
-                  style={ACTION_FIRST_FIELD_STYLE}
-                />
-
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={openImportDialog}
-                  disabled={loading}
-                  style={ACTION_BUTTON_STYLE}
-                >
-                  {t(language, "importXlsxCsv")}
-                </Button>
-
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={exportExcel}
-                  disabled={!rows.length}
-                  style={ACTION_BUTTON_STYLE}
-                >
-                  {t(language, "exportExcel")}
-                </Button>
-
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.txt"
-                  style={{ display: "none" }}
-                  onChange={onImportFileChange}
-                />
-              </div>
-
-              {duplicatesIgnored > 0 && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  <b>{duplicatesIgnored}</b> {t(language, "duplicatesIgnored")}.
-                </div>
-              )}
-
-              <textarea
-                value={vatInput}
-                onChange={(e) => setVatInput(e.target.value)}
-                placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-              />
-
-              <div
-                className="callout"
-                style={{
-                  marginTop: 10,
-                  fontSize: 14,
-                  lineHeight: 1.55,
-                  fontWeight: 500,
-                  color: "#0B2E5F",
-                }}
-              >
-                <b>{t(language, "preCheck")}</b>: {precheck.unique} {localText(language, "unique")} /{" "}
-                {precheck.totalLines} {localText(language, "lines")} · {precheck.duplicates}{" "}
-                {localText(language, "duplicates")} · {precheck.badFormat} {localText(language, "formatIssues")}
-
-                {precheck.badExamples.length > 0 && (
-                  <details style={{ marginTop: 8 }}>
-                    <summary>{t(language, "examples")}</summary>
-                    <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
-                      {precheck.badExamples.join("\n")}
-                    </div>
-                  </details>
-                )}
-              </div>
-
-              <div className="row">
-                <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
-                  {loading ? t(language, "validating") : t(language, "validate")}
-                </Button>
-
-                <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
-                  {t(language, "clear")}
-                </Button>
-
-                <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
-                  {t(language, "cancel")}
-                </Button>
-
-                <div style={{ flex: 1 }} />
-
-                <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-                  <span>{t(language, "progress")}: </span>
-                  <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
-                  <b style={{ color: "var(--text)" }}>{progressPct}%</b>
-                </div>
-              </div>
-
-              <UserDraftsPanel
-                activePage="vat"
-                referenceValue={caseRef}
-                inputValue={vatInput}
-                language={language}
-                onRestoreDraft={(draft) => {
-                  onCancel();
-                  setCaseRef(draft.referenceValue || "");
-                  setVatInput(draft.inputValue || "");
-                  setRows([]);
-                  setFilter("");
-                  setExpandedKey(null);
-                  setDuplicatesIgnored(0);
-                  setViesStatus([]);
-                  setFrText("-");
-                  setLastUpdate("-");
-                  setProgressText("0/0");
-                  setSortState({ colIndex: null, asc: true });
-                  setSortLabel("");
-                }}
-              />
-
-              <div className="progress" aria-hidden="true">
-                <div className="bar" style={{ width: `${progressPct}%` }} />
-              </div>
-
-              <MetricGrid
-                items={[
-                  { label: t(language, "total"), value: stats.total },
-                  { label: t(language, "done"), value: stats.done },
-                  { label: t(language, "valid"), value: stats.vOk, tone: "ok" },
-                  { label: t(language, "invalid"), value: stats.vBad, tone: "bad" },
-                  { label: t(language, "pending"), value: stats.pending, tone: "warn" },
-                  { label: t(language, "error"), value: stats.err, tone: "bad" },
-                ]}
-              />
-
-              <div className="callout" style={{ marginTop: 14 }}>
-                {t(language, "vatTip")}
-              </div>
-
-              <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} language={language} />
-            </CardContent>
-          </Card>
-
-          <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
-            <Card>
-              <CardHeader className="pb-4">
-                <SectionTitle>{t(language, "filter")}</SectionTitle>
-                <SectionSubtitle maxWidth={520}>{t(language, "filterHelp")}</SectionSubtitle>
-              </CardHeader>
-
-              <CardContent className="pt-0">
-                <div className="filterBox">
-                  <input
-                    type="text"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                    placeholder={t(language, "searchResults")}
-                  />
-
-                  <div className="callout">
-                    {t(language, "sorting")}: <span className="mono">{sortLabel || "—"}</span>
-                  </div>
-                </div>
-
-                <div className="mapbox">
-                  <div className="mapbox-head">
-                    <div className="mapbox-title" style={SMALL_HEADER_STYLE}>
-                      {t(language, "inputDistribution")}
-                    </div>
-
-                    <div className="mapbox-sub">
-                      <span className="nowrap">{mapCount}</span>
-                    </div>
-                  </div>
-
-                  <div id="countryMap" />
-
-                  <div className="mapbox-foot">
-                    <div id="mapLegend" title={mapLegend}>
-                      {mapLegend}
-                    </div>
-
-                    <div className="map-attrib">
-                      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-                        © OpenStreetMap
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <CardHeader className="pb-4">
-                <SectionTitle>{t(language, "viesStatusTitle")}</SectionTitle>
-                <SectionSubtitle maxWidth={520}>{t(language, "viesStatusHelp")}</SectionSubtitle>
-              </CardHeader>
-
-              <CardContent
-                className="pt-0"
-                style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
-              >
-                <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
-                  {!viesStatus.length ? (
-                    <div style={{ padding: 12, color: "var(--muted)" }}>{t(language, "noData")}</div>
-                  ) : (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                        gap: 10,
-                        padding: 6,
-                      }}
-                    >
-                      {[...viesStatus]
-                        .sort((a, b) => {
-                          const ca = countryCounts[a.countryCode] || 0;
-                          const cb = countryCounts[b.countryCode] || 0;
-                          if (cb !== ca) return cb - ca;
-                          return a.countryCode.localeCompare(b.countryCode, "en");
-                        })
-                        .map((c) => {
-                          const ok = String(c.availability || "").toLowerCase() === "available";
-                          const iso2 = vatCcToIso2ForFlag(c.countryCode);
-
-                          return (
-                            <div
-                              key={c.countryCode}
-                              title={`${c.countryCode} — ${c.availability}`}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 8,
-                                padding: "8px 10px",
-                                borderRadius: 12,
-                                border: "1px solid rgba(0,0,0,0.08)",
-                                background: "rgba(255,255,255,0.18)",
-                                backdropFilter: "blur(6px)",
-                                WebkitBackdropFilter: "blur(6px)",
-                              }}
-                            >
-                              <ReactCountryFlag
-                                countryCode={iso2}
-                                svg
-                                style={{ width: "22px", height: "16px", borderRadius: 3 }}
-                                title={c.countryCode}
-                              />
-
-                              <span
-                                className="mono"
-                                style={{
-                                  fontWeight: 800,
-                                  color: ok ? "var(--ok)" : "var(--bad)",
-                                  fontSize: 14,
-                                  lineHeight: "14px",
-                                }}
-                              >
-                                {ok ? "✓" : "✕"}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={cardStyle()}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start" }}>
+          <div>
+            <SectionTitle>{t(language, "vatTab")}</SectionTitle>
+            <SectionSubtitle>{t(language, "vatInputHelp")}</SectionSubtitle>
           </div>
+          <CreditsVisual language={language} />
         </div>
 
-        <div className="tableWrap" style={{ marginLeft: 12 }}>
-          <div className="tableHeader">
-            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+        <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+          <div style={ACTION_ROW_STYLE}>
+            <input
+              value={caseRef}
+              onChange={(event) => setCaseRef(event.target.value)}
+              placeholder={t(language, "clientCasePlaceholder")}
+              style={textInputStyle()}
+            />
+            <button type="button" onClick={() => importFileRef.current?.click()} style={actionButtonStyle()}>
+              {t(language, "importXlsxCsv")}
+            </button>
+            <button type="button" onClick={exportVatExcel} style={actionButtonStyle(!rows.length)} disabled={!rows.length}>
+              {t(language, "exportExcel")}
+            </button>
+          </div>
 
-            <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
-              {t(language, "rows")}
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv,.txt"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void importVatFile(file);
+            }}
+          />
+
+          <textarea
+            value={vatInput}
+            onChange={(event) => setVatInput(event.target.value)}
+            placeholder={localText(language, "vatPlaceholder")}
+            rows={9}
+            style={BATCH_TEXTAREA_STYLE}
+          />
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => void validateVat()}
+              disabled={loading || !precheck.unique}
+              style={actionButtonStyle(loading || !precheck.unique, true)}
+            >
+              {loading ? t(language, "validating") : t(language, "validate")}
+            </button>
+            <button type="button" onClick={loading ? cancelValidation : clearVat} style={actionButtonStyle()}>
+              {loading ? t(language, "cancel") : t(language, "clear")}
+            </button>
+            {activeJobId ? (
+              <div style={{ alignSelf: "center", color: "#607089", fontSize: 13, fontWeight: 800 }}>
+                {localText(language, "job")}: {activeJobId}
+              </div>
+            ) : null}
+          </div>
+
+          {error ? (
+            <div
+              style={{
+                borderRadius: 14,
+                border: "1px solid rgba(185,28,28,0.14)",
+                background: "rgba(185,28,28,0.07)",
+                color: "#8F1D1D",
+                padding: "10px 12px",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              {error}
             </div>
-          </div>
-
-          <div style={{ overflow: "auto", maxHeight: 520 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ ...TH_STYLE, width: 160 }} onClick={() => sortByColumn(0, t(language, "state"))}>
-                    {t(language, "state")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 180 }} onClick={() => sortByColumn(1, t(language, "vat"))}>
-                    {t(language, "vat")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 280 }} onClick={() => sortByColumn(2, t(language, "name"))}>
-                    {t(language, "name")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 280 }} onClick={() => sortByColumn(3, t(language, "address"))}>
-                    {t(language, "address")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 240 }} onClick={() => sortByColumn(4, t(language, "error"))}>
-                    {t(language, "error")}
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredRows.map((r, idx) => {
-                  const ds = displayState(r);
-                  const st = stateLabel(ds, language);
-                  const cls = stateClass(ds);
-
-                  const key = rowKeyStable(r, idx);
-                  const isOpen = expandedKey === key;
-
-                  const nra = normalizeTsMs((r as any).next_retry_at);
-                  const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
-
-                  const isDone = ds === "valid" || ds === "invalid";
-                  const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error, language);
-
-                  return (
-                    <React.Fragment key={`${key}-${idx}`}>
-                      <tr onClick={() => setExpandedKey(isOpen ? null : key)} style={{ cursor: "pointer" }}>
-                        <td>
-                          <span className={`pill ${cls}`}>
-                            <i aria-hidden="true" />
-                            {st}
-                            {cls === "retry" && eta ? ` (${localText(language, "eta")} ${eta})` : ""}
-                          </span>
-                        </td>
-
-                        <td className="mono nowrap" title={(r as any).vat_number || (r as any).input || ""}>
-                          {(r as any).vat_number || (r as any).input || ""}
-                        </td>
-
-                        <td title={(r as any).name || ""}>{(r as any).name || ""}</td>
-                        <td title={(r as any).address || ""}>{(r as any).address || ""}</td>
-                        <td title={errShown || ""}>{errShown || ""}</td>
-                      </tr>
-
-                      {isOpen && (
-                        <tr>
-                          <td colSpan={5} className="rowDetails">
-                            <div className="kv">
-                              <span>{t(language, "case")}</span>
-                              <b>{(r as any).case_ref || "—"}</b>
-
-                              <span>{t(language, "checkedAt")}</span>
-                              <b>
-                                {(r as any).checked_at
-                                  ? new Date((r as any).checked_at).toLocaleString(localeForLanguage(language))
-                                  : "—"}
-                              </b>
-
-                              <span>{t(language, "errorCode")}</span>
-                              <b>{isDone ? "—" : (r as any).error_code || "—"}</b>
-
-                              <span>{t(language, "details")}</span>
-                              <b>{isDone ? "—" : (r as any).details || "—"}</b>
-
-                              <span>{t(language, "attempt")}</span>
-                              <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "—"}</b>
-
-                              <span>{t(language, "nextRetry")}</span>
-                              <b>{nra ? new Date(nra).toLocaleString(localeForLanguage(language)) : "—"}</b>
-
-                              <span>{t(language, "format")}</span>
-                              <b>
-                                {(r as any).format_ok === false
-                                  ? `${localText(language, "bad")} (${(r as any).format_reason})`
-                                  : localText(language, "ok")}
-                              </b>
-                            </div>
-
-                            <div className="row" style={{ marginTop: 10 }}>
-                              <select
-                                value={(r as any).tag || ""}
-                                onChange={(e) => {
-                                  const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
-                                  const nextTag = e.target.value as any;
-
-                                  setNotes((prev) => ({
-                                    ...prev,
-                                    [key2]: { note: (r as any).note || "", tag: nextTag },
-                                  }));
-
-                                  setRows((prev) =>
-                                    prev.map((x) =>
-                                      `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
-                                        ? { ...(x as any), tag: nextTag }
-                                        : x
-                                    )
-                                  );
-                                }}
-                              >
-                                <option value="">{t(language, "noTag")}</option>
-                                <option value="whitelist">{t(language, "whitelist")}</option>
-                                <option value="blacklist">{t(language, "blacklist")}</option>
-                              </select>
-
-                              <input
-                                type="text"
-                                value={(r as any).note || ""}
-                                onChange={(e) => {
-                                  const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
-                                  const nextNote = e.target.value;
-
-                                  setNotes((prev) => ({
-                                    ...prev,
-                                    [key2]: { note: nextNote, tag: ((r as any).tag as any) || "" },
-                                  }));
-
-                                  setRows((prev) =>
-                                    prev.map((x) =>
-                                      `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
-                                        ? { ...(x as any), note: nextNote }
-                                        : x
-                                    )
-                                  );
-                                }}
-                                placeholder={t(language, "notePlaceholder")}
-                                style={{ flex: 1, minWidth: 260 }}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-
-                {!filteredRows.length && (
-                  <tr>
-                    <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
-                      {t(language, "noResults")}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          ) : null}
         </div>
       </div>
-    </>
+
+      <div style={cardStyle()}>
+        <SectionTitle>{t(language, "preCheck")}</SectionTitle>
+        <div style={{ marginTop: 14 }}>
+          <MetricGrid
+            items={[
+              { label: t(language, "total"), value: precheck.lines },
+              { label: localText(language, "unique"), value: precheck.unique },
+              { label: t(language, "duplicatesIgnored"), value: precheck.duplicates + duplicatesIgnored },
+              {
+                label: localText(language, "formatIssues"),
+                value: precheck.formatIssues,
+                tone: precheck.formatIssues ? "invalid" : "valid",
+              },
+            ]}
+          />
+        </div>
+        <InputDistribution entries={countryEntries} language={language} />
+      </div>
+
+      <div style={cardStyle()}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start" }}>
+          <div>
+            <SectionTitle>{t(language, "results")}</SectionTitle>
+            <SectionSubtitle>
+              {t(language, "showing")} {filteredRows.length} {t(language, "rows")}
+            </SectionSubtitle>
+          </div>
+          <input
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            placeholder={t(language, "searchResults")}
+            style={{ ...textInputStyle(), width: 260, minWidth: 220, maxWidth: 260 }}
+          />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <MetricGrid
+            items={[
+              { label: t(language, "total"), value: stats.total },
+              { label: t(language, "done"), value: stats.done, tone: "valid" },
+              { label: t(language, "valid"), value: stats.valid, tone: "valid" },
+              { label: t(language, "invalid"), value: stats.invalid, tone: "invalid" },
+              { label: t(language, "pending"), value: stats.pending, tone: "pending" },
+              { label: t(language, "error"), value: stats.errors, tone: stats.errors ? "error" : "pending" },
+            ]}
+          />
+        </div>
+
+        <div style={{ marginTop: 16, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: 860, borderCollapse: "separate", borderSpacing: "0 8px" }}>
+            <thead>
+              <tr>
+                {[t(language, "state"), t(language, "vat"), t(language, "name"), t(language, "address"), t(language, "case"), t(language, "checkedAt"), t(language, "message")].map(
+                  (header) => (
+                    <th
+                      key={header}
+                      style={{
+                        textAlign: "left",
+                        color: "#0B2E5F",
+                        fontSize: 12,
+                        fontWeight: 900,
+                        padding: "0 10px 4px",
+                      }}
+                    >
+                      {header}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length ? (
+                filteredRows.map((row, index) => {
+                  const tone = vatStatus(row);
+                  return (
+                    <tr key={`${(row as any).vat_number || (row as any).input || index}-${index}`}>
+                      <td style={{ ...resultCellStyle(tone), borderTopLeftRadius: 14, borderBottomLeftRadius: 14 }}>
+                        <StatusPill tone={tone}>{statusLabel(language, tone)}</StatusPill>
+                      </td>
+                      <td style={resultCellStyle(tone)}>{(row as any).vat_number || (row as any).input || ""}</td>
+                      <td style={resultCellStyle(tone)}>{(row as any).name || ""}</td>
+                      <td style={resultCellStyle(tone)}>{(row as any).address || ""}</td>
+                      <td style={resultCellStyle(tone)}>{(row as any).case_ref || caseRef || ""}</td>
+                      <td style={resultCellStyle(tone)}>{formatDate((row as any).checked_at, language)}</td>
+                      <td style={{ ...resultCellStyle(tone), borderTopRightRadius: 14, borderBottomRightRadius: 14 }}>
+                        {(row as any).error_code || (row as any).error || (row as any).format_reason || ""}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={7} style={{ color: "#607089", fontSize: 14, padding: "18px 10px" }}>
+                    {t(language, "noResultsYet")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <UserDraftsPanel
+        activePage="vat"
+        referenceValue={caseRef}
+        inputValue={vatInput}
+        language={language}
+        onRestoreDraft={restoreDraft}
+      />
+    </div>
   );
 }
 
-function stripSelectedCountryPrefix(line: string, countryCode: string): string {
-  let value = String(line || "").trim();
-  if (!value) return value;
-
-  const cc = String(countryCode || "").toUpperCase().trim();
-  const altCc = cc === "EL" ? "GR" : cc;
-  const upper = value.toUpperCase();
-
-  if (upper.startsWith(`${cc} `)) return value.slice(3).trim();
-  if (upper.startsWith(`${altCc} `)) return value.slice(3).trim();
-  if (upper.startsWith(cc)) return value.slice(2).trim();
-  if (upper.startsWith(altCc)) return value.slice(2).trim();
-
-  return value;
-}
-
-function normalizeTinDuplicateKey(line: string, countryCode: string): string {
-  return stripSelectedCountryPrefix(line, countryCode)
-    .toUpperCase()
-    .replace(/\s+/g, "")
-    .replace(/[.\-\/]/g, "");
-}
-
-function dedupeTinText(text: string, countryCode: string) {
-  const lines = String(text || "")
-    .split(/\r?\n/)
-    .map((x) => String(x || "").trim())
-    .filter(Boolean);
-
-  const seen = new Set<string>();
-  const uniqueLines: string[] = [];
-  let duplicatesRemoved = 0;
-  let prefixRemoved = 0;
-
-  for (const line of lines) {
-    const cleaned = stripSelectedCountryPrefix(line, countryCode);
-    const key = normalizeTinDuplicateKey(line, countryCode);
-
-    if (!key) continue;
-
-    if (cleaned !== line) {
-      prefixRemoved++;
-    }
-
-    if (seen.has(key)) {
-      duplicatesRemoved++;
-      continue;
-    }
-
-    seen.add(key);
-    uniqueLines.push(cleaned);
-  }
-
-  return {
-    totalLines: lines.length,
-    uniqueLines,
-    cleanedText: uniqueLines.join("\n"),
-    duplicatesRemoved,
-    prefixRemoved,
-  };
-}
-
-function formatTinCleanupMessage(
-  language: PortalLanguage,
-  duplicatesRemoved: number,
-  prefixRemoved: number,
-  phase: "beforeValidation" | "duringImport"
-) {
-  const parts: string[] = [];
-
-  if (language === "nl") {
-    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} dubbele regel(s) verwijderd`);
-    if (prefixRemoved > 0) parts.push(`landcode verwijderd uit ${prefixRemoved} regel(s)`);
-    return `${parts.join(" en ")} ${phase === "beforeValidation" ? "vóór validatie" : "tijdens import"}.`;
-  }
-
-  if (language === "de") {
-    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} doppelte Zeile(n) entfernt`);
-    if (prefixRemoved > 0) parts.push(`Ländercode aus ${prefixRemoved} Zeile(n) entfernt`);
-    return `${parts.join(" und ")} ${phase === "beforeValidation" ? "vor der Prüfung" : "beim Import"}.`;
-  }
-
-  if (language === "fr") {
-    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} ligne(s) en double supprimée(s)`);
-    if (prefixRemoved > 0) parts.push(`code pays supprimé de ${prefixRemoved} ligne(s)`);
-    return `${parts.join(" et ")} ${phase === "beforeValidation" ? "avant validation" : "pendant l’import"}.`;
-  }
-
-  if (duplicatesRemoved > 0) parts.push(`Removed ${duplicatesRemoved} duplicate line(s)`);
-  if (prefixRemoved > 0) parts.push(`removed the country code from ${prefixRemoved} line(s)`);
-  return `${parts.join(" and ")} ${phase === "beforeValidation" ? "before validation" : "during import"}.`;
-}
-
 function TinPage({
-  activePage,
-  setActivePage,
-  branding,
   language,
-  setLanguage,
   onRunCompleted,
-}: BrandedPageProps) {
-  type TinSortKey =
-    | "status"
-    | "input_tin"
-    | "tin_number"
-    | "structure_valid"
-    | "syntax_valid"
-    | "request_date"
-    | "message";
-
+  setLastUpdate,
+}: {
+  language: PortalLanguage;
+  onRunCompleted?: (summary: PortalRunSummary) => void;
+  setLastUpdate: (value: string) => void;
+}) {
   const [country, setCountry] = useState("NL");
   const [tinInput, setTinInput] = useState("");
+  const [rows, setRows] = useState<TinRow[]>([]);
+  const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
-  const [infoMessage, setInfoMessage] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortKey, setSortKey] = useState<TinSortKey>("status");
-  const [sortAsc, setSortAsc] = useState(true);
-
   const importFileRef = useRef<HTMLInputElement | null>(null);
-
+  const validateAbortRef = useRef<AbortController | null>(null);
   const currentRunIdRef = useRef<string | null>(null);
   const currentRunStartedAtRef = useRef<string>("");
 
-  const countryOptions = [
-    "AT",
-    "BE",
-    "BG",
-    "CY",
-    "CZ",
-    "DE",
-    "DK",
-    "EE",
-    "EL",
-    "ES",
-    "FI",
-    "FR",
-    "HR",
-    "HU",
-    "IE",
-    "IT",
-    "LT",
-    "LU",
-    "LV",
-    "MT",
-    "NL",
-    "PL",
-    "PT",
-    "RO",
-    "SE",
-    "SI",
-    "SK",
-  ].map((code) => ({
-    code,
-    label: countryName(code, language),
-  }));
-
-  function statusPillClass(status: string) {
-    if (status === "valid") return "valid";
-    if (status === "invalid") return "invalid";
-    return "error";
-  }
-
-  function prettyStatus(status: string) {
-    if (status === "valid") return t(language, "valid");
-    if (status === "invalid") return t(language, "invalid");
-    return t(language, "error");
-  }
-
-  function boolLabel(value: any) {
-    if (value === null || value === undefined) {
-      if (language === "nl") return "n.v.t.";
-      if (language === "de") return "k. A.";
-      return "n/a";
-    }
-
-    if (language === "nl") return value ? "ja" : "nee";
-    if (language === "de") return value ? "ja" : "nein";
-    if (language === "fr") return value ? "oui" : "non";
-
-    return value ? "true" : "false";
-  }
-
-  function boolRank(value: any) {
-    if (value === true) return 0;
-    if (value === false) return 1;
-    return 2;
-  }
-
-  function statusRank(status: string) {
-    if (status === "valid") return 0;
-    if (status === "invalid") return 1;
-    return 2;
-  }
-
-  function tinSortLabel(key: TinSortKey) {
-    if (key === "status") return t(language, "state");
-    if (key === "input_tin") return t(language, "inputTin");
-    if (key === "tin_number") return t(language, "returnedTin");
-    if (key === "structure_valid") return t(language, "structure");
-    if (key === "syntax_valid") return t(language, "syntax");
-    if (key === "request_date") return t(language, "date");
-    return t(language, "message");
-  }
-
-  function sortBy(nextKey: TinSortKey) {
-    if (sortKey === nextKey) {
-      setSortAsc((prev) => !prev);
-    } else {
-      setSortKey(nextKey);
-      setSortAsc(true);
-    }
-  }
-
-  function sortIndicator(key: TinSortKey) {
-    if (sortKey !== key) return "";
-    return sortAsc ? " ↑" : " ↓";
-  }
-
-  const stats = useMemo(() => {
-    return {
-      total: rows.length,
-      valid: rows.filter((r) => r.status === "valid").length,
-      invalid: rows.filter((r) => r.status === "invalid").length,
-      error: rows.filter((r) => r.status === "error").length,
-    };
-  }, [rows]);
-
-  const validPct = useMemo(() => {
-    if (!stats.total) return 0;
-    return Math.round((stats.valid / stats.total) * 100);
-  }, [stats.total, stats.valid]);
+  const inputLines = useMemo(() => splitInputLines(tinInput), [tinInput]);
+  const normalizedTins = useMemo(() => {
+    return uniqueValues(inputLines.map((line) => normalizeTinCandidate(line, country)).filter(Boolean));
+  }, [country, inputLines]);
 
   const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = filter.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  }, [filter, rows]);
 
-    const base = rows.filter((r) => {
-      const matchesStatus = statusFilter === "all" ? true : r.status === statusFilter;
-      if (!matchesStatus) return false;
-      if (!q) return true;
-
-      const haystack = [
-        r.input_tin,
-        r.tin_number,
-        r.request_date ? String(r.request_date).slice(0, 10) : "",
-        r.message,
-        r.status,
-        boolLabel(r.structure_valid),
-        boolLabel(r.syntax_valid),
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(q);
-    });
-
-    return [...base].sort((a, b) => {
-      let cmp = 0;
-
-      if (sortKey === "status") {
-        cmp = statusRank(a.status) - statusRank(b.status);
-      } else if (sortKey === "input_tin") {
-        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), localeForLanguage(language));
-      } else if (sortKey === "tin_number") {
-        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), localeForLanguage(language));
-      } else if (sortKey === "structure_valid") {
-        cmp = boolRank(a.structure_valid) - boolRank(b.structure_valid);
-      } else if (sortKey === "syntax_valid") {
-        cmp = boolRank(a.syntax_valid) - boolRank(b.syntax_valid);
-      } else if (sortKey === "request_date") {
-        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), localeForLanguage(language));
-      } else if (sortKey === "message") {
-        cmp = String(a.message || "").localeCompare(String(b.message || ""), localeForLanguage(language));
-      }
-
-      return sortAsc ? cmp : -cmp;
-    });
-  }, [rows, search, statusFilter, sortKey, sortAsc, language]);
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const valid = rows.filter((row) => statusTone(row.status) === "valid").length;
+    const invalid = rows.filter((row) => statusTone(row.status) === "invalid").length;
+    const errors = rows.filter((row) => statusTone(row.status) === "error").length;
+    return { total, valid, invalid, errors, pending: 0, done: total };
+  }, [rows]);
 
   useEffect(() => {
     if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
-
     onRunCompleted({
       id: currentRunIdRef.current,
       type: "tin",
@@ -2465,485 +1380,364 @@ function TinPage({
       updatedAt: new Date().toISOString(),
       label: "TIN validation run",
       total: stats.total,
-      done: stats.total,
+      done: stats.done,
       valid: stats.valid,
       invalid: stats.invalid,
-      pending: 0,
-      errors: stats.error,
+      pending: stats.pending,
+      errors: stats.errors,
       country,
     });
-  }, [country, onRunCompleted, rows.length, stats.error, stats.invalid, stats.total, stats.valid]);
+  }, [country, onRunCompleted, rows.length, stats]);
 
-  async function onValidateTinBatch() {
-    const prepared = dedupeTinText(tinInput, country);
+  useEffect(() => {
+    return () => validateAbortRef.current?.abort();
+  }, []);
 
-    if (!prepared.uniqueLines.length) return;
+  function cancelValidation() {
+    validateAbortRef.current?.abort();
+    validateAbortRef.current = null;
+    setLoading(false);
+  }
 
-    currentRunIdRef.current = `tin-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    currentRunStartedAtRef.current = new Date().toISOString();
+  function clearTin() {
+    cancelValidation();
+    setTinInput("");
+    setRows([]);
+    setFilter("");
+    setError("");
+    setLastUpdate("—");
+    currentRunIdRef.current = null;
+    currentRunStartedAtRef.current = "";
+  }
 
-    if (prepared.cleanedText !== tinInput) {
-      setTinInput(prepared.cleanedText);
-    }
-
-    if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
-      setInfoMessage(
-        formatTinCleanupMessage(language, prepared.duplicatesRemoved, prepared.prefixRemoved, "beforeValidation")
-      );
-    } else {
-      setInfoMessage("");
-    }
-
+  async function validateTin() {
+    if (!normalizedTins.values.length) return;
     setLoading(true);
     setError("");
     setRows([]);
+    currentRunIdRef.current = `tin-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    currentRunStartedAtRef.current = new Date().toISOString();
+
+    validateAbortRef.current?.abort();
+    const controller = new AbortController();
+    validateAbortRef.current = controller;
 
     try {
       const resp = await fetch("/api/tin-validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ country, tins: prepared.uniqueLines }),
+        body: JSON.stringify({ country, tins: normalizedTins.values }),
+        signal: controller.signal,
       });
-
-      const data = await resp.json();
-
-      if (!resp.ok) {
-        setError(data?.message || data?.error || localText(language, "tinValidationFailed"));
-        return;
-      }
-
+      const data = await readJson(resp);
+      if (!resp.ok) throw new Error(data?.error || data?.message || localText(language, "validationFailed"));
       setRows(Array.isArray(data?.results) ? data.results : []);
-    } catch {
-      setError(localText(language, "tinValidationFailed"));
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+    } catch (err) {
+      if ((err as any)?.name !== "AbortError") setError(String((err as Error)?.message || err));
     } finally {
+      validateAbortRef.current = null;
       setLoading(false);
     }
   }
 
-  function onClearTin() {
-    setTinInput("");
-    setRows([]);
-    setError("");
-    setInfoMessage("");
-    setSearch("");
-    setStatusFilter("all");
-    setSortKey("status");
-    setSortAsc(true);
-  }
-
-  function openImportDialog() {
-    importFileRef.current?.click();
-  }
-
   async function importTinFile(file: File) {
-    const name = (file.name || "").toLowerCase();
-    const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
-
-    let candidates: string[] = [];
-
-    if (isCsvLike) {
-      const text = await file.text();
-      candidates = text
-        .split(/\r?\n|,|;|\t/)
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
-    } else {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      const firstSheetName = wb.SheetNames?.[0];
-      const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
-      if (!ws) return;
-
-      const aoa = XLSX.utils.sheet_to_json(ws, {
-        header: 1,
-        raw: false,
-        defval: "",
-      }) as any[][];
-
-      candidates = aoa
-        .flat()
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
-    }
-
-    if (candidates.length) {
-      const prepared = dedupeTinText(candidates.join("\n"), country);
-
-      setTinInput(prepared.cleanedText);
-      setRows([]);
+    const rawValues = await readTabularFile(file);
+    const imported = uniqueValues(rawValues.map((value) => normalizeTinCandidate(value, country)).filter(Boolean)).values;
+    if (imported.length) {
+      setTinInput(imported.join("\n"));
+      setFilter("");
       setError("");
-      setSearch("");
-      setStatusFilter("all");
-
-      if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
-        setInfoMessage(
-          formatTinCleanupMessage(language, prepared.duplicatesRemoved, prepared.prefixRemoved, "duringImport")
-        );
-      } else {
-        setInfoMessage("");
-      }
     }
-  }
-
-  function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    e.target.value = "";
-    if (!f) return;
-    void importTinFile(f);
   }
 
   function exportTinExcel() {
+    if (!rows.length) {
+      setError(localText(language, "exportEmpty"));
+      return;
+    }
     const headers = [
       "country",
       "input_tin",
-      "returned_tin",
+      "tin_number",
       "status",
       "structure_valid",
       "syntax_valid",
-      "validation_date",
+      "request_date",
       "message",
     ];
-
-    const aoa = [
+    writeWorkbook(
+      `tin_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`,
+      "TIN Results",
       headers,
-      ...filteredRows.map((r) => [
-        country,
-        r.input_tin || "",
-        r.tin_number || "",
-        r.status || "",
-        r.structure_valid === null || r.structure_valid === undefined ? "" : String(r.structure_valid),
-        r.syntax_valid === null || r.syntax_valid === undefined ? "" : String(r.syntax_valid),
-        r.request_date ? String(r.request_date).slice(0, 10) : "",
-        r.message || "",
-      ]),
-    ];
+      rows.map((row) => headers.map((header) => (row as any)[header] ?? ""))
+    );
+  }
 
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-    ws["!cols"] = [
-      { wch: 10 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 12 },
-      { wch: 16 },
-      { wch: 14 },
-      { wch: 16 },
-      { wch: 40 },
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "TIN Results");
-
-    const filename = `tin_results_${country}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
-    XLSX.writeFile(wb, filename);
+  function restoreDraft(draft: UserDraft) {
+    const restoredCountry = normalizeCountry(draft.referenceValue || country || "NL");
+    setCountry(restoredCountry);
+    setTinInput(draft.inputValue || "");
+    setFilter("");
+    setRows([]);
+    setError("");
   }
 
   return (
-    <>
-      <PortalBanner
-        title={branding.portalTitle || "RSM Validation Portal"}
-        modeValue="TIN"
-        meta={[
-          { label: t(language, "credits"), value: t(language, "unlimited") },
-          { label: t(language, "country"), value: country },
-        ]}
-        activePage={activePage}
-        setActivePage={setActivePage}
-        branding={branding}
-        language={language}
-        setLanguage={setLanguage}
-      />
-
-      <div className="wrap">
-        <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <SectionTitle>{t(language, "input")}</SectionTitle>
-              <SectionSubtitle maxWidth={760}>{t(language, "tinInputHelp")}</SectionSubtitle>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              <div style={ACTION_ROW_STYLE}>
-                <select
-                  value={country}
-                  onChange={(e) => {
-                    setCountry(e.target.value);
-                    setRows([]);
-                    setError("");
-                    setInfoMessage("");
-                  }}
-                  style={ACTION_FIRST_FIELD_STYLE}
-                >
-                  {countryOptions.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} — {c.label}
-                    </option>
-                  ))}
-                </select>
-
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={openImportDialog}
-                  disabled={loading}
-                  style={ACTION_BUTTON_STYLE}
-                >
-                  {t(language, "importXlsxCsv")}
-                </Button>
-
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={exportTinExcel}
-                  disabled={!filteredRows.length}
-                  style={ACTION_BUTTON_STYLE}
-                >
-                  {t(language, "exportExcel")}
-                </Button>
-
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.txt"
-                  style={{ display: "none" }}
-                  onChange={onImportFileChange}
-                />
-              </div>
-
-              <textarea
-                value={tinInput}
-                onChange={(e) => setTinInput(e.target.value)}
-                placeholder={`123456782\n987654321\n...`}
-              />
-
-              {infoMessage && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  {infoMessage}
-                </div>
-              )}
-
-              <div className="row" style={{ marginTop: 12 }}>
-                <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
-                  {loading ? t(language, "validating") : t(language, "validate")}
-                </Button>
-
-                <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
-                  {t(language, "clear")}
-                </Button>
-              </div>
-
-              <UserDraftsPanel
-                activePage="tin"
-                referenceValue={country}
-                inputValue={tinInput}
-                language={language}
-                onRestoreDraft={(draft) => {
-                  setCountry(draft.referenceValue || "NL");
-                  setTinInput(draft.inputValue || "");
-                  setRows([]);
-                  setError("");
-                  setInfoMessage("");
-                  setSearch("");
-                  setStatusFilter("all");
-                  setSortKey("status");
-                  setSortAsc(true);
-                }}
-              />
-
-              <div className="callout" style={{ marginTop: 14 }}>
-                {t(language, "tinImportant")}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
-              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
-            </CardHeader>
-
-            <CardContent className="pt-0">
-              {error && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
-                </div>
-              )}
-
-              {!error && !rows.length && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  {t(language, "noResultsYet")}
-                </div>
-              )}
-
-              {!!rows.length && (
-                <>
-                  <MetricGrid
-                    items={[
-                      { label: t(language, "total"), value: stats.total },
-                      { label: t(language, "valid"), value: stats.valid, tone: "ok" },
-                      { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
-                      { label: t(language, "error"), value: stats.error, tone: "bad" },
-                    ]}
-                  />
-
-                  <div className="callout" style={{ marginTop: 12 }}>
-                    <b>{t(language, "country")}</b>: {country}
-                    <br />
-                    <b>{t(language, "validRate")}</b>: {validPct}%
-                  </div>
-
-                  <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
-                    <div className="bar" style={{ width: `${validPct}%` }} />
-                  </div>
-
-                  <div className="filterBox" style={{ marginTop: 14 }}>
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder={t(language, "searchResults")}
-                    />
-
-                    <div className="row" style={{ marginTop: 10 }}>
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        style={{ minWidth: 180 }}
-                      >
-                        <option value="all">{t(language, "allStatuses")}</option>
-                        <option value="valid">{t(language, "valid")}</option>
-                        <option value="invalid">{t(language, "invalid")}</option>
-                        <option value="error">{t(language, "error")}</option>
-                      </select>
-
-                      <div className="callout" style={{ margin: 0, padding: "10px 12px" }}>
-                        {t(language, "sort")}:{" "}
-                        <span className="mono">
-                          {tinSortLabel(sortKey)} {sortAsc ? localText(language, "asc") : localText(language, "desc")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={cardStyle()}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start" }}>
+          <div>
+            <SectionTitle>{t(language, "tinTab")}</SectionTitle>
+            <SectionSubtitle>{t(language, "tinInputHelp")}</SectionSubtitle>
+          </div>
+          <CreditsVisual language={language} />
         </div>
 
-        <div className="tableWrap" style={{ marginLeft: 12 }}>
-          <div className="tableHeader">
-            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+        <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
+          <div style={ACTION_ROW_STYLE}>
+            <select value={country} onChange={(event) => setCountry(event.target.value)} style={textInputStyle()}>
+              {COUNTRY_OPTIONS.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.code} — {countryName(item.code, language)}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={() => importFileRef.current?.click()} style={actionButtonStyle()}>
+              {t(language, "importXlsxCsv")}
+            </button>
+            <button type="button" onClick={exportTinExcel} style={actionButtonStyle(!rows.length)} disabled={!rows.length}>
+              {t(language, "exportExcel")}
+            </button>
+          </div>
 
-            <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
-              {t(language, "rows")}
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv,.txt"
+            style={{ display: "none" }}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void importTinFile(file);
+            }}
+          />
+
+          <div
+            style={{
+              borderRadius: 14,
+              border: "1px solid rgba(99,199,242,0.18)",
+              background: "rgba(99,199,242,0.08)",
+              color: "#0B2E5F",
+              padding: "10px 12px",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            {t(language, "tinImportant")}
+          </div>
+
+          <textarea
+            value={tinInput}
+            onChange={(event) => setTinInput(event.target.value)}
+            placeholder={localText(language, "tinPlaceholder")}
+            rows={9}
+            style={BATCH_TEXTAREA_STYLE}
+          />
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => void validateTin()}
+              disabled={loading || !normalizedTins.values.length}
+              style={actionButtonStyle(loading || !normalizedTins.values.length, true)}
+            >
+              {loading ? t(language, "validating") : t(language, "validate")}
+            </button>
+            <button type="button" onClick={loading ? cancelValidation : clearTin} style={actionButtonStyle()}>
+              {loading ? t(language, "cancel") : t(language, "clear")}
+            </button>
+          </div>
+
+          {error ? (
+            <div
+              style={{
+                borderRadius: 14,
+                border: "1px solid rgba(185,28,28,0.14)",
+                background: "rgba(185,28,28,0.07)",
+                color: "#8F1D1D",
+                padding: "10px 12px",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              {error}
             </div>
-          </div>
-
-          <div style={{ overflow: "auto", maxHeight: 520 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ ...TH_STYLE, width: 150 }} onClick={() => sortBy("status")}>
-                    {t(language, "state")}
-                    {sortIndicator("status")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 220 }} onClick={() => sortBy("input_tin")}>
-                    {t(language, "inputTin")}
-                    {sortIndicator("input_tin")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 220 }} onClick={() => sortBy("tin_number")}>
-                    {t(language, "returnedTin")}
-                    {sortIndicator("tin_number")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 120 }} onClick={() => sortBy("structure_valid")}>
-                    {t(language, "structure")}
-                    {sortIndicator("structure_valid")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 120 }} onClick={() => sortBy("syntax_valid")}>
-                    {t(language, "syntax")}
-                    {sortIndicator("syntax_valid")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 140 }} onClick={() => sortBy("request_date")}>
-                    {t(language, "date")}
-                    {sortIndicator("request_date")}
-                  </th>
-
-                  <th style={{ ...TH_STYLE, width: 320 }} onClick={() => sortBy("message")}>
-                    {t(language, "message")}
-                    {sortIndicator("message")}
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredRows.map((r, idx) => (
-                  <tr key={`${r.input_tin}-${idx}`}>
-                    <td>
-                      <span className={`pill ${statusPillClass(r.status)}`}>
-                        <i aria-hidden="true" />
-                        {prettyStatus(r.status)}
-                      </span>
-                    </td>
-
-                    <td className="mono nowrap">{r.input_tin || ""}</td>
-                    <td className="mono nowrap">{r.tin_number || ""}</td>
-                    <td>{boolLabel(r.structure_valid)}</td>
-                    <td>{boolLabel(r.syntax_valid)}</td>
-                    <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
-                    <td title={r.message || ""}>{r.message || ""}</td>
-                  </tr>
-                ))}
-
-                {!filteredRows.length && (
-                  <tr>
-                    <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
-                      {t(language, "noResults")}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          ) : null}
         </div>
       </div>
-    </>
+
+      <div style={cardStyle()}>
+        <SectionTitle>{t(language, "preCheck")}</SectionTitle>
+        <div style={{ marginTop: 14 }}>
+          <MetricGrid
+            items={[
+              { label: t(language, "total"), value: inputLines.length },
+              { label: localText(language, "unique"), value: normalizedTins.values.length },
+              { label: t(language, "duplicatesIgnored"), value: normalizedTins.duplicates },
+              { label: t(language, "country"), value: country },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div style={cardStyle()}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start" }}>
+          <div>
+            <SectionTitle>{t(language, "results")}</SectionTitle>
+            <SectionSubtitle>
+              {t(language, "showing")} {filteredRows.length} {t(language, "rows")}
+            </SectionSubtitle>
+          </div>
+          <input
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            placeholder={t(language, "searchResults")}
+            style={{ ...textInputStyle(), width: 260, minWidth: 220, maxWidth: 260 }}
+          />
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <MetricGrid
+            items={[
+              { label: t(language, "total"), value: stats.total },
+              { label: t(language, "valid"), value: stats.valid, tone: "valid" },
+              { label: t(language, "invalid"), value: stats.invalid, tone: "invalid" },
+              { label: t(language, "error"), value: stats.errors, tone: stats.errors ? "error" : "pending" },
+            ]}
+          />
+        </div>
+
+        <div style={{ marginTop: 16, overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: 820, borderCollapse: "separate", borderSpacing: "0 8px" }}>
+            <thead>
+              <tr>
+                {[t(language, "state"), t(language, "country"), t(language, "inputTin"), t(language, "returnedTin"), t(language, "structure"), t(language, "syntax"), t(language, "date"), t(language, "message")].map(
+                  (header) => (
+                    <th
+                      key={header}
+                      style={{
+                        textAlign: "left",
+                        color: "#0B2E5F",
+                        fontSize: 12,
+                        fontWeight: 900,
+                        padding: "0 10px 4px",
+                      }}
+                    >
+                      {header}
+                    </th>
+                  )
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.length ? (
+                filteredRows.map((row, index) => {
+                  const tone = statusTone(row.status);
+                  return (
+                    <tr key={`${row.input_tin || row.tin_number || index}-${index}`}>
+                      <td style={{ ...resultCellStyle(tone), borderTopLeftRadius: 14, borderBottomLeftRadius: 14 }}>
+                        <StatusPill tone={tone}>{statusLabel(language, tone)}</StatusPill>
+                      </td>
+                      <td style={resultCellStyle(tone)}>{row.country || country}</td>
+                      <td style={resultCellStyle(tone)}>{row.input_tin || ""}</td>
+                      <td style={resultCellStyle(tone)}>{row.tin_number || ""}</td>
+                      <td style={resultCellStyle(tone)}>{row.structure_valid === null || row.structure_valid === undefined ? "" : String(row.structure_valid)}</td>
+                      <td style={resultCellStyle(tone)}>{row.syntax_valid === null || row.syntax_valid === undefined ? "" : String(row.syntax_valid)}</td>
+                      <td style={resultCellStyle(tone)}>{row.request_date || ""}</td>
+                      <td style={{ ...resultCellStyle(tone), borderTopRightRadius: 14, borderBottomRightRadius: 14 }}>
+                        {row.message || ""}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} style={{ color: "#607089", fontSize: 14, padding: "18px 10px" }}>
+                    {t(language, "noResultsYet")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <UserDraftsPanel
+        activePage="tin"
+        referenceValue={country}
+        inputValue={tinInput}
+        language={language}
+        onRestoreDraft={restoreDraft}
+      />
+    </div>
   );
 }
 
-export default function App({
-  branding = DEFAULT_BRANDING,
-  onRunCompleted,
-}: ToolAppProps) {
+function resultCellStyle(tone: RowTone): React.CSSProperties {
+  return {
+    padding: "10px",
+    color: "#0B2E5F",
+    fontSize: 13,
+    fontWeight: 700,
+    borderTop: `1px solid ${rowBorder(tone)}`,
+    borderBottom: `1px solid ${rowBorder(tone)}`,
+    background: "#FFFFFF",
+    verticalAlign: "top",
+  };
+}
+
+export default function ToolApp({ branding: brandingProp, onRunCompleted }: ToolAppProps) {
+  const branding = { ...DEFAULT_BRANDING, ...(brandingProp || {}) };
   const [activePage, setActivePage] = useState<ActivePage>("vat");
   const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
+  const [lastUpdate, setLastUpdate] = useState("—");
 
   useEffect(() => {
     storeLanguage(language);
   }, [language]);
 
-  return activePage === "vat" ? (
-    <VatPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
-  ) : (
-    <TinPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
+  useEffect(() => {
+    setLastUpdate("—");
+  }, [activePage]);
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        padding: 22,
+        background: branding.backgroundColor || DEFAULT_BRANDING.backgroundColor,
+        color: branding.textColor || DEFAULT_BRANDING.textColor,
+        fontFamily: PORTAL_FONT,
+      }}
+    >
+      <div style={{ maxWidth: 1220, margin: "0 auto", display: "grid", gap: 18 }}>
+        <PortalBanner
+          branding={branding}
+          activePage={activePage}
+          setActivePage={setActivePage}
+          language={language}
+          setLanguage={setLanguage}
+          lastUpdate={lastUpdate}
+        />
+
+        {activePage === "vat" ? (
+          <VatPage language={language} onRunCompleted={onRunCompleted} setLastUpdate={setLastUpdate} />
+        ) : (
+          <TinPage language={language} onRunCompleted={onRunCompleted} setLastUpdate={setLastUpdate} />
+        )}
+      </div>
+    </div>
   );
 }
