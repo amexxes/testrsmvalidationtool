@@ -47,7 +47,59 @@ const DEFAULT_BRANDING: ClientBranding = {
   backgroundColor: "#F8FBFF",
   textColor: "#1E293B",
 };
+const PORTAL_FONT =
+  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
+const PAGE_TITLE_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  fontSize: 20,
+  lineHeight: 1.2,
+  fontWeight: 700,
+  color: "#0B2E5F",
+  margin: 0,
+};
+
+const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  fontSize: 14,
+  lineHeight: 1.55,
+  fontWeight: 500,
+  color: "#0B2E5F",
+  marginTop: 6,
+};
+
+const SMALL_HEADER_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  fontSize: 13,
+  lineHeight: 1.35,
+  fontWeight: 800,
+  color: "#0B2E5F",
+};
+
+const TABLE_HEADER_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  fontSize: 14,
+  lineHeight: 1.35,
+  fontWeight: 800,
+  color: "#0B2E5F",
+};
+
+const TABLE_META_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  fontSize: 13,
+  lineHeight: 1.35,
+  fontWeight: 500,
+};
+
+const TH_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  fontSize: 12,
+  lineHeight: 1.35,
+  fontWeight: 800,
+  letterSpacing: "0.02em",
+  color: "#0B2E5F",
+  cursor: "pointer",
+};
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
@@ -623,9 +675,9 @@ function PortalBanner({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-            <div className="title" style={{ fontSize: 20 }}>
-              {title}
-            </div>
+<div className="title" style={{ ...PAGE_TITLE_STYLE, fontWeight: 800 }}>
+  {title}
+</div>
           </div>
         </div>
 
@@ -713,19 +765,7 @@ function MetricGrid({
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <CardTitle
-      style={{
-        fontSize: 20,
-        lineHeight: 1.2,
-        fontWeight: 700,
-        color: "#0B2E5F",
-        margin: 0,
-      }}
-    >
-      {children}
-    </CardTitle>
-  );
+  return <CardTitle style={PAGE_TITLE_STYLE}>{children}</CardTitle>;
 }
 
 function SectionSubtitle({
@@ -736,16 +776,7 @@ function SectionSubtitle({
   maxWidth?: number;
 }) {
   return (
-    <CardDescription
-      style={{
-        maxWidth,
-        fontSize: 14,
-        lineHeight: 1.55,
-        fontWeight: 500,
-        color: "#0B2E5F",
-        marginTop: 6,
-      }}
-    >
+    <CardDescription style={{ ...PAGE_SUBTITLE_STYLE, maxWidth }}>
       {children}
     </CardDescription>
   );
@@ -1848,7 +1879,9 @@ function VatPage({
 
                 <div className="mapbox">
                   <div className="mapbox-head">
-                    <div className="mapbox-title">{t(language, "inputDistribution")}</div>
+                   <div className="mapbox-title" style={SMALL_HEADER_STYLE}>
+  {t(language, "inputDistribution")}
+</div>
                     <div className="mapbox-sub">
                       <span className="nowrap">{mapCount}</span>
                     </div>
@@ -1950,8 +1983,8 @@ function VatPage({
 
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
-            <strong>{t(language, "results")}</strong>
-            <div className="muted">
+            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+           <div className="muted" style={TABLE_META_STYLE}>
               {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
               {t(language, "rows")}
             </div>
@@ -1961,7 +1994,7 @@ function VatPage({
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 160 }} onClick={() => sortByColumn(0, t(language, "state"))}>
+                  <th style={{ ...TH_STYLE, width: 160 }} onClick={() => sortByColumn(0, t(language, "state"))}>
                     {t(language, "state")}
                   </th>
                   <th style={{ width: 180 }} onClick={() => sortByColumn(1, t(language, "vat"))}>
@@ -2754,8 +2787,8 @@ function TinPage({
 
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
-            <strong>{t(language, "results")}</strong>
-            <div className="muted">
+            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+            <div className="muted" style={TABLE_META_STYLE}>
               {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
               {t(language, "rows")}
             </div>
