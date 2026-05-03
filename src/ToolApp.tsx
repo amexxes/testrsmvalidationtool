@@ -102,14 +102,14 @@ const TH_STYLE: React.CSSProperties = {
 };
 
 const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
-  width: 420,
-  minWidth: 420,
+  width: "100%",
+  minWidth: 0,
   maxWidth: "100%",
 };
 
 const ACTION_ROW_STYLE: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "420px 170px 170px",
+  gridTemplateColumns: "minmax(0, 1fr) 150px 150px",
   alignItems: "center",
   gap: 10,
   width: "100%",
