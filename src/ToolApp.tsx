@@ -105,6 +105,10 @@ const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
   width: "100%",
   minWidth: 0,
   maxWidth: "100%",
+  height: 38,
+  minHeight: 38,
+  boxSizing: "border-box",
+  display: "block",
 };
 
 const ACTION_ROW_STYLE: React.CSSProperties = {
@@ -113,17 +117,24 @@ const ACTION_ROW_STYLE: React.CSSProperties = {
   alignItems: "center",
   gap: 10,
   width: "100%",
+  height: 38,
 };
 
 const ACTION_BUTTON_STYLE: React.CSSProperties = {
   width: "100%",
   minWidth: 0,
   height: 38,
+  minHeight: 38,
+  boxSizing: "border-box",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   textAlign: "center",
   whiteSpace: "nowrap",
+  lineHeight: "38px",
+  paddingTop: 0,
+  paddingBottom: 0,
+  alignSelf: "center",
 };
 
 const BANNER_INNER_STYLE: React.CSSProperties = {
