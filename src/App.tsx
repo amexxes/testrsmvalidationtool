@@ -176,7 +176,7 @@ export default function App() {
 
   return (
     <>
-      <ToolApp branding={branding} />
+      <ToolApp branding={branding} showTaskList={user.role !== "admin"} />
 
       <div style={accountMenuWrapStyle}>
         <AccountMenu
