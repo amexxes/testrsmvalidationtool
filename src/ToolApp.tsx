@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SortState = { colIndex: number | null; asc: boolean };
+type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
 type ActivePage = "vat" | "tin";
 
 type PageSwitcherProps = {
@@ -382,6 +383,103 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
   );
 }
 
+type PortalBannerProps = {
+  title: string;
+  subtitle: string;
+  modeValue: string;
+  meta?: Array<{ label: string; value: string }>;
+  activePage: ActivePage;
+  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+};
+
+function PortalBanner({
+  title,
+  subtitle,
+  modeValue,
+  meta = [],
+  activePage,
+  setActivePage,
+}: PortalBannerProps) {
+  return (
+    <div className="banner">
+      <div className="banner-accent" />
+      <div
+        className="banner-inner"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 18,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            minWidth: 0,
+          }}
+        >
+          <div
+            className="mark"
+            aria-hidden="true"
+            style={{
+              padding: "8px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 152,
+            }}
+          >
+            <img
+              src="/RSMLOGO.png"
+              alt="RSM"
+              style={{
+                height: 40,
+                width: "auto",
+                display: "block",
+                objectFit: "contain",
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+            <div className="title" style={{ fontSize: 20 }}>
+              {title}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>{subtitle}</div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            marginLeft: "auto",
+          }}
+        >
+          <div className="chip">
+            <span>Mode</span>
+            <b className="nowrap">{modeValue}</b>
+          </div>
+
+          {meta.map((item) => (
+            <div className="chip" key={item.label}>
+              <span>{item.label}</span>
+              <b className="nowrap">{item.value}</b>
+            </div>
+          ))}
+
+          <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -414,10 +512,17 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [frDebugOn, setFrDebugOn] = useState(false);
   const [frDebug, setFrDebug] = useState<any | null>(null);
   const frDebugOnRef = useRef(false);
-
   useEffect(() => {
     frDebugOnRef.current = frDebugOn;
   }, [frDebugOn]);
+
+  const [savedRuns, setSavedRuns] = useState<SavedRun[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("vat_saved_runs") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   const [notes, setNotes] = useState<Record<string, { note: string; tag: "whitelist" | "blacklist" | "" }>>(() => {
     try {
@@ -426,6 +531,10 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
       return {};
     }
   });
+
+  useEffect(() => {
+    localStorage.setItem("vat_saved_runs", JSON.stringify(savedRuns.slice(0, 30)));
+  }, [savedRuns]);
 
   useEffect(() => {
     localStorage.setItem("vat_notes", JSON.stringify(notes));
@@ -536,13 +645,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
       }
     }
 
-    return {
-      totalLines: rawLines.length,
-      unique: seen.size,
-      duplicates,
-      badFormat,
-      badExamples,
-    };
+    return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
   }, [vatInput]);
 
   function stopPolling() {
@@ -557,7 +660,6 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     currentFrJobIdRef.current = null;
     setActiveFrJobId(null);
     setFrDebug(null);
-    setFrText("-");
   }
 
   function onCancel() {
@@ -595,7 +697,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
       if (!resp.ok) return;
 
       const data = (await resp.json()) as FrJobResponse & any;
-      setFrText(`${data.job?.done ?? 0}/${data.job?.total ?? 0} (${data.job?.status ?? "-"})`);
+
+      setFrText(`${data.job.done}/${data.job.total} (${data.job.status})`);
 
       if (frDebugOnRef.current) {
         setFrDebug(data.debug ?? data.worker ?? null);
@@ -613,7 +716,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
         const map = new Map<string, VatRow>();
 
         for (let i = 0; i < prev.length; i++) {
-          map.set(rowKeyStable(prev[i], i), prev[i]);
+          const r = prev[i];
+          map.set(rowKeyStable(r, i), r);
         }
 
         let seq = 0;
@@ -650,11 +754,13 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     stopPolling();
     setExpandedKey(null);
     setRows([]);
+    setFrText("-");
     setLastUpdate("-");
     setSortState({ colIndex: null, asc: true });
     setSortLabel("");
     setLoading(true);
     setDuplicatesIgnored(0);
+    setActiveFrJobId(null);
 
     const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
     if (!lines.length) {
@@ -683,6 +789,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
         enrichRow({ ...(r as any), case_ref: caseRef } as any)
       );
       setRows(enriched);
+
       setLastUpdate(new Date().toLocaleString("nl-NL"));
 
       if (data.fr_job_id) {
@@ -695,6 +802,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
           const id = currentFrJobIdRef.current;
           if (id) void pollFrJob(id);
         }, 1500);
+      } else {
+        setFrText("-");
       }
     } catch (e: any) {
       if (e?.name === "AbortError") {
@@ -712,6 +821,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     setCaseRef("");
     setFilter("");
     setRows([]);
+    setFrText("-");
     setLastUpdate("-");
     setProgressText("0/0");
     setSortState({ colIndex: null, asc: true });
@@ -1050,6 +1160,11 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     XLSX.writeFile(wb, filename);
   }
 
+  function saveRun() {
+    const id = crypto.randomUUID();
+    setSavedRuns((prev) => [{ id, ts: Date.now(), caseRef, input: vatInput, results: rows }, ...prev].slice(0, 30));
+  }
+
   useEffect(() => {
     const el = document.getElementById("countryMap");
     if (!el) return;
@@ -1219,99 +1334,27 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
   return (
     <>
-      <div className="banner">
-        <div className="banner-accent" />
-        <div
-          className="banner-inner"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 18,
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              minWidth: 0,
-            }}
-          >
-            <div
-              className="mark"
-              aria-hidden="true"
-              style={{
-                padding: "8px 12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 152,
-              }}
-            >
-              <img
-                src="/RSMLOGO.png"
-                alt="RSM"
-                style={{
-                  height: 40,
-                  width: "auto",
-                  display: "block",
-                  objectFit: "contain",
-                }}
-              />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-              <div className="title" style={{ fontSize: 20 }}>
-                VAT validation
-              </div>
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                Customer portal for VAT batch checks and review.
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-              marginLeft: "auto",
-            }}
-          >
-            <div className="chip">
-              <span>Mode</span>
-              <b className="nowrap">VAT / VIES</b>
-            </div>
-
-            <div className="chip">
-              <span>FR job</span>
-              <b className="nowrap">{frText}</b>
-            </div>
-
-            <div className="chip">
-              <span>Last update</span>
-              <b className="nowrap">{lastUpdate}</b>
-            </div>
-
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
-          </div>
-        </div>
-      </div>
+      <PortalBanner
+        title="VAT validation"
+        subtitle="Customer portal for VAT batch checks and review."
+        modeValue="VAT / VIES"
+        meta={[{ label: "Last update", value: lastUpdate }]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+      />
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card>
-            <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
+            <CardHeader className="px-0 pt-0 pb-4">
               <CardTitle>Input</CardTitle>
               <CardDescription>
-                Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued and updates automatically.
+                Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
+                update via polling.
               </CardDescription>
             </CardHeader>
 
-            <CardContent style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }}>
+            <CardContent className="px-0 pb-0">
               <div className="row inputActionsRow">
                 <input
                   type="text"
@@ -1358,9 +1401,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                 </label>
 
                 {!activeFrJobId && (
-                  <span style={{ color: "var(--muted)", fontSize: 12 }}>
-                    start an FR job to see debug info
-                  </span>
+                  <span style={{ color: "var(--muted)", fontSize: 12 }}>start an FR job to see debug info</span>
                 )}
               </div>
 
@@ -1400,6 +1441,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                   setExpandedKey(null);
                   setDuplicatesIgnored(0);
                   setViesStatus([]);
+                  setFrText("-");
                   setLastUpdate("-");
                   setProgressText("0/0");
                   setSortState({ colIndex: null, asc: true });
@@ -1475,7 +1517,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               </div>
 
               <div className="callout" style={{ marginTop: 14 }}>
-                <b>Tip</b>: Use the filter to search within results. Click a column header to sort. Click a row to expand details.
+                <b>Tip</b>: Use the filter to search within results. Click a column header to sort. Click a row to
+                expand details.
               </div>
 
               <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} />
@@ -1484,12 +1527,12 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <Card>
-              <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
+              <CardHeader className="px-0 pt-0 pb-4">
                 <CardTitle>Filter</CardTitle>
                 <CardDescription>Search, sorting and input distribution.</CardDescription>
               </CardHeader>
 
-              <CardContent style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }}>
+              <CardContent className="px-0 pb-0">
                 <div className="filterBox">
                   <input
                     type="text"
@@ -1527,23 +1570,12 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             </Card>
 
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
+              <CardHeader className="px-0 pt-0 pb-4">
                 <CardTitle>VIES status by country</CardTitle>
                 <CardDescription>Availability according to VIES check status.</CardDescription>
               </CardHeader>
 
-              <CardContent
-                style={{
-                  paddingTop: 0,
-                  paddingRight: 0,
-                  paddingBottom: 0,
-                  paddingLeft: 0,
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  minHeight: 0,
-                }}
-              >
+              <CardContent className="px-0 pb-0" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
                 <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
                   {!viesStatus.length ? (
                     <div style={{ padding: 12, color: "var(--muted)" }}>No data</div>
@@ -1612,181 +1644,159 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
           </div>
         </div>
 
-        <Card style={{ marginTop: 16 }}>
-          <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <CardTitle>Results</CardTitle>
-                <CardDescription>Review and annotate VAT validation results.</CardDescription>
-              </div>
-
-              <div className="muted">
-                Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
-              </div>
+        <div className="tableWrap">
+          <div className="tableHeader">
+            <strong>Results</strong>
+            <div className="muted">
+              Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }}>
-            <div style={{ overflow: "auto", maxHeight: 520 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: 160 }} onClick={() => sortByColumn(0, "State")}>
-                      State
-                    </th>
-                    <th style={{ width: 180 }} onClick={() => sortByColumn(1, "VAT")}>
-                      VAT
-                    </th>
-                    <th style={{ width: 280 }} onClick={() => sortByColumn(2, "Name")}>
-                      Name
-                    </th>
-                    <th style={{ width: 280 }} onClick={() => sortByColumn(3, "Address")}>
-                      Address
-                    </th>
-                    <th style={{ width: 240 }} onClick={() => sortByColumn(4, "Error")}>
-                      Error
-                    </th>
-                  </tr>
-                </thead>
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 160 }} onClick={() => sortByColumn(0, "State")}>
+                    State
+                  </th>
+                  <th style={{ width: 180 }} onClick={() => sortByColumn(1, "VAT")}>
+                    VAT
+                  </th>
+                  <th style={{ width: 280 }} onClick={() => sortByColumn(2, "Name")}>
+                    Name
+                  </th>
+                  <th style={{ width: 280 }} onClick={() => sortByColumn(3, "Address")}>
+                    Address
+                  </th>
+                  <th style={{ width: 240 }} onClick={() => sortByColumn(4, "Error")}>
+                    Error
+                  </th>
+                </tr>
+              </thead>
 
-                <tbody>
-                  {filteredRows.map((r, idx) => {
-                    const ds = displayState(r);
-                    const st = stateLabel(ds);
-                    const cls = stateClass(ds);
+              <tbody>
+                {filteredRows.map((r, idx) => {
+                  const ds = displayState(r);
+                  const st = stateLabel(ds);
+                  const cls = stateClass(ds);
 
-                    const key = rowKeyStable(r, idx);
-                    const isOpen = expandedKey === key;
+                  const key = rowKeyStable(r, idx);
+                  const isOpen = expandedKey === key;
 
-                    const nra = normalizeTsMs((r as any).next_retry_at);
-                    const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
+                  const nra = normalizeTsMs((r as any).next_retry_at);
+                  const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
 
-                    const isDone = ds === "valid" || ds === "invalid";
-                    const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error);
+                  const isDone = ds === "valid" || ds === "invalid";
+                  const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error);
 
-                    return (
-                      <React.Fragment key={`${key}-${idx}`}>
-                        <tr onClick={() => setExpandedKey(isOpen ? null : key)} style={{ cursor: "pointer" }}>
-                          <td>
-                            <span className={`pill ${cls}`}>
-                              <i aria-hidden="true" />
-                              {st}
-                              {cls === "retry" && eta ? ` (ETA ${eta})` : ""}
-                            </span>
+                  return (
+                    <React.Fragment key={`${key}-${idx}`}>
+                      <tr onClick={() => setExpandedKey(isOpen ? null : key)} style={{ cursor: "pointer" }}>
+                        <td>
+                          <span className={`pill ${cls}`}>
+                            <i aria-hidden="true" />
+                            {st}
+                            {cls === "retry" && eta ? ` (ETA ${eta})` : ""}
+                          </span>
+                        </td>
+
+                        <td className="mono nowrap" title={(r as any).vat_number || (r as any).input || ""}>
+                          {(r as any).vat_number || (r as any).input || ""}
+                        </td>
+
+                        <td title={(r as any).name || ""}>{(r as any).name || ""}</td>
+                        <td title={(r as any).address || ""}>{(r as any).address || ""}</td>
+
+                        <td title={errShown || ""}>{errShown || ""}</td>
+                      </tr>
+
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={5} className="rowDetails">
+                            <div className="kv">
+                              <span>Case</span>
+                              <b>{(r as any).case_ref || "—"}</b>
+
+                              <span>Checked at</span>
+                              <b>{(r as any).checked_at ? new Date((r as any).checked_at).toLocaleString("nl-NL") : "—"}</b>
+
+                              <span>Error code</span>
+                              <b>{isDone ? "—" : (r as any).error_code || "—"}</b>
+
+                              <span>Details</span>
+                              <b>{isDone ? "—" : (r as any).details || "—"}</b>
+
+                              <span>Attempt</span>
+                              <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "—"}</b>
+
+                              <span>Next retry</span>
+                              <b>{nra ? new Date(nra).toLocaleString("nl-NL") : "—"}</b>
+
+                              <span>Format</span>
+                              <b>{(r as any).format_ok === false ? `Bad (${(r as any).format_reason})` : "OK"}</b>
+                            </div>
+
+                            <div className="row" style={{ marginTop: 10 }}>
+                              <select
+                                value={(r as any).tag || ""}
+                                onChange={(e) => {
+                                  const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
+                                  const nextTag = e.target.value as any;
+                                  setNotes((prev) => ({ ...prev, [key2]: { note: (r as any).note || "", tag: nextTag } }));
+                                  setRows((prev) =>
+                                    prev.map((x) =>
+                                      `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
+                                        ? { ...(x as any), tag: nextTag }
+                                        : x
+                                    )
+                                  );
+                                }}
+                              >
+                                <option value="">No tag</option>
+                                <option value="whitelist">Whitelist</option>
+                                <option value="blacklist">Blacklist</option>
+                              </select>
+
+                              <input
+                                type="text"
+                                value={(r as any).note || ""}
+                                onChange={(e) => {
+                                  const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
+                                  const nextNote = e.target.value;
+                                  setNotes((prev) => ({
+                                    ...prev,
+                                    [key2]: { note: nextNote, tag: ((r as any).tag as any) || "" },
+                                  }));
+                                  setRows((prev) =>
+                                    prev.map((x) =>
+                                      `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
+                                        ? { ...(x as any), note: nextNote }
+                                        : x
+                                    )
+                                  );
+                                }}
+                                placeholder="Note (optional)"
+                                style={{ flex: 1, minWidth: 260 }}
+                              />
+                            </div>
                           </td>
-
-                          <td className="mono nowrap" title={(r as any).vat_number || (r as any).input || ""}>
-                            {(r as any).vat_number || (r as any).input || ""}
-                          </td>
-
-                          <td title={(r as any).name || ""}>{(r as any).name || ""}</td>
-                          <td title={(r as any).address || ""}>{(r as any).address || ""}</td>
-                          <td title={errShown || ""}>{errShown || ""}</td>
                         </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
 
-                        {isOpen && (
-                          <tr>
-                            <td colSpan={5} className="rowDetails">
-                              <div className="kv">
-                                <span>Case</span>
-                                <b>{(r as any).case_ref || "—"}</b>
-
-                                <span>Checked at</span>
-                                <b>
-                                  {(r as any).checked_at
-                                    ? new Date((r as any).checked_at).toLocaleString("nl-NL")
-                                    : "—"}
-                                </b>
-
-                                <span>Error code</span>
-                                <b>{isDone ? "—" : (r as any).error_code || "—"}</b>
-
-                                <span>Details</span>
-                                <b>{isDone ? "—" : (r as any).details || "—"}</b>
-
-                                <span>Attempt</span>
-                                <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "—"}</b>
-
-                                <span>Next retry</span>
-                                <b>{nra ? new Date(nra).toLocaleString("nl-NL") : "—"}</b>
-
-                                <span>Format</span>
-                                <b>{(r as any).format_ok === false ? `Bad (${(r as any).format_reason})` : "OK"}</b>
-                              </div>
-
-                              <div className="row" style={{ marginTop: 10 }}>
-                                <select
-                                  value={(r as any).tag || ""}
-                                  onChange={(e) => {
-                                    const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
-                                    const nextTag = e.target.value as any;
-                                    setNotes((prev) => ({
-                                      ...prev,
-                                      [key2]: { note: (r as any).note || "", tag: nextTag },
-                                    }));
-                                    setRows((prev) =>
-                                      prev.map((x) =>
-                                        `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
-                                          ? { ...(x as any), tag: nextTag }
-                                          : x
-                                      )
-                                    );
-                                  }}
-                                >
-                                  <option value="">No tag</option>
-                                  <option value="whitelist">Whitelist</option>
-                                  <option value="blacklist">Blacklist</option>
-                                </select>
-
-                                <input
-                                  type="text"
-                                  value={(r as any).note || ""}
-                                  onChange={(e) => {
-                                    const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
-                                    const nextNote = e.target.value;
-                                    setNotes((prev) => ({
-                                      ...prev,
-                                      [key2]: { note: nextNote, tag: ((r as any).tag as any) || "" },
-                                    }));
-                                    setRows((prev) =>
-                                      prev.map((x) =>
-                                        `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
-                                          ? { ...(x as any), note: nextNote }
-                                          : x
-                                      )
-                                    );
-                                  }}
-                                  placeholder="Note (optional)"
-                                  style={{ flex: 1, minWidth: 260 }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
-
-                  {!filteredRows.length && (
-                    <tr>
-                      <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
-                        No results
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
+                      No results
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </>
   );
@@ -1893,8 +1903,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [sortAsc, setSortAsc] = useState(true);
 
   const importFileRef = useRef<HTMLInputElement | null>(null);
-
-  const tinInputStats = useMemo(() => getTinInputStats(tinInput, country), [tinInput, country]);
 
   const countryOptions = [
     { code: "AT", label: "Austria" },
@@ -2200,94 +2208,24 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
   return (
     <>
-      <div className="banner">
-        <div className="banner-accent" />
-        <div
-          className="banner-inner"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 18,
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              minWidth: 0,
-            }}
-          >
-            <div
-              className="mark"
-              aria-hidden="true"
-              style={{
-                padding: "8px 12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 152,
-              }}
-            >
-              <img
-                src="/RSMLOGO.png"
-                alt="RSM"
-                style={{
-                  height: 40,
-                  width: "auto",
-                  display: "block",
-                  objectFit: "contain",
-                }}
-              />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-              <div className="title" style={{ fontSize: 20 }}>
-                TIN validation
-              </div>
-              <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                Customer portal for TIN batch checks and review.
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-              marginLeft: "auto",
-            }}
-          >
-            <div className="chip">
-              <span>Mode</span>
-              <b className="nowrap">TIN</b>
-            </div>
-
-            <div className="chip">
-              <span>Country</span>
-              <b className="nowrap">{country}</b>
-            </div>
-
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
-          </div>
-        </div>
-      </div>
+      <PortalBanner
+        title="TIN validation"
+        subtitle="Customer portal for TIN batch checks and review."
+        modeValue="TIN"
+        meta={[{ label: "Country", value: country }]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+      />
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card>
-            <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
+            <CardHeader className="px-0 pt-0 pb-4">
               <CardTitle>Input</CardTitle>
-              <CardDescription>
-                Select the country, paste one or more TINs, and validate them in batch.
-              </CardDescription>
+              <CardDescription>Select the country, paste one or more TINs, and validate them in batch.</CardDescription>
             </CardHeader>
 
-            <CardContent style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }}>
+            <CardContent className="px-0 pb-0">
               <div className="row inputActionsRow">
                 <select
                   value={country}
@@ -2346,11 +2284,6 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 }}
               />
 
-              <div className="callout" style={{ marginTop: 10 }}>
-                <b>Pre-check</b>: {tinInputStats.uniqueCount} unique / {tinInputStats.totalLines} lines ·{" "}
-                {tinInputStats.duplicateCount} duplicates · {tinInputStats.prefixCount} country prefixes removed
-              </div>
-
               {infoMessage && (
                 <div className="callout" style={{ marginTop: 10 }}>
                   {infoMessage}
@@ -2358,12 +2291,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               )}
 
               <div className="row" style={{ marginTop: 12 }}>
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={onValidateTinBatch}
-                  disabled={loading || !tinInput.trim()}
-                >
+                <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
                   {loading ? "Validating…" : "Validate"}
                 </Button>
 
@@ -2379,12 +2307,12 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           </Card>
 
           <Card>
-            <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
+            <CardHeader className="px-0 pt-0 pb-4">
               <CardTitle>Dashboard</CardTitle>
               <CardDescription>Overview, filters and sorting.</CardDescription>
             </CardHeader>
 
-            <CardContent style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }}>
+            <CardContent className="px-0 pb-0">
               {error && (
                 <div className="callout" style={{ marginTop: 10 }}>
                   <b style={{ color: "var(--bad)" }}>Error</b>: {error}
@@ -2466,87 +2394,71 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           </Card>
         </div>
 
-        <Card style={{ marginTop: 16 }}>
-          <CardHeader style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 16, paddingLeft: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <CardTitle>Results</CardTitle>
-                <CardDescription>Review TIN validation results.</CardDescription>
-              </div>
-
-              <div className="muted">
-                Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
-              </div>
+        <div className="tableWrap">
+          <div className="tableHeader">
+            <strong>Results</strong>
+            <div className="muted">
+              Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent style={{ paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 }}>
-            <div style={{ overflow: "auto", maxHeight: 520 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: 150, cursor: "pointer" }} onClick={() => sortBy("status")}>
-                      Status{sortIndicator("status")}
-                    </th>
-                    <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("input_tin")}>
-                      Input TIN{sortIndicator("input_tin")}
-                    </th>
-                    <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("tin_number")}>
-                      Returned TIN{sortIndicator("tin_number")}
-                    </th>
-                    <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("structure_valid")}>
-                      Structure{sortIndicator("structure_valid")}
-                    </th>
-                    <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("syntax_valid")}>
-                      Syntax{sortIndicator("syntax_valid")}
-                    </th>
-                    <th style={{ width: 140, cursor: "pointer" }} onClick={() => sortBy("request_date")}>
-                      Date{sortIndicator("request_date")}
-                    </th>
-                    <th style={{ width: 320, cursor: "pointer" }} onClick={() => sortBy("message")}>
-                      Message{sortIndicator("message")}
-                    </th>
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 150, cursor: "pointer" }} onClick={() => sortBy("status")}>
+                    Status{sortIndicator("status")}
+                  </th>
+                  <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("input_tin")}>
+                    Input TIN{sortIndicator("input_tin")}
+                  </th>
+                  <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("tin_number")}>
+                    Returned TIN{sortIndicator("tin_number")}
+                  </th>
+                  <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("structure_valid")}>
+                    Structure{sortIndicator("structure_valid")}
+                  </th>
+                  <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("syntax_valid")}>
+                    Syntax{sortIndicator("syntax_valid")}
+                  </th>
+                  <th style={{ width: 140, cursor: "pointer" }} onClick={() => sortBy("request_date")}>
+                    Date{sortIndicator("request_date")}
+                  </th>
+                  <th style={{ width: 320, cursor: "pointer" }} onClick={() => sortBy("message")}>
+                    Message{sortIndicator("message")}
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRows.map((r, idx) => (
+                  <tr key={`${r.input_tin}-${idx}`}>
+                    <td>
+                      <span className={`pill ${statusPillClass(r.status)}`}>
+                        <i aria-hidden="true" />
+                        {prettyStatus(r.status)}
+                      </span>
+                    </td>
+                    <td className="mono nowrap">{r.input_tin || ""}</td>
+                    <td className="mono nowrap">{r.tin_number || ""}</td>
+                    <td>{boolLabel(r.structure_valid)}</td>
+                    <td>{boolLabel(r.syntax_valid)}</td>
+                    <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
+                    <td title={r.message || ""}>{r.message || ""}</td>
                   </tr>
-                </thead>
+                ))}
 
-                <tbody>
-                  {filteredRows.map((r, idx) => (
-                    <tr key={`${r.input_tin}-${idx}`}>
-                      <td>
-                        <span className={`pill ${statusPillClass(r.status)}`}>
-                          <i aria-hidden="true" />
-                          {prettyStatus(r.status)}
-                        </span>
-                      </td>
-                      <td className="mono nowrap">{r.input_tin || ""}</td>
-                      <td className="mono nowrap">{r.tin_number || ""}</td>
-                      <td>{boolLabel(r.structure_valid)}</td>
-                      <td>{boolLabel(r.syntax_valid)}</td>
-                      <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
-                      <td title={r.message || ""}>{r.message || ""}</td>
-                    </tr>
-                  ))}
-
-                  {!filteredRows.length && (
-                    <tr>
-                      <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
-                        No results
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
+                      No results
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </>
   );
