@@ -545,13 +545,11 @@ function PortalBanner({
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-            <div className="title" style={{ fontSize: 20 }}>
-              {title}
-            </div>
-            <div style={{ fontSize: 13, color: "#0B2E5F" }}>{subtitle}</div>
-          </div>
-        </div>
+ <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+  <div className="title" style={{ fontSize: 20 }}>
+    {title}
+  </div>
+</div>
 
         <div
           style={{
