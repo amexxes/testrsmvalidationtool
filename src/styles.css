@@ -848,12 +848,3 @@ select,
 #countryMap {
   background: linear-gradient(180deg, #fbfdff 0%, #f6f9fc 100%);
 }
-
-#countryMap .leaflet-tile-pane {
-  background: #fbfdff;
-}
-
-#countryMap .rsm-muted-osm-tiles {
-  filter: grayscale(100%) saturate(12%) brightness(1.24) contrast(0.72);
-  opacity: 0.48;
-}
