@@ -1353,8 +1353,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
           const max = Math.max(0, ...Object.values(countryCounts));
           const ratio = max > 0 ? n / max : 0;
 
-let fill = "#eaf7fb";
-let stroke = "#cfe8f1";
+let fill = "#d9f0f7";
+let stroke = "#b9deea";
 
 if (ratio >= 0.8) {
   fill = "#55b9d4";
