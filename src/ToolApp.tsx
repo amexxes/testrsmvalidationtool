@@ -1457,7 +1457,7 @@ return {
   subtitle={`${branding.clientName || "RSM Netherlands"} · VAT / VIES batch checks and review.`}
   modeValue="VAT / VIES"
   meta={[
-  { label: "Credits", value: "Unlimited" },
+  { label: "Credits:", value: "Unlimited" },
   { label: "Last update", value: lastUpdate },
 ]}
   activePage={activePage}
@@ -2314,7 +2314,7 @@ function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  t
   subtitle={`${branding.clientName || "RSM Netherlands"} · TIN batch checks and review.`}
   modeValue="TIN"
   meta={[
-  { label: "Credits", value: "Unlimited" },
+  { label: "Credits:", value: "Unlimited" },
   { label: "Country", value: country },
 ]}
   activePage={activePage}
