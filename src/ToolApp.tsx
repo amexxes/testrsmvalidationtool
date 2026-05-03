@@ -2459,7 +2459,6 @@ function TinPage({
     <>
       <PortalBanner
         title={branding.portalTitle || "RSM Validation Portal"}
-        subtitle={`${branding.clientName || "RSM Netherlands"} · ${t(language, "tinSubtitle")}`}
         modeValue="TIN"
         meta={[
           { label: t(language, "credits"), value: t(language, "unlimited") },
