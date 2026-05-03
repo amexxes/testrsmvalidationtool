@@ -844,3 +844,8 @@ select,
     sans-serif !important;
   letter-spacing: 0 !important;
 }
+
+#countryMap .rsm-muted-osm-tiles {
+  filter: grayscale(92%) saturate(45%) brightness(1.08) contrast(0.86);
+  opacity: 0.66;
+}
