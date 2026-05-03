@@ -1255,10 +1255,11 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
         keyboard: false,
       }).setView([53.5, 10], 3);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 6,
-        minZoom: 2,
-      }).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 6,
+  minZoom: 2,
+  className: "rsm-muted-osm-tiles",
+}).addTo(map);
 
       const layer = L.layerGroup().addTo(map);
 
