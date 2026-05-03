@@ -5,7 +5,6 @@ import ReactCountryFlag from "react-country-flag";
 import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import type { PortalRunSummary } from "./portalRunHistory";
 import * as XLSX from "xlsx";
-import pptxgen from "pptxgenjs";
 import UserDraftsPanel from "./UserDraftsPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1419,151 +1418,6 @@ function VatPage({
     void importVatFile(f);
   }
 
-  function exportPptxInfographic() {
-    const pres = new pptxgen();
-    pres.layout = "LAYOUT_WIDE";
-
-    const slide = pres.addSlide();
-
-    const ts = new Date();
-    const stamp = ts.toISOString().slice(0, 19).replace(/[:T]/g, "-");
-
-    slide.addText(localText(language, "vatInfographic"), {
-      x: 0.5,
-      y: 0.3,
-      w: 12.3,
-      h: 0.5,
-      fontSize: 26,
-      bold: true,
-      color: "0B2E5F",
-    });
-
-    slide.addText(`${t(language, "case")}: ${caseRef || "—"}  •  ${ts.toLocaleString(localeForLanguage(language))}`, {
-      x: 0.5,
-      y: 0.85,
-      w: 12.3,
-      h: 0.3,
-      fontSize: 12,
-      color: "6B7280",
-    });
-
-    const boxes = [
-      { label: t(language, "total"), value: String(stats.total), color: "0B2E5F" },
-      { label: t(language, "valid"), value: String(stats.vOk), color: "0A7A3D" },
-      { label: t(language, "invalid"), value: String(stats.vBad), color: "B91C1C" },
-      { label: t(language, "pending"), value: String(stats.pending), color: "B45309" },
-      { label: t(language, "error"), value: String(stats.err), color: "B91C1C" },
-    ];
-
-    const startX = 0.5;
-    const gap = 0.15;
-    const totalW = 12.3;
-    const boxY = 1.25;
-    const boxH = 0.85;
-    const boxW = (totalW - gap * (boxes.length - 1)) / boxes.length;
-
-    boxes.forEach((b, i) => {
-      const x = startX + i * (boxW + gap);
-
-      slide.addShape(pres.ShapeType.roundRect, {
-        x,
-        y: boxY,
-        w: boxW,
-        h: boxH,
-        fill: { color: "F3F4F6" },
-        line: { color: "E5E7EB" },
-      });
-
-      slide.addText(b.label, {
-        x: x + 0.15,
-        y: boxY + 0.1,
-        w: boxW - 0.3,
-        h: 0.25,
-        fontSize: 12,
-        color: "6B7280",
-      });
-
-      slide.addText(b.value, {
-        x: x + 0.15,
-        y: boxY + 0.35,
-        w: boxW - 0.3,
-        h: 0.45,
-        fontSize: 24,
-        bold: true,
-        color: b.color,
-      });
-    });
-
-    const top = inputEntries.slice(0, 12);
-    const max = top.length ? Math.max(...top.map(([, n]) => n)) : 0;
-
-    slide.addText(t(language, "inputByCountry"), {
-      x: 0.5,
-      y: 2.25,
-      w: 12.3,
-      h: 0.3,
-      fontSize: 14,
-      bold: true,
-      color: "0B2E5F",
-    });
-
-    const chartX = 0.5;
-    const chartY = 2.6;
-    const chartW = 12.3;
-    const labelW = 1.0;
-    const valueW = 0.8;
-    const barW = chartW - labelW - valueW - 0.6;
-    const barX = chartX + labelW + 0.2;
-    const valueX = barX + barW + 0.2;
-    const rowH = 0.32;
-    const rowGap = 0.07;
-
-    top.forEach(([cc, n], i) => {
-      const y = chartY + i * (rowH + rowGap);
-
-      slide.addText(cc, {
-        x: chartX,
-        y,
-        w: labelW,
-        h: rowH,
-        fontSize: 12,
-        bold: true,
-        color: "111827",
-      });
-
-      slide.addShape(pres.ShapeType.rect, {
-        x: barX,
-        y: y + 0.07,
-        w: barW,
-        h: rowH - 0.14,
-        fill: { color: "E5E7EB" },
-        line: { color: "E5E7EB" },
-      });
-
-      const w = max ? (n / max) * barW : 0;
-
-      slide.addShape(pres.ShapeType.rect, {
-        x: barX,
-        y: y + 0.07,
-        w,
-        h: rowH - 0.14,
-        fill: { color: "2BB3E6" },
-        line: { color: "2BB3E6" },
-      });
-
-      slide.addText(String(n), {
-        x: valueX,
-        y,
-        w: valueW,
-        h: rowH,
-        fontSize: 12,
-        align: "right",
-        color: "111827",
-      });
-    });
-
-    pres.writeFile({ fileName: `vat_infographic_${stamp}.pptx` });
-  }
 
   function exportExcel() {
     const headers = [
@@ -1881,9 +1735,6 @@ function VatPage({
                   {t(language, "exportExcel")}
                 </Button>
 
-                <Button variant="secondary" size="md" onClick={exportPptxInfographic} disabled={!rows.length}>
-                  {t(language, "exportPptx")}
-                </Button>
               </div>
 
               {duplicatesIgnored > 0 && (
