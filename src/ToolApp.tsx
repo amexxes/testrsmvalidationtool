@@ -17,6 +17,15 @@ type PageSwitcherProps = {
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
 };
 
+type PortalBannerProps = {
+  title: string;
+  subtitle: string;
+  modeValue: string;
+  meta?: Array<{ label: string; value: string }>;
+  activePage: ActivePage;
+  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+};
+
 const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   AT: { lat: 48.2082, lon: 16.3738 },
   BE: { lat: 50.8503, lon: 4.3517 },
@@ -57,6 +66,39 @@ const ERROR_MAP: Record<string, string> = {
   NETWORK_ERROR: "Network error when calling VIES; we will try again later.",
 };
 
+const VAT_PATTERNS: Record<string, RegExp> = {
+  AT: /^U\d{8}$/,
+  BE: /^\d{10}$/,
+  BG: /^\d{9,10}$/,
+  CY: /^\d{8}[A-Z]$/,
+  CZ: /^\d{8,10}$/,
+  DE: /^\d{9}$/,
+  DK: /^\d{8}$/,
+  EE: /^\d{9}$/,
+  EL: /^\d{9}$/,
+  ES: /^[A-Z0-9]{9}$/,
+  FI: /^\d{8}$/,
+  FR: /^[0-9A-Z]{2}\d{9}$/,
+  HR: /^\d{11}$/,
+  HU: /^\d{8}$/,
+  IE: /^[0-9A-Z]{8,9}$/,
+  IT: /^\d{11}$/,
+  LT: /^(?:\d{9}|\d{12})$/,
+  LU: /^\d{8}$/,
+  LV: /^\d{11}$/,
+  MT: /^\d{8}$/,
+  NL: /^\d{9}B\d{2}$/,
+  PL: /^\d{10}$/,
+  PT: /^\d{9}$/,
+  RO: /^\d{2,10}$/,
+  SE: /^\d{12}$/,
+  SI: /^\d{8}$/,
+  SK: /^\d{10}$/,
+  XI: /^(?:\d{9}|\d{12}|GD\d{3}|HA\d{3})$/,
+};
+
+type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error";
+
 function normalizeLine(s: string): string {
   return String(s || "")
     .trim()
@@ -70,8 +112,6 @@ function normalizeVatCandidate(v: string): string {
   if (n.startsWith("GR")) n = "EL" + n.slice(2);
   return n;
 }
-
-type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error";
 
 function normalizeTsMs(ts: any): number | undefined {
   const n = typeof ts === "number" ? ts : Number(ts);
@@ -116,37 +156,6 @@ function formatEta(ts?: number) {
   const m = Math.round(s / 60);
   return `${m}m`;
 }
-
-const VAT_PATTERNS: Record<string, RegExp> = {
-  AT: /^U\d{8}$/,
-  BE: /^\d{10}$/,
-  BG: /^\d{9,10}$/,
-  CY: /^\d{8}[A-Z]$/,
-  CZ: /^\d{8,10}$/,
-  DE: /^\d{9}$/,
-  DK: /^\d{8}$/,
-  EE: /^\d{9}$/,
-  EL: /^\d{9}$/,
-  ES: /^[A-Z0-9]{9}$/,
-  FI: /^\d{8}$/,
-  FR: /^[0-9A-Z]{2}\d{9}$/,
-  HR: /^\d{11}$/,
-  HU: /^\d{8}$/,
-  IE: /^[0-9A-Z]{8,9}$/,
-  IT: /^\d{11}$/,
-  LT: /^(?:\d{9}|\d{12})$/,
-  LU: /^\d{8}$/,
-  LV: /^\d{11}$/,
-  MT: /^\d{8}$/,
-  NL: /^\d{9}B\d{2}$/,
-  PL: /^\d{10}$/,
-  PT: /^\d{9}$/,
-  RO: /^\d{2,10}$/,
-  SE: /^\d{12}$/,
-  SI: /^\d{8}$/,
-  SK: /^\d{10}$/,
-  XI: /^(?:\d{9}|\d{12}|GD\d{3}|HA\d{3})$/,
-};
 
 function validateFormatStrict(vatNumberWithPrefix: string) {
   const v = normalizeVatCandidate(vatNumberWithPrefix);
@@ -383,15 +392,6 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
   );
 }
 
-type PortalBannerProps = {
-  title: string;
-  subtitle: string;
-  modeValue: string;
-  meta?: Array<{ label: string; value: string }>;
-  activePage: ActivePage;
-  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
-};
-
 function PortalBanner({
   title,
   subtitle,
@@ -403,6 +403,7 @@ function PortalBanner({
   return (
     <div className="banner">
       <div className="banner-accent" />
+
       <div
         className="banner-inner"
         style={{
@@ -448,32 +449,42 @@ function PortalBanner({
             <div className="title" style={{ fontSize: 20 }}>
               {title}
             </div>
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>{subtitle}</div>
+            <div style={{ fontSize: 13, color: "#0B2E5F" }}>{subtitle}</div>
           </div>
         </div>
 
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "flex-end",
             justifyContent: "flex-end",
-            gap: 12,
-            flexWrap: "wrap",
+            gap: 10,
             marginLeft: "auto",
             alignSelf: "flex-end",
           }}
         >
-          <div className="chip">
-            <span>Mode</span>
-            <b className="nowrap">{modeValue}</b>
-          </div>
-
-          {meta.map((item) => (
-            <div className="chip" key={item.label}>
-              <span>{item.label}</span>
-              <b className="nowrap">{item.value}</b>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div className="chip">
+              <span>Mode</span>
+              <b className="nowrap">{modeValue}</b>
             </div>
-          ))}
+
+            {meta.map((item) => (
+              <div className="chip" key={item.label}>
+                <span>{item.label}</span>
+                <b className="nowrap">{item.value}</b>
+              </div>
+            ))}
+          </div>
 
           <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
         </div>
@@ -519,7 +530,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
         fontSize: 20,
         lineHeight: 1.2,
         fontWeight: 700,
-        color: "var(--text)",
+        color: "#0B2E5F",
         margin: 0,
       }}
     >
@@ -541,8 +552,8 @@ function SectionSubtitle({
         maxWidth,
         fontSize: 14,
         lineHeight: 1.55,
-        color: "var(--text)",
-        opacity: 0.82,
+        fontWeight: 500,
+        color: "#0B2E5F",
         marginTop: 6,
       }}
     >
