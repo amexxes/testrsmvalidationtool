@@ -480,6 +480,36 @@ function PortalBanner({
   );
 }
 
+function MetricGrid({
+  items,
+}: {
+  items: Array<{ label: string; value: React.ReactNode; tone?: "default" | "ok" | "bad" | "warn" }>;
+}) {
+  return (
+    <div className="stats">
+      {items.map((item) => (
+        <div className="stat" key={item.label}>
+          <span>{item.label}</span>
+          <b
+            style={{
+              color:
+                item.tone === "ok"
+                  ? "var(--ok)"
+                  : item.tone === "bad"
+                    ? "var(--bad)"
+                    : item.tone === "warn"
+                      ? "var(--warn)"
+                      : "var(--ink)",
+            }}
+          >
+            {item.value}
+          </b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -727,8 +757,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
           const k = rowKeyStable(incoming, 100000 + seq++);
           const existing = map.get(k);
-          const merged: any = { ...(existing || {}), ...(incoming as any) };
 
+          const merged: any = { ...(existing || {}), ...(incoming as any) };
           const st = (incoming as any).state;
           if (st === undefined || st === null || st === "") {
             merged.state = (existing as any)?.state;
@@ -1345,16 +1375,16 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card>
-            <CardHeader className="px-0 pt-0 pb-4">
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
               <CardTitle>Input</CardTitle>
-              <CardDescription>
+              <CardDescription style={{ maxWidth: 760 }}>
                 Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
                 update via polling.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="px-0 pb-0">
+            <CardContent className="pt-0">
               <div className="row inputActionsRow">
                 <input
                   type="text"
@@ -1489,32 +1519,16 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                 <div className="bar" style={{ width: `${progressPct}%` }} />
               </div>
 
-              <div className="stats">
-                <div className="stat">
-                  <span>Total</span>
-                  <b>{stats.total}</b>
-                </div>
-                <div className="stat">
-                  <span>Done</span>
-                  <b>{stats.done}</b>
-                </div>
-                <div className="stat">
-                  <span>Valid</span>
-                  <b style={{ color: "var(--ok)" }}>{stats.vOk}</b>
-                </div>
-                <div className="stat">
-                  <span>Invalid</span>
-                  <b style={{ color: "var(--bad)" }}>{stats.vBad}</b>
-                </div>
-                <div className="stat">
-                  <span>Pending</span>
-                  <b style={{ color: "var(--warn)" }}>{stats.pending}</b>
-                </div>
-                <div className="stat">
-                  <span>Error</span>
-                  <b style={{ color: "var(--bad)" }}>{stats.err}</b>
-                </div>
-              </div>
+              <MetricGrid
+                items={[
+                  { label: "Total", value: stats.total },
+                  { label: "Done", value: stats.done },
+                  { label: "Valid", value: stats.vOk, tone: "ok" },
+                  { label: "Invalid", value: stats.vBad, tone: "bad" },
+                  { label: "Pending", value: stats.pending, tone: "warn" },
+                  { label: "Error", value: stats.err, tone: "bad" },
+                ]}
+              />
 
               <div className="callout" style={{ marginTop: 14 }}>
                 <b>Tip</b>: Use the filter to search within results. Click a column header to sort. Click a row to
@@ -1527,12 +1541,14 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <Card>
-              <CardHeader className="px-0 pt-0 pb-4">
+              <CardHeader className="pb-4">
                 <CardTitle>Filter</CardTitle>
-                <CardDescription>Search, sorting and input distribution.</CardDescription>
+                <CardDescription style={{ maxWidth: 520 }}>
+                  Search, sorting and input distribution.
+                </CardDescription>
               </CardHeader>
 
-              <CardContent className="px-0 pb-0">
+              <CardContent className="pt-0">
                 <div className="filterBox">
                   <input
                     type="text"
@@ -1570,12 +1586,17 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             </Card>
 
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <CardHeader className="px-0 pt-0 pb-4">
+              <CardHeader className="pb-4">
                 <CardTitle>VIES status by country</CardTitle>
-                <CardDescription>Availability according to VIES check status.</CardDescription>
+                <CardDescription style={{ maxWidth: 520 }}>
+                  Availability according to VIES check status.
+                </CardDescription>
               </CardHeader>
 
-              <CardContent className="px-0 pb-0" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <CardContent
+                className="pt-0"
+                style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+              >
                 <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
                   {!viesStatus.length ? (
                     <div style={{ padding: 12, color: "var(--muted)" }}>No data</div>
@@ -2219,13 +2240,15 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card>
-            <CardHeader className="px-0 pt-0 pb-4">
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
               <CardTitle>Input</CardTitle>
-              <CardDescription>Select the country, paste one or more TINs, and validate them in batch.</CardDescription>
+              <CardDescription style={{ maxWidth: 760 }}>
+                Select the country, paste one or more TINs, and validate them in batch.
+              </CardDescription>
             </CardHeader>
 
-            <CardContent className="px-0 pb-0">
+            <CardContent className="pt-0">
               <div className="row inputActionsRow">
                 <select
                   value={country}
@@ -2306,13 +2329,15 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="px-0 pt-0 pb-4">
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
               <CardTitle>Dashboard</CardTitle>
-              <CardDescription>Overview, filters and sorting.</CardDescription>
+              <CardDescription style={{ maxWidth: 520 }}>
+                Overview, filters and sorting.
+              </CardDescription>
             </CardHeader>
 
-            <CardContent className="px-0 pb-0">
+            <CardContent className="pt-0">
               {error && (
                 <div className="callout" style={{ marginTop: 10 }}>
                   <b style={{ color: "var(--bad)" }}>Error</b>: {error}
@@ -2327,31 +2352,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
               {!!rows.length && (
                 <>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                      gap: 12,
-                      marginTop: 10,
-                    }}
-                  >
-                    <div className="stat" style={{ minHeight: 76 }}>
-                      <span>Total</span>
-                      <b>{stats.total}</b>
-                    </div>
-                    <div className="stat" style={{ minHeight: 76 }}>
-                      <span>Valid</span>
-                      <b style={{ color: "var(--ok)" }}>{stats.valid}</b>
-                    </div>
-                    <div className="stat" style={{ minHeight: 76 }}>
-                      <span>Invalid</span>
-                      <b style={{ color: "var(--bad)" }}>{stats.invalid}</b>
-                    </div>
-                    <div className="stat" style={{ minHeight: 76 }}>
-                      <span>Error</span>
-                      <b style={{ color: "var(--bad)" }}>{stats.error}</b>
-                    </div>
-                  </div>
+                  <MetricGrid
+                    items={[
+                      { label: "Total", value: stats.total },
+                      { label: "Valid", value: stats.valid, tone: "ok" },
+                      { label: "Invalid", value: stats.invalid, tone: "bad" },
+                      { label: "Error", value: stats.error, tone: "bad" },
+                    ]}
+                  />
 
                   <div className="callout" style={{ marginTop: 12 }}>
                     <b>Country</b>: {country}
