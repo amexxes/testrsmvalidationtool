@@ -1497,77 +1497,78 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                 </div>
               )}
 
-              <textarea
-                value={vatInput}
-                onChange={(e) => setVatInput(e.target.value)}
-                placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-              />
+<textarea
+  value={vatInput}
+  onChange={(e) => setVatInput(e.target.value)}
+  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+/>
 
-              <UserDraftsPanel
-                activePage="vat"
-                referenceValue={caseRef}
-                inputValue={vatInput}
-                onRestoreDraft={(draft) => {
-                  onCancel();
-                  setCaseRef(draft.referenceValue || "");
-                  setVatInput(draft.inputValue || "");
-                  setRows([]);
-                  setFilter("");
-                  setExpandedKey(null);
-                  setDuplicatesIgnored(0);
-                  setViesStatus([]);
-                  setFrText("-");
-                  setLastUpdate("-");
-                  setProgressText("0/0");
-                  setSortState({ colIndex: null, asc: true });
-                  setSortLabel("");
-                  setFrDebugOn(false);
-                  setFrDebug(null);
-                }}
-              />
+<div
+  className="callout"
+  style={{
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 1.55,
+    fontWeight: 500,
+    color: "#0B2E5F",
+  }}
+>
+  <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines ·{" "}
+  {precheck.duplicates} duplicates · {precheck.badFormat} format issues
 
-              <div
-                className="callout"
-                style={{
-                  marginTop: 10,
-                  fontSize: 14,
-                  lineHeight: 1.55,
-                  fontWeight: 500,
-                  color: "#0B2E5F",
-                }}
-              >
-                <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates
-                · {precheck.badFormat} format issues
-                {precheck.badExamples.length > 0 && (
-                  <details style={{ marginTop: 8 }}>
-                    <summary>Examples</summary>
-                    <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
-                      {precheck.badExamples.join("\n")}
-                    </div>
-                  </details>
-                )}
-              </div>
+  {precheck.badExamples.length > 0 && (
+    <details style={{ marginTop: 8 }}>
+      <summary>Examples</summary>
+      <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+        {precheck.badExamples.join("\n")}
+      </div>
+    </details>
+  )}
+</div>
 
-              <div className="row">
-                <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
-                  {loading ? "Validating…" : "Validate"}
-                </Button>
+<div className="row">
+  <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
+    {loading ? "Validating…" : "Validate"}
+  </Button>
 
-                <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
-                  Clear
-                </Button>
+  <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
+    Clear
+  </Button>
 
-                <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
-                  Cancel
-                </Button>
+  <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
+    Cancel
+  </Button>
 
-                <div style={{ flex: 1 }} />
+  <div style={{ flex: 1 }} />
 
-                <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-                  Progress: <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
-                  <b style={{ color: "var(--text)" }}>{progressPct}%</b>
-                </div>
-              </div>
+  <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+    Progress: <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
+    <b style={{ color: "var(--text)" }}>{progressPct}%</b>
+  </div>
+</div>
+
+<UserDraftsPanel
+  activePage="vat"
+  referenceValue={caseRef}
+  inputValue={vatInput}
+  onRestoreDraft={(draft) => {
+    onCancel();
+    setCaseRef(draft.referenceValue || "");
+    setVatInput(draft.inputValue || "");
+    setRows([]);
+    setFilter("");
+    setExpandedKey(null);
+    setDuplicatesIgnored(0);
+    setViesStatus([]);
+    setFrText("-");
+    setLastUpdate("-");
+    setProgressText("0/0");
+    setSortState({ colIndex: null, asc: true });
+    setSortLabel("");
+    setFrDebugOn(false);
+    setFrDebug(null);
+  }}
+/>
 
               <div className="progress" aria-hidden="true">
                 <div className="bar" style={{ width: `${progressPct}%` }} />
