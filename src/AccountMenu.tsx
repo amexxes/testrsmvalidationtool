@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 
 type Props = {
-  user: { email: string; role: "admin" | "user" };
+  user: {
+    email: string;
+    role: "admin" | "user";
+  };
   onOpenUsers: () => void;
   onOpenUsage: () => void;
   onOpenBranding: () => void;
@@ -23,6 +26,7 @@ export default function AccountMenu({
   useEffect(() => {
     function onDocumentClick(e: MouseEvent) {
       if (!rootRef.current) return;
+
       if (!rootRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
@@ -44,7 +48,7 @@ export default function AccountMenu({
   const initials = String(user.email || "?").slice(0, 1).toUpperCase();
 
   return (
-    <div ref={rootRef} style={{ position: "relative" }}>
+    <div ref={rootRef} style={rootStyle}>
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
@@ -52,36 +56,19 @@ export default function AccountMenu({
       >
         <span style={avatarStyle}>{initials}</span>
 
-        <span
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            minWidth: 0,
-          }}
-        >
-          <span style={{ fontSize: 12, opacity: 0.7 }}>Account</span>
-          <span
-            style={{
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: 220,
-            }}
-          >
-            {user.email}
-          </span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={accountLabelStyle}>Account</span>
+          <span style={emailStyle}>{user.email}</span>
         </span>
 
-        <span style={{ opacity: 0.6, fontSize: 12 }}>{open ? "▲" : "▼"}</span>
+        <span style={chevronStyle}>{open ? "▲" : "▼"}</span>
       </button>
 
       {open && (
         <div style={menuStyle}>
           <div style={menuHeaderStyle}>
-            <div style={{ fontWeight: 800, color: "#0B2E5F" }}>{user.email}</div>
-            <div style={{ marginTop: 4, fontSize: 13, color: "#607089" }}>
+            <div style={menuEmailStyle}>{user.email}</div>
+            <div style={menuRoleStyle}>
               {user.role === "admin" ? "Administrator" : "User"}
             </div>
           </div>
@@ -108,6 +95,17 @@ export default function AccountMenu({
                 }}
               >
                 Usage dashboard
+              </button>
+
+              <button
+                type="button"
+                style={menuItemStyle}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenBranding();
+                }}
+              >
+                Client branding
               </button>
             </>
           )}
@@ -139,6 +137,10 @@ export default function AccountMenu({
   );
 }
 
+const rootStyle: React.CSSProperties = {
+  position: "relative",
+};
+
 const triggerStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -166,6 +168,33 @@ const avatarStyle: React.CSSProperties = {
   flex: "0 0 auto",
 };
 
+const accountLabelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  lineHeight: 1.2,
+  color: "#64748b",
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const emailStyle: React.CSSProperties = {
+  display: "block",
+  marginTop: 2,
+  fontSize: 13,
+  color: "#0B2E5F",
+  fontWeight: 800,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const chevronStyle: React.CSSProperties = {
+  fontSize: 10,
+  color: "#64748b",
+  flex: "0 0 auto",
+};
+
 const menuStyle: React.CSSProperties = {
   position: "absolute",
   right: 0,
@@ -183,6 +212,22 @@ const menuHeaderStyle: React.CSSProperties = {
   padding: "14px 16px",
   borderBottom: "1px solid rgba(11,46,95,0.08)",
   background: "rgba(11,46,95,0.03)",
+};
+
+const menuEmailStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: "#0B2E5F",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const menuRoleStyle: React.CSSProperties = {
+  marginTop: 4,
+  fontSize: 12,
+  color: "#64748b",
+  fontWeight: 700,
 };
 
 const menuItemStyle: React.CSSProperties = {
