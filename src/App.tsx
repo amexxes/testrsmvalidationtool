@@ -1,3 +1,4 @@
+// /src/App.tsx
 import React, { useEffect, useState } from "react";
 import ToolApp from "./ToolApp";
 import LoginPage from "./LoginPage";
@@ -18,11 +19,13 @@ async function readApiResponse(resp: Response) {
   const text = await resp.text();
 
   try {
-    return JSON.parse(text);
+    return text ? JSON.parse(text) : null;
   } catch {
     return null;
   }
 }
+
+const AccountMenuAny = AccountMenu as any;
 
 export default function App() {
   const [checking, setChecking] = useState(true);
@@ -57,6 +60,14 @@ export default function App() {
     }
   }
 
+  function handleLoggedIn(nextUser: AuthUser) {
+    setUser(nextUser);
+    setChecking(false);
+    setAdminOpen(false);
+    setChangePasswordOpen(false);
+    setUsageOpen(false);
+  }
+
   async function handleLogout() {
     try {
       await fetch("/api/auth/logout", {
@@ -67,66 +78,44 @@ export default function App() {
       setUser(null);
       setAdminOpen(false);
       setChangePasswordOpen(false);
+      setUsageOpen(false);
     }
   }
 
   if (checking) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background:
-            "radial-gradient(circle at top left, rgba(43,179,230,0.28), transparent 30%), radial-gradient(circle at bottom right, rgba(11,46,95,0.24), transparent 30%), linear-gradient(135deg, #f5f8fc 0%, #eaf0f8 100%)",
-        }}
-      >
-        <div
-          style={{
-            padding: "18px 22px",
-            borderRadius: 18,
-            background: "rgba(255,255,255,0.84)",
-            border: "1px solid rgba(0,0,0,0.08)",
-            color: "#0B2E5F",
-            fontWeight: 700,
-          }}
-        >
-          Loading...
-        </div>
+      <div style={loadingShellStyle}>
+        <div style={loadingCardStyle}>Loading...</div>
       </div>
     );
   }
 
   if (!user) {
-    return <LoginPage onLoggedIn={setUser} />;
+    return <LoginPage onLoggedIn={handleLoggedIn} />;
   }
 
   return (
     <>
       <ToolApp />
 
-      <div
-        style={{
-          position: "fixed",
-          right: 18,
-          bottom: 18,
-          zIndex: 14000,
-        }}
-      >
-<AccountMenu
-  user={user}
-  onOpenUsers={() => setAdminOpen(true)}
-  onOpenUsage={() => setUsageOpen(true)}
-  onOpenChangePassword={() => setChangePasswordOpen(true)}
-  onLogout={handleLogout}
-/>
-<AdminUsageDashboard
-  open={usageOpen}
-  onClose={() => setUsageOpen(false)}
-/>        
+      <div style={accountMenuWrapStyle}>
+        <AccountMenuAny
+          user={user}
+          onOpenUsers={() => setAdminOpen(true)}
+          onOpenUsage={() => setUsageOpen(true)}
+          onOpenChangePassword={() => setChangePasswordOpen(true)}
+          onLogout={handleLogout}
+        />
       </div>
 
-      <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+      {user.role === "admin" && (
+        <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+      )}
+
+      {user.role === "admin" && (
+        <AdminUsageDashboard open={usageOpen} onClose={() => setUsageOpen(false)} />
+      )}
+
       <ChangePasswordPanel
         open={changePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
@@ -134,3 +123,35 @@ export default function App() {
     </>
   );
 }
+
+const loadingShellStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  display: "grid",
+  placeItems: "center",
+  padding: 24,
+  background:
+    "radial-gradient(circle at top, rgba(43,179,230,0.10), transparent 30%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%)",
+};
+
+const loadingCardStyle: React.CSSProperties = {
+  minWidth: 220,
+  padding: "18px 20px",
+  borderRadius: 20,
+  border: "1px solid rgba(148,163,184,0.18)",
+  background: "rgba(255,255,255,0.88)",
+  color: "#0f172a",
+  fontSize: 15,
+  fontWeight: 600,
+  textAlign: "center",
+  boxShadow: "0 14px 40px rgba(15,23,42,0.08)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+};
+
+const accountMenuWrapStyle: React.CSSProperties = {
+  position: "fixed",
+  top: 20,
+  right: 24,
+  zIndex: 25000,
+  maxWidth: "calc(100vw - 32px)",
+};
