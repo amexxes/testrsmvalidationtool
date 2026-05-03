@@ -757,19 +757,7 @@ function PortalBanner({
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "flex-end",
-            alignItems: "stretch",
-            gap: 12,
-            marginLeft: "auto",
-            alignSelf: "flex-end",
-            minWidth: 340,
-          }}
-        >
-         <div
+  <div
   style={{
     display: "flex",
     alignItems: "center",
@@ -782,31 +770,52 @@ function PortalBanner({
   }}
 >
   <div
+    className="chip"
     style={{
-      display: "flex",
+      minHeight: 42,
+      display: "inline-flex",
       alignItems: "center",
-      gap: 12,
-      flexWrap: "wrap",
     }}
   >
-    <div className="chip">
-      <span>{t(language, "mode")}</span>
-      <b className="nowrap">{modeValue}</b>
+    <span>{t(language, "mode")}</span>
+    <b className="nowrap">{modeValue}</b>
+  </div>
+
+  {meta.map((item) => (
+    <div
+      className="chip"
+      key={item.label}
+      style={{
+        minHeight: 42,
+        display: "inline-flex",
+        alignItems: "center",
+      }}
+    >
+      <span>{item.label}</span>
+      <b className="nowrap">{item.value}</b>
     </div>
+  ))}
 
-    {meta.map((item) => (
-      <div className="chip" key={item.label}>
-        <span>{item.label}</span>
-        <b className="nowrap">{item.value}</b>
-      </div>
-    ))}
-
+  <div
+    style={{
+      minHeight: 42,
+      display: "inline-flex",
+      alignItems: "flex-end",
+    }}
+  >
     <LanguageSwitcher language={language} setLanguage={setLanguage} />
   </div>
 
-  <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+  <div
+    style={{
+      minHeight: 42,
+      display: "inline-flex",
+     alignItems: "flex-end",
+    }}
+  >
+    <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+  </div>
 </div>
-        </div>
       </div>
     </div>
   );
