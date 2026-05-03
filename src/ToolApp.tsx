@@ -1028,7 +1028,7 @@ function PortalBanner({
                 textOverflow: "ellipsis",
               }}
             >
-              {title}
+              Validation Portal
             </div>
           </div>
         </div>
