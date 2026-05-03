@@ -16,6 +16,32 @@ type AuthUser = {
   createdAt: string;
 };
 
+type ClientBranding = {
+  id: string;
+  clientName: string;
+  portalTitle: string;
+  logoUrl: string;
+  primaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
+  textColor: string;
+  allowedDomains?: string[];
+  active?: boolean;
+};
+
+const DEFAULT_BRANDING: ClientBranding = {
+  id: "default",
+  clientName: "RSM Netherlands",
+  portalTitle: "RSM Validation Portal",
+  logoUrl: "/rsm-logo.svg",
+  primaryColor: "#0B2E5F",
+  accentColor: "#63C7F2",
+  backgroundColor: "#F8FBFF",
+  textColor: "#1E293B",
+  allowedDomains: [],
+  active: true,
+};
+
 async function readApiResponse(resp: Response) {
   const text = await resp.text();
 
@@ -26,19 +52,55 @@ async function readApiResponse(resp: Response) {
   }
 }
 
-const AccountMenuAny = AccountMenu as any;
+function applyBrandingVars(branding: ClientBranding) {
+  const root = document.documentElement;
+
+  root.style.setProperty("--navy", branding.primaryColor || DEFAULT_BRANDING.primaryColor);
+  root.style.setProperty("--navy-soft", branding.primaryColor || DEFAULT_BRANDING.primaryColor);
+  root.style.setProperty("--cyan", branding.accentColor || DEFAULT_BRANDING.accentColor);
+  root.style.setProperty("--text", branding.textColor || DEFAULT_BRANDING.textColor);
+  root.style.setProperty("--client-bg", branding.backgroundColor || DEFAULT_BRANDING.backgroundColor);
+
+  document.title = branding.portalTitle || DEFAULT_BRANDING.portalTitle;
+}
 
 export default function App() {
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [branding, setBranding] = useState<ClientBranding>(DEFAULT_BRANDING);
+
   const [adminOpen, setAdminOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
   useEffect(() => {
+    applyBrandingVars(DEFAULT_BRANDING);
     void loadSession();
   }, []);
+
+  async function loadBranding() {
+    try {
+      const resp = await fetch("/api/branding/current", {
+        credentials: "include",
+      });
+
+      if (!resp.ok) {
+        setBranding(DEFAULT_BRANDING);
+        applyBrandingVars(DEFAULT_BRANDING);
+        return;
+      }
+
+      const data = await readApiResponse(resp);
+      const nextBranding = data?.branding || DEFAULT_BRANDING;
+
+      setBranding(nextBranding);
+      applyBrandingVars(nextBranding);
+    } catch {
+      setBranding(DEFAULT_BRANDING);
+      applyBrandingVars(DEFAULT_BRANDING);
+    }
+  }
 
   async function loadSession() {
     setChecking(true);
@@ -50,25 +112,37 @@ export default function App() {
 
       if (!resp.ok) {
         setUser(null);
+        setBranding(DEFAULT_BRANDING);
+        applyBrandingVars(DEFAULT_BRANDING);
         return;
       }
 
       const data = await readApiResponse(resp);
-      setUser(data?.user || null);
+      const nextUser = data?.user || null;
+
+      setUser(nextUser);
+
+      if (nextUser) {
+        await loadBranding();
+      }
     } catch {
       setUser(null);
+      setBranding(DEFAULT_BRANDING);
+      applyBrandingVars(DEFAULT_BRANDING);
     } finally {
       setChecking(false);
     }
   }
 
-  function handleLoggedIn(nextUser: AuthUser) {
+  async function handleLoggedIn(nextUser: AuthUser) {
     setUser(nextUser);
     setChecking(false);
     setAdminOpen(false);
     setChangePasswordOpen(false);
     setUsageOpen(false);
     setBrandingOpen(false);
+
+    await loadBranding();
   }
 
   async function handleLogout() {
@@ -83,6 +157,8 @@ export default function App() {
       setChangePasswordOpen(false);
       setUsageOpen(false);
       setBrandingOpen(false);
+      setBranding(DEFAULT_BRANDING);
+      applyBrandingVars(DEFAULT_BRANDING);
     }
   }
 
@@ -100,10 +176,10 @@ export default function App() {
 
   return (
     <>
-      <ToolApp />
+      <ToolApp branding={branding} />
 
       <div style={accountMenuWrapStyle}>
-        <AccountMenuAny
+        <AccountMenu
           user={user}
           onOpenUsers={() => setAdminOpen(true)}
           onOpenUsage={() => setUsageOpen(true)}
@@ -114,15 +190,25 @@ export default function App() {
       </div>
 
       {user.role === "admin" && (
-        <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+        <AdminUsersPanel
+          open={adminOpen}
+          onClose={() => setAdminOpen(false)}
+        />
       )}
 
-   {user.role === "admin" && (
-  <AdminClientBrandingPanel
-    open={brandingOpen}
-    onClose={() => setBrandingOpen(false)}
-  />
-)}
+      {user.role === "admin" && (
+        <AdminUsageDashboard
+          open={usageOpen}
+          onClose={() => setUsageOpen(false)}
+        />
+      )}
+
+      {user.role === "admin" && (
+        <AdminClientBrandingPanel
+          open={brandingOpen}
+          onClose={() => setBrandingOpen(false)}
+        />
+      )}
 
       <ChangePasswordPanel
         open={changePasswordOpen}
