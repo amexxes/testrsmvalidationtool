@@ -32,6 +32,7 @@ type ClientBranding = {
 
 type ToolAppProps = {
   branding?: ClientBranding;
+  showTaskList?: boolean;
 };
 
 const DEFAULT_BRANDING: ClientBranding = {
@@ -54,6 +55,7 @@ type BrandedPageProps = PageSwitcherProps & {
   branding: ClientBranding;
   language: PortalLanguage;
   setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
+  showTaskList: boolean;
 };
 
 type LanguageSwitcherProps = {
@@ -674,12 +676,140 @@ function SectionSubtitle({
   );
 }
 
+type PortalTaskTone = "open" | "ready" | "done" | "waiting";
+
+type PortalTask = {
+  label: string;
+  detail: string;
+  value: React.ReactNode;
+  status: string;
+  tone: PortalTaskTone;
+};
+
+function taskToneStyle(tone: PortalTaskTone): React.CSSProperties {
+  if (tone === "open") {
+    return {
+      background: "rgba(185,28,28,0.08)",
+      color: "#8f1d1d",
+      border: "1px solid rgba(185,28,28,0.14)",
+    };
+  }
+
+  if (tone === "ready") {
+    return {
+      background: "rgba(43,179,230,0.10)",
+      color: "#0B2E5F",
+      border: "1px solid rgba(43,179,230,0.18)",
+    };
+  }
+
+  if (tone === "done") {
+    return {
+      background: "rgba(10,122,61,0.08)",
+      color: "#0a6a38",
+      border: "1px solid rgba(10,122,61,0.14)",
+    };
+  }
+
+  return {
+    background: "rgba(100,116,139,0.08)",
+    color: "#64748b",
+    border: "1px solid rgba(100,116,139,0.12)",
+  };
+}
+
+function PortalTaskList({
+  title,
+  subtitle,
+  items,
+}: {
+  title: string;
+  subtitle: string;
+  items: PortalTask[];
+}) {
+  const openCount = items.filter((item) => item.tone === "open").length;
+
+  return (
+    <Card>
+      <CardHeader className="pb-4">
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+          <div>
+            <SectionTitle>{title}</SectionTitle>
+            <SectionSubtitle maxWidth={520}>{subtitle}</SectionSubtitle>
+          </div>
+
+          <span
+            style={{
+              flexShrink: 0,
+              padding: "7px 10px",
+              borderRadius: 999,
+              fontSize: 12,
+              fontWeight: 800,
+              ...taskToneStyle(openCount ? "open" : "done"),
+            }}
+          >
+            {openCount ? `${openCount} open` : "All clear"}
+          </span>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        <div style={{ display: "grid", gap: 9 }}>
+          {items.map((item) => (
+            <div
+              key={item.label}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto",
+                gap: 12,
+                alignItems: "center",
+                padding: "11px 12px",
+                borderRadius: 16,
+                border: "1px solid rgba(11,46,95,0.08)",
+                background: "rgba(255,255,255,0.64)",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: "#0B2E5F" }}>
+                  {item.label}
+                </div>
+
+                <div style={{ marginTop: 3, fontSize: 12.5, color: "#64748b", lineHeight: 1.45 }}>
+                  {item.detail}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <b style={{ fontSize: 13, color: "#0B2E5F" }}>{item.value}</b>
+
+                <span
+                  style={{
+                    padding: "6px 9px",
+                    borderRadius: 999,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    whiteSpace: "nowrap",
+                    ...taskToneStyle(item.tone),
+                  }}
+                >
+                  {item.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function VatPage({
   activePage,
   setActivePage,
   branding,
   language,
   setLanguage,
+  showTaskList,
 }: BrandedPageProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -836,6 +966,58 @@ function VatPage({
 
     return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
   }, [vatInput]);
+
+  const vatTasks = useMemo<PortalTask[]>(() => {
+    const hasInput = precheck.totalLines > 0;
+    const hasResults = rows.length > 0;
+
+    return [
+      {
+        label: "Input ready",
+        detail: hasInput
+          ? `${precheck.unique} unique / ${precheck.totalLines} lines`
+          : "Paste or import VAT numbers to start.",
+        value: hasInput ? precheck.unique : "—",
+        status: hasInput ? "Ready" : "Waiting",
+        tone: hasInput ? "ready" : "waiting",
+      },
+      {
+        label: "Format issues",
+        detail: "VAT numbers with a format issue before validation.",
+        value: precheck.badFormat,
+        status: precheck.badFormat ? "Open" : hasInput ? "Done" : "Waiting",
+        tone: precheck.badFormat ? "open" : hasInput ? "done" : "waiting",
+      },
+      {
+        label: "Pending checks",
+        detail: "Records still queued, processing or waiting for retry.",
+        value: stats.pending,
+        status: stats.pending ? "Open" : hasResults ? "Done" : "Waiting",
+        tone: stats.pending ? "open" : hasResults ? "done" : "waiting",
+      },
+      {
+        label: "Records with errors",
+        detail: "Technical errors that need review or retry.",
+        value: stats.err,
+        status: stats.err ? "Open" : hasResults ? "Done" : "Waiting",
+        tone: stats.err ? "open" : hasResults ? "done" : "waiting",
+      },
+      {
+        label: "Invalid records",
+        detail: "VAT records marked invalid by the validation service.",
+        value: stats.vBad,
+        status: stats.vBad ? "Open" : hasResults ? "Done" : "Waiting",
+        tone: stats.vBad ? "open" : hasResults ? "done" : "waiting",
+      },
+      {
+        label: "Completed checks",
+        detail: "Validated records completed in this run.",
+        value: `${stats.done}/${stats.total}`,
+        status: stats.total && stats.done === stats.total ? "Done" : stats.done ? "Ready" : "Waiting",
+        tone: stats.total && stats.done === stats.total ? "done" : stats.done ? "ready" : "waiting",
+      },
+    ];
+  }, [precheck, rows.length, stats]);
 
   function stopPolling() {
     pollAbortRef.current?.abort();
@@ -1759,6 +1941,14 @@ function VatPage({
               </CardContent>
             </Card>
 
+            {showTaskList && (
+              <PortalTaskList
+                title="Portal task list"
+                subtitle="Open actions based on this VAT validation run."
+                items={vatTasks}
+              />
+            )}
+
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
               <CardHeader className="pb-4">
                 <SectionTitle>VIES status by country</SectionTitle>
@@ -2063,6 +2253,7 @@ function TinPage({
   branding,
   language,
   setLanguage,
+  showTaskList,
 }: BrandedPageProps) {
   type TinSortKey =
     | "status"
@@ -2172,6 +2363,51 @@ function TinPage({
     if (!stats.total) return 0;
     return Math.round((stats.valid / stats.total) * 100);
   }, [stats.total, stats.valid]);
+
+  const tinTasks = useMemo<PortalTask[]>(() => {
+    const hasInput = tinInput.trim().length > 0;
+    const hasResults = rows.length > 0;
+
+    return [
+      {
+        label: "Input ready",
+        detail: hasInput
+          ? "TIN records are ready to validate."
+          : "Paste or import TIN records to start.",
+        value: hasInput ? "Yes" : "—",
+        status: hasInput ? "Ready" : "Waiting",
+        tone: hasInput ? "ready" : "waiting",
+      },
+      {
+        label: "Invalid records",
+        detail: "TIN records marked invalid by the validation service.",
+        value: stats.invalid,
+        status: stats.invalid ? "Open" : hasResults ? "Done" : "Waiting",
+        tone: stats.invalid ? "open" : hasResults ? "done" : "waiting",
+      },
+      {
+        label: "Records with errors",
+        detail: "Technical errors that need review.",
+        value: stats.error,
+        status: stats.error ? "Open" : hasResults ? "Done" : "Waiting",
+        tone: stats.error ? "open" : hasResults ? "done" : "waiting",
+      },
+      {
+        label: "Completed checks",
+        detail: "TIN records completed in this run.",
+        value: `${stats.total}/${stats.total}`,
+        status: hasResults ? "Done" : "Waiting",
+        tone: hasResults ? "done" : "waiting",
+      },
+      {
+        label: "Export ready",
+        detail: "Results can be exported to Excel.",
+        value: hasResults ? "Yes" : "—",
+        status: hasResults ? "Ready" : "Waiting",
+        tone: hasResults ? "ready" : "waiting",
+      },
+    ];
+  }, [tinInput, rows.length, stats]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -2503,6 +2739,16 @@ function TinPage({
             </CardHeader>
 
             <CardContent className="pt-0">
+              {showTaskList && (
+                <div style={{ marginBottom: 14 }}>
+                  <PortalTaskList
+                    title="Portal task list"
+                    subtitle="Open actions based on this TIN validation run."
+                    items={tinTasks}
+                  />
+                </div>
+              )}
+
               {error && (
                 <div className="callout" style={{ marginTop: 10 }}>
                   <b style={{ color: "var(--bad)" }}>Error</b>: {error}
@@ -2637,7 +2883,10 @@ function TinPage({
   );
 }
 
-export default function App({ branding = DEFAULT_BRANDING }: ToolAppProps) {
+export default function App({
+  branding = DEFAULT_BRANDING,
+  showTaskList = true,
+}: ToolAppProps) {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
   const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
 
@@ -2652,6 +2901,7 @@ export default function App({ branding = DEFAULT_BRANDING }: ToolAppProps) {
       branding={branding}
       language={language}
       setLanguage={setLanguage}
+      showTaskList={showTaskList}
     />
   ) : (
     <TinPage
@@ -2660,6 +2910,7 @@ export default function App({ branding = DEFAULT_BRANDING }: ToolAppProps) {
       branding={branding}
       language={language}
       setLanguage={setLanguage}
+      showTaskList={showTaskList}
     />
   );
 }
