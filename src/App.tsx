@@ -150,7 +150,7 @@ const loadingCardStyle: React.CSSProperties = {
 
 const accountMenuWrapStyle: React.CSSProperties = {
   position: "fixed",
-  top: 20,
+  bottom: 20,
   right: 24,
   zIndex: 25000,
   maxWidth: "calc(100vw - 32px)",
