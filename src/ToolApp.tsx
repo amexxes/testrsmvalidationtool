@@ -11,7 +11,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin";
+type ClientBranding = {
+  id?: string;
+  clientName?: string;
+  portalTitle?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  accentColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+};
 
+type ToolAppProps = {
+  branding?: ClientBranding;
+};
+
+const DEFAULT_BRANDING: ClientBranding = {
+  id: "default",
+  clientName: "RSM Netherlands",
+  portalTitle: "RSM Validation Portal",
+  logoUrl: "/rsm-logo.svg",
+  primaryColor: "#0B2E5F",
+  accentColor: "#63C7F2",
+  backgroundColor: "#F8FBFF",
+  textColor: "#1E293B",
+};
+
+type BrandedPageProps = PageSwitcherProps & {
+  branding: ClientBranding;
+};
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
@@ -24,6 +52,7 @@ type PortalBannerProps = {
   meta?: Array<{ label: string; value: string }>;
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+  branding?: ClientBranding;
 };
 
 const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
@@ -399,7 +428,10 @@ function PortalBanner({
   meta = [],
   activePage,
   setActivePage,
+  branding = DEFAULT_BRANDING,
 }: PortalBannerProps) {
+  const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
+  const logoAlt = `${branding.clientName || "RSM"} logo`;
   return (
     <div className="banner">
       <div className="banner-accent" />
@@ -433,16 +465,15 @@ function PortalBanner({
               minWidth: 152,
             }}
           >
-            <img
-              src="/RSMLOGO.png"
-              alt="RSM"
-              style={{
-                height: 40,
-                width: "auto",
-                display: "block",
-                objectFit: "contain",
-              }}
-            />
+        <img
+  src={logoUrl}
+  alt={logoAlt}
+  style={{
+    maxWidth: 150,
+    maxHeight: 58,
+    objectFit: "contain",
+  }}
+/>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
@@ -573,8 +604,7 @@ function SectionSubtitle({
   );
 }
 
-function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
-  const [vatInput, setVatInput] = useState<string>("");
+function VatPage({ activePage, setActivePage, branding }: BrandedPageProps) {  const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
 
@@ -1418,14 +1448,15 @@ return {
 
   return (
     <>
-      <PortalBanner
-        title="VAT validation"
-        subtitle="Customer portal for VAT batch checks and review."
-        modeValue="VAT / VIES"
-        meta={[{ label: "Last update", value: lastUpdate }]}
-        activePage={activePage}
-        setActivePage={setActivePage}
-      />
+ <PortalBanner
+  title={branding.portalTitle || "RSM Validation Portal"}
+  subtitle={`${branding.clientName || "RSM Netherlands"} · VAT / VIES batch checks and review.`}
+  modeValue="VAT / VIES"
+  meta={[{ label: "Last update", value: lastUpdate }]}
+  activePage={activePage}
+  setActivePage={setActivePage}
+  branding={branding}
+/>
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
@@ -1945,8 +1976,7 @@ function dedupeTinText(text: string, countryCode: string) {
   };
 }
 
-function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
-  type TinSortKey =
+function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  type TinSortKey =
     | "status"
     | "input_tin"
     | "tin_number"
@@ -2272,14 +2302,15 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
   return (
     <>
-      <PortalBanner
-        title="TIN validation"
-        subtitle="Customer portal for TIN batch checks and review."
-        modeValue="TIN"
-        meta={[{ label: "Country", value: country }]}
-        activePage={activePage}
-        setActivePage={setActivePage}
-      />
+<PortalBanner
+  title={branding.portalTitle || "RSM Validation Portal"}
+  subtitle={`${branding.clientName || "RSM Netherlands"} · TIN batch checks and review.`}
+  modeValue="TIN"
+  meta={[{ label: "Country", value: country }]}
+  activePage={activePage}
+  setActivePage={setActivePage}
+  branding={branding}
+/>
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
@@ -2513,12 +2544,20 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
   );
 }
 
-export default function App() {
+export default function App({ branding = DEFAULT_BRANDING }: ToolAppProps) {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
 
   return activePage === "vat" ? (
-    <VatPage activePage={activePage} setActivePage={setActivePage} />
+    <VatPage
+      activePage={activePage}
+      setActivePage={setActivePage}
+      branding={branding}
+    />
   ) : (
-    <TinPage activePage={activePage} setActivePage={setActivePage} />
+    <TinPage
+      activePage={activePage}
+      setActivePage={setActivePage}
+      branding={branding}
+    />
   );
 }
