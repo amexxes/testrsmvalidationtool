@@ -1771,11 +1771,12 @@ function VatPage({
                 </div>
               )}
 
-              <textarea
-                value={vatInput}
-                onChange={(e) => setVatInput(e.target.value)}
-                placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-              />
+<textarea
+  value={vatInput}
+  onChange={(e) => setVatInput(e.target.value)}
+  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+  style={{ marginTop: 12 }}
+/>
 
               <div
                 className="callout"
@@ -2710,11 +2711,12 @@ function TinPage({
                 />
               </div>
 
-              <textarea
-                value={tinInput}
-                onChange={(e) => setTinInput(e.target.value)}
-                placeholder={`123456782\n987654321\n...`}
-              />
+<textarea
+  value={tinInput}
+  onChange={(e) => setTinInput(e.target.value)}
+  placeholder={`123456782\n987654321\n...`}
+  style={{ marginTop: 12 }}
+/>
 
               {infoMessage && (
                 <div className="callout" style={{ marginTop: 10 }}>
