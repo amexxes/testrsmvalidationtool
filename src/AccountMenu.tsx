@@ -8,6 +8,7 @@ type Props = {
   onOpenUsers: () => void;
   onOpenUsage: () => void;
   onOpenBranding: () => void;
+  onOpenTaskHistory?: () => void;
   onOpenChangePassword: () => void;
   onLogout: () => void;
 };
@@ -17,6 +18,7 @@ export default function AccountMenu({
   onOpenUsers,
   onOpenUsage,
   onOpenBranding,
+  onOpenTaskHistory,
   onOpenChangePassword,
   onLogout,
 }: Props) {
@@ -108,6 +110,19 @@ export default function AccountMenu({
                 Client branding
               </button>
             </>
+          )}
+
+          {user.role !== "admin" && onOpenTaskHistory && (
+            <button
+              type="button"
+              style={menuItemStyle}
+              onClick={() => {
+                setOpen(false);
+                onOpenTaskHistory();
+              }}
+            >
+              Portal task list
+            </button>
           )}
 
           <button
