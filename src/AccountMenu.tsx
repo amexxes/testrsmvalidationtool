@@ -8,6 +8,7 @@ type Props = {
   onOpenUsers: () => void;
   onOpenUsage: () => void;
   onOpenBranding: () => void;
+  onOpenViewAsUser?: () => void;
   onOpenTaskHistory?: () => void;
   onOpenChangePassword: () => void;
   onLogout: () => void;
@@ -18,6 +19,7 @@ export default function AccountMenu({
   onOpenUsers,
   onOpenUsage,
   onOpenBranding,
+  onOpenViewAsUser,
   onOpenTaskHistory,
   onOpenChangePassword,
   onLogout,
@@ -109,6 +111,19 @@ export default function AccountMenu({
               >
                 Client branding
               </button>
+
+              {onOpenViewAsUser && (
+                <button
+                  type="button"
+                  style={menuItemStyle}
+                  onClick={() => {
+                    setOpen(false);
+                    onOpenViewAsUser();
+                  }}
+                >
+                  View as user
+                </button>
+              )}
             </>
           )}
 
