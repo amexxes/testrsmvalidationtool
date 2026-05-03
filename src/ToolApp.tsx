@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import pptxgen from "pptxgenjs";
 import UserDraftsPanel from "./UserDraftsPanel";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SortState = { colIndex: number | null; asc: boolean };
 type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
@@ -1292,11 +1293,14 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <div className="card">
-            <h2>Input</h2>
-            <p className="hint">
-              Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will update via polling.
-            </p>
+          <Card>
+  <CardHeader className="px-0 pt-0 pb-4">
+    <CardTitle>Input</CardTitle>
+    <CardDescription>
+      Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will update via polling.
+    </CardDescription>
+  </CardHeader>
+  <CardContent className="px-0 pb-0">
 
             <div className="row inputActionsRow">
               <input
@@ -1461,7 +1465,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             </div>
 
             <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} />
-          </div>
+         </CardContent>
+</Card>
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <div className="card">
@@ -2211,9 +2216,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <div className="card">
-            <h2>Input</h2>
-            <p className="hint"></p>
+        <Card>
+  <CardHeader className="px-0 pt-0 pb-4">
+    <CardTitle>Input</CardTitle>
+    <CardDescription>
+      Select the country, paste one or more TINs, and validate them in batch.
+    </CardDescription>
+  </CardHeader>
+  <CardContent className="px-0 pb-0">
 
             <div className="row inputActionsRow">
               <select
@@ -2297,7 +2307,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             <div className="callout" style={{ marginTop: 14 }}>
               <b>Important</b>: Select the correct country and enter the TIN without the country code.
             </div>
-          </div>
+          </CardContent>
+</Card>
 
           <div className="card">
             <h2>Dashboard</h2>
