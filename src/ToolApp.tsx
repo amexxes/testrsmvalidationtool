@@ -2760,48 +2760,51 @@ function TinPage({
             </CardHeader>
 
             <CardContent className="pt-0">
-              <div
-                className="row inputActionsRow"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  flexWrap: "nowrap",
-                }}
-              >
-                <select
-                  value={country}
-                  onChange={(e) => {
-                    setCountry(e.target.value);
-                    setRows([]);
-                    setError("");
-                    setInfoMessage("");
-                  }}
-                  style={ACTION_FIRST_FIELD_STYLE}
-                >
-                  {countryOptions.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} — {c.label}
-                    </option>
-                  ))}
-                </select>
+ <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "420px auto auto",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  }}
+>
+  <select
+    value={country}
+    onChange={(e) => {
+      setCountry(e.target.value);
+      setRows([]);
+      setError("");
+      setInfoMessage("");
+    }}
+    style={{
+      width: "420px",
+      minWidth: "420px",
+    }}
+  >
+    {countryOptions.map((c) => (
+      <option key={c.code} value={c.code}>
+        {c.code} — {c.label}
+      </option>
+    ))}
+  </select>
 
-                <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
-                  {t(language, "importXlsxCsv")}
-                </Button>
+  <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
+    {t(language, "importXlsxCsv")}
+  </Button>
 
-                <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
-                  {t(language, "exportExcel")}
-                </Button>
+  <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
+    {t(language, "exportExcel")}
+  </Button>
 
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.txt"
-                  style={{ display: "none" }}
-                  onChange={onImportFileChange}
-                />
-              </div>
+  <input
+    ref={importFileRef}
+    type="file"
+    accept=".xlsx,.xls,.csv,.txt"
+    style={{ display: "none" }}
+    onChange={onImportFileChange}
+  />
+</div>
 
               <textarea
                 value={tinInput}
