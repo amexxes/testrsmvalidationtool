@@ -47,6 +47,7 @@ const DEFAULT_BRANDING: ClientBranding = {
   backgroundColor: "#F8FBFF",
   textColor: "#1E293B",
 };
+
 const PORTAL_FONT =
   "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
@@ -100,6 +101,14 @@ const TH_STYLE: React.CSSProperties = {
   color: "#0B2E5F",
   cursor: "pointer",
 };
+
+const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
+  flex: "0 0 420px",
+  width: 420,
+  minWidth: 420,
+  maxWidth: "100%",
+};
+
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
@@ -303,6 +312,73 @@ function humanError(code?: string, fallback?: string, language: PortalLanguage =
   return fallback || c || "";
 }
 
+function localText(language: PortalLanguage, key: string): string {
+  const copy: Record<string, Record<string, string>> = {
+    en: {
+      unique: "unique",
+      lines: "lines",
+      duplicates: "duplicates",
+      formatIssues: "format issues",
+      countries: "countries",
+      mapUnavailable: "Map unavailable",
+      eta: "ETA",
+      bad: "Bad",
+      ok: "OK",
+      asc: "asc",
+      desc: "desc",
+      tinValidationFailed: "TIN validation failed",
+      vatInfographic: "VAT validation — infographic",
+    },
+    nl: {
+      unique: "uniek",
+      lines: "regels",
+      duplicates: "duplicaten",
+      formatIssues: "formaatproblemen",
+      countries: "landen",
+      mapUnavailable: "Kaart niet beschikbaar",
+      eta: "ETA",
+      bad: "Fout",
+      ok: "OK",
+      asc: "oplopend",
+      desc: "aflopend",
+      tinValidationFailed: "TIN-validatie mislukt",
+      vatInfographic: "VAT-validatie — infographic",
+    },
+    de: {
+      unique: "eindeutig",
+      lines: "Zeilen",
+      duplicates: "Duplikate",
+      formatIssues: "Formatprobleme",
+      countries: "Länder",
+      mapUnavailable: "Karte nicht verfügbar",
+      eta: "ETA",
+      bad: "Fehlerhaft",
+      ok: "OK",
+      asc: "aufsteigend",
+      desc: "absteigend",
+      tinValidationFailed: "TIN-Prüfung fehlgeschlagen",
+      vatInfographic: "VAT-Prüfung — Infografik",
+    },
+    fr: {
+      unique: "uniques",
+      lines: "lignes",
+      duplicates: "doublons",
+      formatIssues: "problèmes de format",
+      countries: "pays",
+      mapUnavailable: "Carte indisponible",
+      eta: "ETA",
+      bad: "Incorrect",
+      ok: "OK",
+      asc: "croissant",
+      desc: "décroissant",
+      tinValidationFailed: "Échec de la validation TIN",
+      vatInfographic: "Validation VAT — infographie",
+    },
+  };
+
+  return copy[language]?.[key] || copy.en[key] || key;
+}
+
 function formatEta(ts?: number) {
   if (!ts) return "";
   const diff = Math.max(0, ts - Date.now());
@@ -422,10 +498,10 @@ function vatCcToIso2ForFlag(ccRaw: string): string {
 }
 
 function localeForLanguage(language: PortalLanguage): string {
-  if (language === "nl") return "nl";
-  if (language === "de") return "de";
-  if (language === "fr") return "fr";
-  return "en";
+  if (language === "nl") return "nl-NL";
+  if (language === "de") return "de-DE";
+  if (language === "fr") return "fr-FR";
+  return "en-GB";
 }
 
 function countryName(code: string, language: PortalLanguage): string {
@@ -468,7 +544,7 @@ function InputCountryBarChart({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-        <div style={{ fontSize: 12, color: "var(--muted)" }}>{t(language, "inputByCountry")}</div>
+        <div style={{ ...SMALL_HEADER_STYLE, fontSize: 12 }}>{t(language, "inputByCountry")}</div>
         <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
           {total} {t(language, "total").toLowerCase()}
         </div>
@@ -675,9 +751,9 @@ function PortalBanner({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-<div className="title" style={{ ...PAGE_TITLE_STYLE, fontWeight: 800 }}>
-  {title}
-</div>
+            <div className="title" style={{ ...PAGE_TITLE_STYLE, fontWeight: 800 }}>
+              {title}
+            </div>
           </div>
         </div>
 
@@ -808,7 +884,7 @@ function VatPage({
   const [sortLabel, setSortLabel] = useState<string>("");
 
   const [mapLegend, setMapLegend] = useState("—");
-  const [mapCount, setMapCount] = useState("0 countries");
+  const [mapCount, setMapCount] = useState(`0 ${localText(language, "countries")}`);
   const [mapGeoVersion, setMapGeoVersion] = useState(0);
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -820,14 +896,6 @@ function VatPage({
 
   const currentRunIdRef = useRef<string | null>(null);
   const currentRunStartedAtRef = useRef<string>("");
-
-  const [frDebugOn, setFrDebugOn] = useState(false);
- const [, setFrDebug] = useState<any | null>(null);
-  const frDebugOnRef = useRef(false);
-
-  useEffect(() => {
-    frDebugOnRef.current = frDebugOn;
-  }, [frDebugOn]);
 
   const [notes, setNotes] = useState<Record<string, { note: string; tag: "whitelist" | "blacklist" | "" }>>(() => {
     try {
@@ -937,6 +1005,7 @@ function VatPage({
         duplicates++;
         continue;
       }
+
       seen.add(n);
 
       const fmt = validateFormatStrict(n);
@@ -991,7 +1060,6 @@ function VatPage({
 
     currentFrJobIdRef.current = null;
     setActiveFrJobId(null);
-    setFrDebug(null);
   }
 
   function onCancel() {
@@ -1024,19 +1092,13 @@ function VatPage({
       const controller = new AbortController();
       pollAbortRef.current = controller;
 
-      const url = `/api/fr-job/${encodeURIComponent(jobId)}${frDebugOnRef.current ? "?debug=1" : ""}`;
+      const url = `/api/fr-job/${encodeURIComponent(jobId)}`;
       const resp = await fetch(url, { signal: controller.signal });
       if (!resp.ok) return;
 
       const data = (await resp.json()) as FrJobResponse & any;
 
       setFrText(`${data.job.done}/${data.job.total} (${data.job.status})`);
-
-      if (frDebugOnRef.current) {
-        setFrDebug(data.debug ?? data.worker ?? null);
-      } else {
-        setFrDebug(null);
-      }
 
       const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
       const hasPendingRaw = rawResults.some((x) => {
@@ -1053,6 +1115,7 @@ function VatPage({
         }
 
         let seq = 0;
+
         for (const raw of rawResults) {
           const incoming = { ...(raw as any) } as VatRow;
           (incoming as any).next_retry_at = normalizeTsMs((incoming as any).next_retry_at);
@@ -1062,6 +1125,7 @@ function VatPage({
 
           const merged: any = { ...(existing || {}), ...(incoming as any) };
           const st = (incoming as any).state;
+
           if (st === undefined || st === null || st === "") {
             merged.state = (existing as any)?.state;
           }
@@ -1072,7 +1136,7 @@ function VatPage({
         return Array.from(map.values());
       });
 
-      setLastUpdate(new Date().toLocaleString("nl-NL"));
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
 
       if (data.job?.status === "completed" && !hasPendingRaw) {
         stopPolling();
@@ -1098,6 +1162,7 @@ function VatPage({
     currentRunStartedAtRef.current = new Date().toISOString();
 
     const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+
     if (!lines.length) {
       setLoading(false);
       return;
@@ -1123,9 +1188,9 @@ function VatPage({
       const enriched = (data.results || []).map((r: VatRow) =>
         enrichRow({ ...(r as any), case_ref: caseRef } as any)
       );
-      setRows(enriched);
 
-      setLastUpdate(new Date().toLocaleString("nl-NL"));
+      setRows(enriched);
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
 
       if (data.fr_job_id) {
         currentFrJobIdRef.current = data.fr_job_id;
@@ -1162,8 +1227,6 @@ function VatPage({
     setDuplicatesIgnored(0);
     setViesStatus([]);
     setExpandedKey(null);
-    setFrDebugOn(false);
-    setFrDebug(null);
   }
 
   function getCellText(r: VatRow, colIndex: number): string {
@@ -1174,6 +1237,7 @@ function VatPage({
       (r as any).address ?? "",
       (r as any).error_code ?? (r as any).error ?? "",
     ];
+
     return cols[colIndex] ?? "";
   }
 
@@ -1183,16 +1247,18 @@ function VatPage({
 
       setRows((prevRows) => {
         const copy = [...prevRows];
+
         copy.sort((a, b) => {
           const ta = getCellText(a, colIndex).toLowerCase();
           const tb = getCellText(b, colIndex).toLowerCase();
-          const cmp = ta.localeCompare(tb, "nl");
+          const cmp = ta.localeCompare(tb, localeForLanguage(language));
           return asc ? cmp : -cmp;
         });
+
         return copy;
       });
 
-      setSortLabel(`${t(language, "sort")}: ${label} (${asc ? "asc" : "desc"})`);
+      setSortLabel(`${t(language, "sort")}: ${label} (${asc ? localText(language, "asc") : localText(language, "desc")})`);
       return { colIndex, asc };
     });
   }
@@ -1269,7 +1335,7 @@ function VatPage({
     const ts = new Date();
     const stamp = ts.toISOString().slice(0, 19).replace(/[:T]/g, "-");
 
-    slide.addText("VAT validation — infographic", {
+    slide.addText(localText(language, "vatInfographic"), {
       x: 0.5,
       y: 0.3,
       w: 12.3,
@@ -1279,7 +1345,7 @@ function VatPage({
       color: "0B2E5F",
     });
 
-    slide.addText(`Case: ${caseRef || "—"}  •  ${ts.toLocaleString("nl-NL")}`, {
+    slide.addText(`${t(language, "case")}: ${caseRef || "—"}  •  ${ts.toLocaleString(localeForLanguage(language))}`, {
       x: 0.5,
       y: 0.85,
       w: 12.3,
@@ -1382,6 +1448,7 @@ function VatPage({
       });
 
       const w = max ? (n / max) * barW : 0;
+
       slide.addShape(pres.ShapeType.rect, {
         x: barX,
         y: y + 0.07,
@@ -1527,7 +1594,7 @@ function VatPage({
           setMapGeoVersion((v) => v + 1);
         });
     } catch {
-      el.innerHTML = "<div style='padding:12px;color:#6b7280;font-size:12px;'>Map unavailable</div>";
+      el.innerHTML = `<div style='padding:12px;color:#6b7280;font-size:12px;'>${localText(language, "mapUnavailable")}</div>`;
     }
 
     return () => {
@@ -1539,7 +1606,8 @@ function VatPage({
 
   useEffect(() => {
     const entries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]);
-    setMapCount(`${entries.length} countries`);
+
+    setMapCount(`${entries.length} ${localText(language, "countries")}`);
 
     if (!entries.length) {
       setMapLegend("—");
@@ -1548,6 +1616,7 @@ function VatPage({
         .slice(0, 6)
         .map(([cc, n]) => `${cc}(${n})`)
         .join(" · ");
+
       const more = entries.length > 6 ? ` +${entries.length - 6}` : "";
       setMapLegend(top + more);
     }
@@ -1647,6 +1716,7 @@ function VatPage({
           if (cc === "GB") cc = "XI";
 
           if (!cc) return;
+
           const n = countryCounts[cc] || 0;
           lyr.bindTooltip(`${cc} • ${n}`, { direction: "top", opacity: 0.9 });
         },
@@ -1666,7 +1736,7 @@ function VatPage({
     } else {
       map.setView([53.5, 10], 3, { animate: false } as any);
     }
-  }, [countryCounts, mapGeoVersion]);
+  }, [countryCounts, mapGeoVersion, language]);
 
   return (
     <>
@@ -1699,7 +1769,7 @@ function VatPage({
                   value={caseRef}
                   onChange={(e) => setCaseRef(e.target.value)}
                   placeholder={t(language, "clientCasePlaceholder")}
-                  style={{ flex: 1, minWidth: 220 }}
+                  style={ACTION_FIRST_FIELD_STYLE}
                 />
 
                 <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
@@ -1745,8 +1815,10 @@ function VatPage({
                   color: "#0B2E5F",
                 }}
               >
-                <b>{t(language, "preCheck")}</b>: {precheck.unique} unique / {precheck.totalLines} lines ·{" "}
-                {precheck.duplicates} duplicates · {precheck.badFormat} format issues
+                <b>{t(language, "preCheck")}</b>: {precheck.unique} {localText(language, "unique")} /{" "}
+                {precheck.totalLines} {localText(language, "lines")} · {precheck.duplicates}{" "}
+                {localText(language, "duplicates")} · {precheck.badFormat} {localText(language, "formatIssues")}
+
                 {precheck.badExamples.length > 0 && (
                   <details style={{ marginTop: 8 }}>
                     <summary>{t(language, "examples")}</summary>
@@ -1779,12 +1851,11 @@ function VatPage({
                 </div>
               </div>
 
-<UserDraftsPanel
-  activePage="vat"
-  referenceValue={caseRef}
-  inputValue={vatInput}
-  language={language}
-  onRestoreDraft={(draft) => {
+              <UserDraftsPanel
+                activePage="vat"
+                referenceValue={caseRef}
+                inputValue={vatInput}
+                onRestoreDraft={(draft) => {
                   onCancel();
                   setCaseRef(draft.referenceValue || "");
                   setVatInput(draft.inputValue || "");
@@ -1798,8 +1869,6 @@ function VatPage({
                   setProgressText("0/0");
                   setSortState({ colIndex: null, asc: true });
                   setSortLabel("");
-                  setFrDebugOn(false);
-                  setFrDebug(null);
                 }}
               />
 
@@ -1841,6 +1910,7 @@ function VatPage({
                     onChange={(e) => setFilter(e.target.value)}
                     placeholder={t(language, "searchResults")}
                   />
+
                   <div className="callout">
                     {t(language, "sorting")}: <span className="mono">{sortLabel || "—"}</span>
                   </div>
@@ -1848,9 +1918,10 @@ function VatPage({
 
                 <div className="mapbox">
                   <div className="mapbox-head">
-                   <div className="mapbox-title" style={SMALL_HEADER_STYLE}>
-  {t(language, "inputDistribution")}
-</div>
+                    <div className="mapbox-title" style={SMALL_HEADER_STYLE}>
+                      {t(language, "inputDistribution")}
+                    </div>
+
                     <div className="mapbox-sub">
                       <span className="nowrap">{mapCount}</span>
                     </div>
@@ -1862,6 +1933,7 @@ function VatPage({
                     <div id="mapLegend" title={mapLegend}>
                       {mapLegend}
                     </div>
+
                     <div className="map-attrib">
                       <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
                         © OpenStreetMap
@@ -1928,6 +2000,7 @@ function VatPage({
                                 style={{ width: "22px", height: "16px", borderRadius: 3 }}
                                 title={c.countryCode}
                               />
+
                               <span
                                 className="mono"
                                 style={{
@@ -1953,7 +2026,8 @@ function VatPage({
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
-           <div className="muted" style={TABLE_META_STYLE}>
+
+            <div className="muted" style={TABLE_META_STYLE}>
               {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
               {t(language, "rows")}
             </div>
@@ -1966,16 +2040,20 @@ function VatPage({
                   <th style={{ ...TH_STYLE, width: 160 }} onClick={() => sortByColumn(0, t(language, "state"))}>
                     {t(language, "state")}
                   </th>
-                  <th style={{ width: 180 }} onClick={() => sortByColumn(1, t(language, "vat"))}>
+
+                  <th style={{ ...TH_STYLE, width: 180 }} onClick={() => sortByColumn(1, t(language, "vat"))}>
                     {t(language, "vat")}
                   </th>
-                  <th style={{ width: 280 }} onClick={() => sortByColumn(2, t(language, "name"))}>
+
+                  <th style={{ ...TH_STYLE, width: 280 }} onClick={() => sortByColumn(2, t(language, "name"))}>
                     {t(language, "name")}
                   </th>
-                  <th style={{ width: 280 }} onClick={() => sortByColumn(3, t(language, "address"))}>
+
+                  <th style={{ ...TH_STYLE, width: 280 }} onClick={() => sortByColumn(3, t(language, "address"))}>
                     {t(language, "address")}
                   </th>
-                  <th style={{ width: 240 }} onClick={() => sortByColumn(4, t(language, "error"))}>
+
+                  <th style={{ ...TH_STYLE, width: 240 }} onClick={() => sortByColumn(4, t(language, "error"))}>
                     {t(language, "error")}
                   </th>
                 </tr>
@@ -2003,7 +2081,7 @@ function VatPage({
                           <span className={`pill ${cls}`}>
                             <i aria-hidden="true" />
                             {st}
-                            {cls === "retry" && eta ? ` (ETA ${eta})` : ""}
+                            {cls === "retry" && eta ? ` (${localText(language, "eta")} ${eta})` : ""}
                           </span>
                         </td>
 
@@ -2013,7 +2091,6 @@ function VatPage({
 
                         <td title={(r as any).name || ""}>{(r as any).name || ""}</td>
                         <td title={(r as any).address || ""}>{(r as any).address || ""}</td>
-
                         <td title={errShown || ""}>{errShown || ""}</td>
                       </tr>
 
@@ -2027,7 +2104,7 @@ function VatPage({
                               <span>{t(language, "checkedAt")}</span>
                               <b>
                                 {(r as any).checked_at
-                                  ? new Date((r as any).checked_at).toLocaleString("nl-NL")
+                                  ? new Date((r as any).checked_at).toLocaleString(localeForLanguage(language))
                                   : "—"}
                               </b>
 
@@ -2041,10 +2118,14 @@ function VatPage({
                               <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "—"}</b>
 
                               <span>{t(language, "nextRetry")}</span>
-                              <b>{nra ? new Date(nra).toLocaleString("nl-NL") : "—"}</b>
+                              <b>{nra ? new Date(nra).toLocaleString(localeForLanguage(language)) : "—"}</b>
 
                               <span>{t(language, "format")}</span>
-                              <b>{(r as any).format_ok === false ? `Bad (${(r as any).format_reason})` : "OK"}</b>
+                              <b>
+                                {(r as any).format_ok === false
+                                  ? `${localText(language, "bad")} (${(r as any).format_reason})`
+                                  : localText(language, "ok")}
+                              </b>
                             </div>
 
                             <div className="row" style={{ marginTop: 10 }}>
@@ -2053,7 +2134,12 @@ function VatPage({
                                 onChange={(e) => {
                                   const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
                                   const nextTag = e.target.value as any;
-                                  setNotes((prev) => ({ ...prev, [key2]: { note: (r as any).note || "", tag: nextTag } }));
+
+                                  setNotes((prev) => ({
+                                    ...prev,
+                                    [key2]: { note: (r as any).note || "", tag: nextTag },
+                                  }));
+
                                   setRows((prev) =>
                                     prev.map((x) =>
                                       `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
@@ -2074,10 +2160,12 @@ function VatPage({
                                 onChange={(e) => {
                                   const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
                                   const nextNote = e.target.value;
+
                                   setNotes((prev) => ({
                                     ...prev,
                                     [key2]: { note: nextNote, tag: ((r as any).tag as any) || "" },
                                   }));
+
                                   setRows((prev) =>
                                     prev.map((x) =>
                                       `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
@@ -2294,6 +2382,7 @@ function TinPage({
     if (language === "nl") return value ? "ja" : "nee";
     if (language === "de") return value ? "ja" : "nein";
     if (language === "fr") return value ? "oui" : "non";
+
     return value ? "true" : "false";
   }
 
@@ -2376,17 +2465,17 @@ function TinPage({
       if (sortKey === "status") {
         cmp = statusRank(a.status) - statusRank(b.status);
       } else if (sortKey === "input_tin") {
-        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), "en");
+        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), localeForLanguage(language));
       } else if (sortKey === "tin_number") {
-        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), "en");
+        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), localeForLanguage(language));
       } else if (sortKey === "structure_valid") {
         cmp = boolRank(a.structure_valid) - boolRank(b.structure_valid);
       } else if (sortKey === "syntax_valid") {
         cmp = boolRank(a.syntax_valid) - boolRank(b.syntax_valid);
       } else if (sortKey === "request_date") {
-        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), "en");
+        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), localeForLanguage(language));
       } else if (sortKey === "message") {
-        cmp = String(a.message || "").localeCompare(String(b.message || ""), "en");
+        cmp = String(a.message || "").localeCompare(String(b.message || ""), localeForLanguage(language));
       }
 
       return sortAsc ? cmp : -cmp;
@@ -2446,13 +2535,13 @@ function TinPage({
       const data = await resp.json();
 
       if (!resp.ok) {
-        setError(data?.message || data?.error || "TIN validation failed");
+        setError(data?.message || data?.error || localText(language, "tinValidationFailed"));
         return;
       }
 
       setRows(Array.isArray(data?.results) ? data.results : []);
     } catch {
-      setError("TIN validation failed");
+      setError(localText(language, "tinValidationFailed"));
     } finally {
       setLoading(false);
     }
@@ -2506,6 +2595,7 @@ function TinPage({
 
     if (candidates.length) {
       const prepared = dedupeTinText(candidates.join("\n"), country);
+
       setTinInput(prepared.cleanedText);
       setRows([]);
       setError("");
@@ -2556,6 +2646,7 @@ function TinPage({
     ];
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
+
     ws["!cols"] = [
       { wch: 10 },
       { wch: 22 },
@@ -2600,14 +2691,14 @@ function TinPage({
 
             <CardContent className="pt-0">
               <div
-  className="row inputActionsRow"
-  style={{
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "nowrap",
-  }}
->
+                className="row inputActionsRow"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "nowrap",
+                }}
+              >
                 <select
                   value={country}
                   onChange={(e) => {
@@ -2616,7 +2707,7 @@ function TinPage({
                     setError("");
                     setInfoMessage("");
                   }}
-                 style={{ minWidth: 240, flex: "0 0 240px" }}
+                  style={ACTION_FIRST_FIELD_STYLE}
                 >
                   {countryOptions.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -2664,12 +2755,11 @@ function TinPage({
                 </Button>
               </div>
 
-<UserDraftsPanel
-  activePage="tin"
-  referenceValue={country}
-  inputValue={tinInput}
-  language={language}
-  onRestoreDraft={(draft) => {
+              <UserDraftsPanel
+                activePage="tin"
+                referenceValue={country}
+                inputValue={tinInput}
+                onRestoreDraft={(draft) => {
                   setCountry(draft.referenceValue || "NL");
                   setTinInput(draft.inputValue || "");
                   setRows([]);
@@ -2751,7 +2841,7 @@ function TinPage({
                       <div className="callout" style={{ margin: 0, padding: "10px 12px" }}>
                         {t(language, "sort")}:{" "}
                         <span className="mono">
-                          {tinSortLabel(sortKey)} {sortAsc ? "asc" : "desc"}
+                          {tinSortLabel(sortKey)} {sortAsc ? localText(language, "asc") : localText(language, "desc")}
                         </span>
                       </div>
                     </div>
@@ -2765,6 +2855,7 @@ function TinPage({
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+
             <div className="muted" style={TABLE_META_STYLE}>
               {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
               {t(language, "rows")}
@@ -2775,31 +2866,37 @@ function TinPage({
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 150, cursor: "pointer" }} onClick={() => sortBy("status")}>
+                  <th style={{ ...TH_STYLE, width: 150 }} onClick={() => sortBy("status")}>
                     {t(language, "state")}
                     {sortIndicator("status")}
                   </th>
-                  <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("input_tin")}>
+
+                  <th style={{ ...TH_STYLE, width: 220 }} onClick={() => sortBy("input_tin")}>
                     {t(language, "inputTin")}
                     {sortIndicator("input_tin")}
                   </th>
-                  <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("tin_number")}>
+
+                  <th style={{ ...TH_STYLE, width: 220 }} onClick={() => sortBy("tin_number")}>
                     {t(language, "returnedTin")}
                     {sortIndicator("tin_number")}
                   </th>
-                  <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("structure_valid")}>
+
+                  <th style={{ ...TH_STYLE, width: 120 }} onClick={() => sortBy("structure_valid")}>
                     {t(language, "structure")}
                     {sortIndicator("structure_valid")}
                   </th>
-                  <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("syntax_valid")}>
+
+                  <th style={{ ...TH_STYLE, width: 120 }} onClick={() => sortBy("syntax_valid")}>
                     {t(language, "syntax")}
                     {sortIndicator("syntax_valid")}
                   </th>
-                  <th style={{ width: 140, cursor: "pointer" }} onClick={() => sortBy("request_date")}>
+
+                  <th style={{ ...TH_STYLE, width: 140 }} onClick={() => sortBy("request_date")}>
                     {t(language, "date")}
                     {sortIndicator("request_date")}
                   </th>
-                  <th style={{ width: 320, cursor: "pointer" }} onClick={() => sortBy("message")}>
+
+                  <th style={{ ...TH_STYLE, width: 320 }} onClick={() => sortBy("message")}>
                     {t(language, "message")}
                     {sortIndicator("message")}
                   </th>
@@ -2815,6 +2912,7 @@ function TinPage({
                         {prettyStatus(r.status)}
                       </span>
                     </td>
+
                     <td className="mono nowrap">{r.input_tin || ""}</td>
                     <td className="mono nowrap">{r.tin_number || ""}</td>
                     <td>{boolLabel(r.structure_valid)}</td>
