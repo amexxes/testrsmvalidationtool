@@ -137,31 +137,47 @@ const BANNER_RIGHT_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const BANNER_CHIP_STYLE: React.CSSProperties = {
+const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   height: 36,
   display: "inline-flex",
   alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  padding: "0 10px",
+  gap: 10,
+  padding: "0 12px",
   borderRadius: 999,
   border: "1px solid rgba(11,46,95,0.10)",
   background: "rgba(255,255,255,0.82)",
   color: "#0B2E5F",
   fontFamily: PORTAL_FONT,
   fontSize: 12,
-  lineHeight: 1,
+  lineHeight: "36px",
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
 
-const BANNER_CHIP_LABEL_STYLE: React.CSSProperties = {
-  fontWeight: 600,
-  opacity: 0.72,
+const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  height: 36,
+  lineHeight: "36px",
 };
 
-const BANNER_CHIP_VALUE_STYLE: React.CSSProperties = {
+const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
+  fontWeight: 600,
+  opacity: 0.72,
+  height: 36,
+  lineHeight: "36px",
+};
+
+const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
   fontWeight: 800,
+  height: 36,
+  lineHeight: "36px",
+};
+
+const BANNER_DOT_STYLE: React.CSSProperties = {
+  opacity: 0.35,
+  lineHeight: "36px",
 };
 
 const BANNER_CONTROL_STYLE: React.CSSProperties = {
@@ -829,17 +845,22 @@ function PortalBanner({
         </div>
 
         <div style={BANNER_RIGHT_STYLE}>
-          <div style={BANNER_CHIP_STYLE}>
-            <span style={BANNER_CHIP_LABEL_STYLE}>{t(language, "mode")}</span>
-            <b style={BANNER_CHIP_VALUE_STYLE}>{modeValue}</b>
-          </div>
+          <div style={BANNER_STATUS_BAR_STYLE}>
+            <span style={BANNER_STATUS_ITEM_STYLE}>
+              <span style={BANNER_STATUS_LABEL_STYLE}>{t(language, "mode")}</span>
+              <b style={BANNER_STATUS_VALUE_STYLE}>{modeValue}</b>
+            </span>
 
-          {meta.map((item) => (
-            <div style={BANNER_CHIP_STYLE} key={item.label}>
-              <span style={BANNER_CHIP_LABEL_STYLE}>{item.label}</span>
-              <b style={BANNER_CHIP_VALUE_STYLE}>{item.value}</b>
-            </div>
-          ))}
+            {meta.map((item) => (
+              <React.Fragment key={item.label}>
+                <span style={BANNER_DOT_STYLE}>•</span>
+                <span style={BANNER_STATUS_ITEM_STYLE}>
+                  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+                  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
 
           <div style={BANNER_CONTROL_STYLE}>
             <LanguageSwitcher language={language} setLanguage={setLanguage} />
