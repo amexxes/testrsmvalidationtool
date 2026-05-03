@@ -109,6 +109,69 @@ const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
   maxWidth: "100%",
 };
 
+const BANNER_ROW_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 18,
+  flexWrap: "nowrap",
+  width: "100%",
+};
+
+const BANNER_LEFT_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 16,
+  minWidth: 0,
+  flex: "1 1 auto",
+};
+
+const BANNER_RIGHT_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 8,
+  marginLeft: "auto",
+  flex: "0 0 auto",
+  flexWrap: "nowrap",
+  whiteSpace: "nowrap",
+};
+
+const BANNER_CHIP_STYLE: React.CSSProperties = {
+  height: 36,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  padding: "0 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(11,46,95,0.10)",
+  background: "rgba(255,255,255,0.82)",
+  color: "#0B2E5F",
+  fontFamily: PORTAL_FONT,
+  fontSize: 12,
+  lineHeight: 1,
+  whiteSpace: "nowrap",
+  flex: "0 0 auto",
+};
+
+const BANNER_CHIP_LABEL_STYLE: React.CSSProperties = {
+  fontWeight: 600,
+  opacity: 0.72,
+};
+
+const BANNER_CHIP_VALUE_STYLE: React.CSSProperties = {
+  fontWeight: 800,
+};
+
+const BANNER_CONTROL_STYLE: React.CSSProperties = {
+  height: 36,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+};
+
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
@@ -609,18 +672,20 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
   return (
     <div
       style={{
+        height: 36,
         display: "inline-flex",
-        gap: 8,
         alignItems: "center",
-        justifyContent: "flex-end",
-        flexWrap: "wrap",
-        padding: 6,
-        borderRadius: 18,
+        justifyContent: "center",
+        gap: 6,
+        padding: 3,
+        borderRadius: 999,
         background: "rgba(255,255,255,0.82)",
         border: "1px solid rgba(226,232,240,0.95)",
         boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
+        whiteSpace: "nowrap",
+        flexWrap: "nowrap",
       }}
     >
       <Button
@@ -628,7 +693,12 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
         variant={activePage === "vat" ? "primary" : "secondary"}
         size="sm"
         onClick={() => setActivePage("vat")}
-        style={{ minWidth: 158 }}
+        style={{
+          height: 28,
+          minWidth: 148,
+          padding: "0 12px",
+          whiteSpace: "nowrap",
+        }}
       >
         {t(language, "vatTab")}
       </Button>
@@ -638,7 +708,12 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
         variant={activePage === "tin" ? "primary" : "secondary"}
         size="sm"
         onClick={() => setActivePage("tin")}
-        style={{ minWidth: 120 }}
+        style={{
+          height: 28,
+          minWidth: 112,
+          padding: "0 12px",
+          whiteSpace: "nowrap",
+        }}
       >
         {t(language, "tinTab")}
       </Button>
@@ -650,7 +725,8 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
   return (
     <div
       style={{
-        display: "flex",
+        height: 36,
+        display: "inline-flex",
         alignItems: "center",
         gap: 4,
         padding: 4,
@@ -670,9 +746,10 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
             type="button"
             onClick={() => setLanguage(item.code)}
             style={{
+              height: 28,
               border: 0,
               borderRadius: 999,
-              padding: "6px 9px",
+              padding: "0 9px",
               background: active ? "rgba(11,46,95,0.96)" : "transparent",
               color: active ? "#fff" : "#0B2E5F",
               fontSize: 11,
@@ -706,24 +783,8 @@ function PortalBanner({
     <div className="banner">
       <div className="banner-accent" />
 
-      <div
-        className="banner-inner"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 18,
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            minWidth: 0,
-          }}
-        >
+      <div className="banner-inner" style={BANNER_ROW_STYLE}>
+        <div style={BANNER_LEFT_STYLE}>
           <div
             className="mark"
             aria-hidden="true"
@@ -733,6 +794,7 @@ function PortalBanner({
               alignItems: "center",
               justifyContent: "center",
               minWidth: 152,
+              flex: "0 0 auto",
             }}
           >
             <img
@@ -750,86 +812,47 @@ function PortalBanner({
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-            <div className="title" style={{ ...PAGE_TITLE_STYLE, fontWeight: 800 }}>
+          <div style={{ minWidth: 0 }}>
+            <div
+              className="title"
+              style={{
+                ...PAGE_TITLE_STYLE,
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               {title}
             </div>
           </div>
         </div>
 
- <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginLeft: "auto",
-    alignSelf: "center",
-    flexWrap: "nowrap",
-    minWidth: 0,
-  }}
->
-  <div
-    className="chip"
-    style={{
-      flex: "0 0 auto",
-      width: "auto",
-      minWidth: 0,
-      minHeight: 40,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      whiteSpace: "nowrap",
-      padding: "8px 10px",
-    }}
-  >
-    <span>{t(language, "mode")}</span>
-    <b className="nowrap">{modeValue}</b>
-  </div>
+        <div style={BANNER_RIGHT_STYLE}>
+          <div style={BANNER_CHIP_STYLE}>
+            <span style={BANNER_CHIP_LABEL_STYLE}>{t(language, "mode")}</span>
+            <b style={BANNER_CHIP_VALUE_STYLE}>{modeValue}</b>
+          </div>
 
-  {meta.map((item) => (
-    <div
-      className="chip"
-      key={item.label}
-      style={{
-        flex: "0 0 auto",
-        width: "auto",
-        minWidth: 0,
-        minHeight: 40,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        whiteSpace: "nowrap",
-        padding: "8px 10px",
-      }}
-    >
-      <span>{item.label}</span>
-      <b className="nowrap">{item.value}</b>
-    </div>
-  ))}
+          {meta.map((item) => (
+            <div style={BANNER_CHIP_STYLE} key={item.label}>
+              <span style={BANNER_CHIP_LABEL_STYLE}>{item.label}</span>
+              <b style={BANNER_CHIP_VALUE_STYLE}>{item.value}</b>
+            </div>
+          ))}
 
-  <div
-    style={{
-      flex: "0 0 auto",
-      display: "inline-flex",
-      alignItems: "center",
-      minHeight: 40,
-    }}
-  >
-    <LanguageSwitcher language={language} setLanguage={setLanguage} />
-  </div>
+          <div style={BANNER_CONTROL_STYLE}>
+            <LanguageSwitcher language={language} setLanguage={setLanguage} />
+          </div>
 
-  <div
-    style={{
-      flex: "0 0 auto",
-      display: "inline-flex",
-      alignItems: "center",
-      minHeight: 40,
-    }}
-  >
-    <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
-  </div>
-</div>
+          <div style={BANNER_CONTROL_STYLE}>
+            <PageSwitcher
+              activePage={activePage}
+              setActivePage={setActivePage}
+              language={language}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1876,12 +1899,12 @@ function VatPage({
                 </div>
               </div>
 
- <UserDraftsPanel
-  activePage="vat"
-  referenceValue={caseRef}
-  inputValue={vatInput}
-  language={language}
-  onRestoreDraft={(draft) => {
+              <UserDraftsPanel
+                activePage="vat"
+                referenceValue={caseRef}
+                inputValue={vatInput}
+                language={language}
+                onRestoreDraft={(draft) => {
                   onCancel();
                   setCaseRef(draft.referenceValue || "");
                   setVatInput(draft.inputValue || "");
@@ -2781,12 +2804,12 @@ function TinPage({
                 </Button>
               </div>
 
-        <UserDraftsPanel
-  activePage="tin"
-  referenceValue={country}
-  inputValue={tinInput}
-  language={language}
-  onRestoreDraft={(draft) => {
+              <UserDraftsPanel
+                activePage="tin"
+                referenceValue={country}
+                inputValue={tinInput}
+                language={language}
+                onRestoreDraft={(draft) => {
                   setCountry(draft.referenceValue || "NL");
                   setTinInput(draft.inputValue || "");
                   setRows([]);
