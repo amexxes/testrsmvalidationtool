@@ -461,6 +461,7 @@ function localText(language: PortalLanguage, key: string): string {
       desc: "desc",
       tinValidationFailed: "TIN validation failed",
       vatInfographic: "VAT validation — infographic",
+      retryUnresolved: "Retry unresolved",
     },
     nl: {
       unique: "uniek",
@@ -476,6 +477,7 @@ function localText(language: PortalLanguage, key: string): string {
       desc: "aflopend",
       tinValidationFailed: "TIN-validatie mislukt",
       vatInfographic: "VAT-validatie — infographic",
+      retryUnresolved: "Opnieuw proberen",
     },
     de: {
       unique: "eindeutig",
@@ -491,6 +493,7 @@ function localText(language: PortalLanguage, key: string): string {
       desc: "absteigend",
       tinValidationFailed: "TIN-Prüfung fehlgeschlagen",
       vatInfographic: "VAT-Prüfung — Infografik",
+      retryUnresolved: "Offene erneut versuchen",
     },
     fr: {
       unique: "uniques",
@@ -506,6 +509,7 @@ function localText(language: PortalLanguage, key: string): string {
       desc: "décroissant",
       tinValidationFailed: "Échec de la validation TIN",
       vatInfographic: "Validation VAT — infographie",
+      retryUnresolved: "Réessayer les non résolus",
     },
   };
 
@@ -702,6 +706,17 @@ function displayState(r: VatRow): RowState {
   }
 
   return "queued";
+}
+
+function vatInputFromRow(r: VatRow): string {
+  const direct = String((r as any).vat_number || (r as any).input || "").trim();
+  if (direct) return normalizeVatCandidate(direct);
+
+  const cc = String((r as any).country_code || "").trim().toUpperCase();
+  const part = String((r as any).vat_part || "").trim();
+
+  if (cc && part) return normalizeVatCandidate(`${cc}${part}`);
+  return "";
 }
 
 function computeCountryCountsFromInput(text: string): Record<string, number> {
@@ -1281,6 +1296,24 @@ function VatPage({
     });
   }, [rows, filter, sortState.colIndex]);
 
+  const retryVatLines = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+
+    for (const row of rows) {
+      const state = displayState(row);
+      if (state !== "retry" && state !== "error") continue;
+
+      const input = vatInputFromRow(row);
+      if (!input || seen.has(input)) continue;
+
+      seen.add(input);
+      out.push(input);
+    }
+
+    return out;
+  }, [rows]);
+
   const stats = useMemo(() => {
     const total = rows.length;
     let done = 0;
@@ -1473,7 +1506,7 @@ function VatPage({
     }
   }
 
-  async function onValidate() {
+  async function runVatValidation(lines: string[]) {
     stopPolling();
     setImportPreview(null);
     setExpandedKey(null);
@@ -1484,17 +1517,16 @@ function VatPage({
     setSortLabel("");
     setLoading(true);
     setDuplicatesIgnored(0);
+    setViesStatus([]);
     setActiveFrJobId(null);
-
-    currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    currentRunStartedAtRef.current = new Date().toISOString();
-
-    const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
 
     if (!lines.length) {
       setLoading(false);
       return;
     }
+
+    currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    currentRunStartedAtRef.current = new Date().toISOString();
 
     validateAbortRef.current?.abort();
     const controller = new AbortController();
@@ -1539,6 +1571,19 @@ function VatPage({
       validateAbortRef.current = null;
       setLoading(false);
     }
+  }
+
+  async function onValidate() {
+    const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    await runVatValidation(lines);
+  }
+
+  async function onRetryVatUnresolved() {
+    if (!retryVatLines.length || loading) return;
+
+    const nextInput = retryVatLines.join("\n");
+    setVatInput(nextInput);
+    await runVatValidation(retryVatLines);
   }
 
   function onClear() {
@@ -2057,6 +2102,15 @@ function VatPage({
 
                 <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
                   {t(language, "cancel")}
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onRetryVatUnresolved}
+                  disabled={loading || !retryVatLines.length}
+                >
+                  {localText(language, "retryUnresolved")}
                 </Button>
 
                 <div style={{ flex: 1 }} />
@@ -2698,6 +2752,24 @@ function TinPage({
     });
   }, [rows, search, statusFilter, sortKey, sortAsc, language]);
 
+  const retryTinLines = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+
+    for (const row of rows) {
+      if (row.status !== "error") continue;
+
+      const rawInput = String(row.input_tin || row.tin_number || "").trim();
+      const key = normalizeTinDuplicateKey(rawInput, country);
+      if (!key || seen.has(key)) continue;
+
+      seen.add(key);
+      out.push(stripSelectedCountryPrefix(rawInput, country));
+    }
+
+    return out;
+  }, [rows, country]);
+
   useEffect(() => {
     if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
 
@@ -2717,8 +2789,8 @@ function TinPage({
     });
   }, [country, onRunCompleted, rows.length, stats.error, stats.invalid, stats.total, stats.valid]);
 
-  async function onValidateTinBatch() {
-    const prepared = dedupeTinText(tinInput, country);
+  async function runTinValidationFromText(inputText: string) {
+    const prepared = dedupeTinText(inputText, country);
 
     if (!prepared.uniqueLines.length) return;
 
@@ -2764,6 +2836,16 @@ function TinPage({
       setLoading(false);
     }
   }
+
+  async function onValidateTinBatch() {
+    await runTinValidationFromText(tinInput);
+  }
+
+  async function onRetryTinUnresolved() {
+    if (!retryTinLines.length || loading) return;
+    await runTinValidationFromText(retryTinLines.join("\n"));
+  }
+
 
   function onClearTin() {
     setTinInput("");
@@ -2998,6 +3080,15 @@ function TinPage({
 
                 <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
                   {t(language, "clear")}
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onRetryTinUnresolved}
+                  disabled={loading || !retryTinLines.length}
+                >
+                  {localText(language, "retryUnresolved")}
                 </Button>
               </div>
 
