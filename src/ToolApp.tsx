@@ -1861,9 +1861,6 @@ function VatPage({
                 ]}
               />
 
-              <div className="callout" style={{ marginTop: 14 }}>
-                {t(language, "vatTip")}
-              </div>
 
               <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} language={language} />
             </CardContent>
