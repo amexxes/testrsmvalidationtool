@@ -109,12 +109,15 @@ const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
   maxWidth: "100%",
 };
 
-const BANNER_ROW_STYLE: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(220px, 1fr) max-content",
-  alignItems: "center",
-  columnGap: 18,
+const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
+  boxSizing: "border-box",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 18,
+  flexWrap: "nowrap",
+  padding: "18px 22px",
 };
 
 const BANNER_LEFT_STYLE: React.CSSProperties = {
@@ -122,22 +125,26 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
   alignItems: "center",
   gap: 16,
   minWidth: 0,
+  flex: "0 1 360px",
+  maxWidth: 360,
 };
 
 const BANNER_RIGHT_STYLE: React.CSSProperties = {
-  display: "grid",
-  gridAutoFlow: "column",
-  gridAutoColumns: "max-content",
+  display: "flex",
   alignItems: "center",
-  justifyContent: "end",
-  columnGap: 8,
+  justifyContent: "flex-end",
+  gap: 8,
+  minWidth: 0,
+  flex: "1 1 auto",
+  flexWrap: "nowrap",
   whiteSpace: "nowrap",
+  overflowX: "auto",
+  overflowY: "hidden",
 };
 
 const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   height: 36,
-  minHeight: 36,
-  display: "flex",
+  display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
@@ -152,26 +159,26 @@ const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   fontSize: 12,
   lineHeight: "36px",
   whiteSpace: "nowrap",
+  flex: "0 0 auto",
 };
 
 const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
+  height: 36,
   display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
   gap: 5,
-  height: 36,
   whiteSpace: "nowrap",
+  flex: "0 0 auto",
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
-  display: "inline",
   fontWeight: 600,
   opacity: 0.72,
   whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
-  display: "inline",
   fontWeight: 800,
   whiteSpace: "nowrap",
 };
@@ -183,11 +190,11 @@ const BANNER_DOT_STYLE: React.CSSProperties = {
 
 const BANNER_CONTROL_STYLE: React.CSSProperties = {
   height: 36,
-  minHeight: 36,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   whiteSpace: "nowrap",
+  flex: "0 0 auto",
 };
 
 type PageSwitcherProps = {
@@ -691,7 +698,8 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
     <div
       style={{
         height: 36,
-        display: "inline-flex",
+        display: "inline-grid",
+        gridTemplateColumns: "max-content max-content",
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
@@ -703,7 +711,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
         whiteSpace: "nowrap",
-        flexWrap: "nowrap",
+        flex: "0 0 auto",
       }}
     >
       <Button
@@ -716,6 +724,9 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
           minWidth: 148,
           padding: "0 12px",
           whiteSpace: "nowrap",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {t(language, "vatTab")}
@@ -731,6 +742,9 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
           minWidth: 112,
           padding: "0 12px",
           whiteSpace: "nowrap",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {t(language, "tinTab")}
@@ -746,12 +760,15 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
         height: 36,
         display: "inline-flex",
         alignItems: "center",
+        justifyContent: "center",
         gap: 4,
         padding: 4,
         borderRadius: 999,
         border: "1px solid rgba(11,46,95,0.10)",
         background: "rgba(255,255,255,0.76)",
         boxShadow: "0 8px 22px rgba(11,46,95,0.045)",
+        whiteSpace: "nowrap",
+        flex: "0 0 auto",
       }}
       aria-label="Language selector"
     >
@@ -765,6 +782,9 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
             onClick={() => setLanguage(item.code)}
             style={{
               height: 28,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
               border: 0,
               borderRadius: 999,
               padding: "0 9px",
@@ -774,6 +794,7 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
               fontWeight: 800,
               letterSpacing: "0.04em",
               cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             {item.label}
@@ -806,7 +827,7 @@ function PortalBanner({
     <div className="banner">
       <div className="banner-accent" />
 
-      <div className="banner-inner" style={BANNER_ROW_STYLE}>
+      <div style={BANNER_INNER_STYLE}>
         <div style={BANNER_LEFT_STYLE}>
           <div
             className="mark"
@@ -2763,51 +2784,51 @@ function TinPage({
             </CardHeader>
 
             <CardContent className="pt-0">
- <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "420px auto auto",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-  }}
->
-  <select
-    value={country}
-    onChange={(e) => {
-      setCountry(e.target.value);
-      setRows([]);
-      setError("");
-      setInfoMessage("");
-    }}
-    style={{
-      width: "420px",
-      minWidth: "420px",
-    }}
-  >
-    {countryOptions.map((c) => (
-      <option key={c.code} value={c.code}>
-        {c.code} — {c.label}
-      </option>
-    ))}
-  </select>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "420px auto auto",
+                  alignItems: "center",
+                  gap: 10,
+                  width: "100%",
+                }}
+              >
+                <select
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value);
+                    setRows([]);
+                    setError("");
+                    setInfoMessage("");
+                  }}
+                  style={{
+                    width: "420px",
+                    minWidth: "420px",
+                  }}
+                >
+                  {countryOptions.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} — {c.label}
+                    </option>
+                  ))}
+                </select>
 
-  <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
-    {t(language, "importXlsxCsv")}
-  </Button>
+                <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
+                  {t(language, "importXlsxCsv")}
+                </Button>
 
-  <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
-    {t(language, "exportExcel")}
-  </Button>
+                <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
+                  {t(language, "exportExcel")}
+                </Button>
 
-  <input
-    ref={importFileRef}
-    type="file"
-    accept=".xlsx,.xls,.csv,.txt"
-    style={{ display: "none" }}
-    onChange={onImportFileChange}
-  />
-</div>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt"
+                  style={{ display: "none" }}
+                  onChange={onImportFileChange}
+                />
+              </div>
 
               <textarea
                 value={tinInput}
