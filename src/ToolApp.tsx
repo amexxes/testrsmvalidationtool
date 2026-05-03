@@ -107,7 +107,11 @@ const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
   minWidth: 420,
   maxWidth: "100%",
 };
-
+const ACTION_BUTTON_STYLE: React.CSSProperties = {
+  width: 150,
+  minWidth: 150,
+  justifyContent: "center",
+};
 const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -1710,32 +1714,54 @@ function VatPage({
             </CardHeader>
 
             <CardContent className="pt-0">
-              <div className="row inputActionsRow">
-                <input
-                  type="text"
-                  value={caseRef}
-                  onChange={(e) => setCaseRef(e.target.value)}
-                  placeholder={t(language, "clientCasePlaceholder")}
-                  style={ACTION_FIRST_FIELD_STYLE}
-                />
+    <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "420px 150px 150px",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+  }}
+>
+  <input
+    type="text"
+    value={caseRef}
+    onChange={(e) => setCaseRef(e.target.value)}
+    placeholder={t(language, "clientCasePlaceholder")}
+    style={{
+      width: "420px",
+      minWidth: "420px",
+    }}
+  />
 
-                <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
-                  {t(language, "importXlsxCsv")}
-                </Button>
+  <Button
+    variant="secondary"
+    size="md"
+    onClick={openImportDialog}
+    disabled={loading}
+    style={ACTION_BUTTON_STYLE}
+  >
+    {t(language, "importXlsxCsv")}
+  </Button>
 
-                <input
-                  ref={importFileRef}
-                  type="file"
-                  accept=".xlsx,.xls,.csv,.txt"
-                  style={{ display: "none" }}
-                  onChange={onImportFileChange}
-                />
+  <Button
+    variant="secondary"
+    size="md"
+    onClick={exportExcel}
+    disabled={!rows.length}
+    style={ACTION_BUTTON_STYLE}
+  >
+    {t(language, "exportExcel")}
+  </Button>
 
-                <Button variant="secondary" size="md" onClick={exportExcel} disabled={!rows.length}>
-                  {t(language, "exportExcel")}
-                </Button>
-
-              </div>
+  <input
+    ref={importFileRef}
+    type="file"
+    accept=".xlsx,.xls,.csv,.txt"
+    style={{ display: "none" }}
+    onChange={onImportFileChange}
+  />
+</div>
 
               {duplicatesIgnored > 0 && (
                 <div className="callout" style={{ marginTop: 10 }}>
