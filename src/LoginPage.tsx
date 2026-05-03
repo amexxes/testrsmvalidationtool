@@ -168,7 +168,7 @@ export default function LoginPage({ onLoggedIn }: Props) {
           <div>
             <div style={{ marginBottom: 20 }}>
               <img
-                src="/RSMLOGO.png"
+                src="/rsmlogo.png"
                 alt="RSM"
                 style={{
                   height: 52,
