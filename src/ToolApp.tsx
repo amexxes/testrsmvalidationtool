@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type SortState = { colIndex: number | null; asc: boolean };
-type SavedRun = { id: string; ts: number; caseRef: string; input: string; results: VatRow[] };
 type ActivePage = "vat" | "tin";
 
 type PageSwitcherProps = {
@@ -247,6 +246,7 @@ function computeCountryCountsFromInput(text: string): Record<string, number> {
 
     counts[cc] = (counts[cc] || 0) + 1;
   }
+
   return counts;
 }
 
@@ -407,7 +407,7 @@ function PortalBanner({
         className="banner-inner"
         style={{
           display: "flex",
-          alignItems: "center",
+          alignItems: "flex-end",
           justifyContent: "space-between",
           gap: 18,
           flexWrap: "wrap",
@@ -455,10 +455,12 @@ function PortalBanner({
         <div
           style={{
             display: "flex",
-            alignItems: "center",
+            alignItems: "flex-end",
+            justifyContent: "flex-end",
             gap: 12,
             flexWrap: "wrap",
             marginLeft: "auto",
+            alignSelf: "flex-end",
           }}
         >
           <div className="chip">
@@ -499,7 +501,7 @@ function MetricGrid({
                     ? "var(--bad)"
                     : item.tone === "warn"
                       ? "var(--warn)"
-                      : "var(--ink)",
+                      : "var(--text)",
             }}
           >
             {item.value}
@@ -509,6 +511,7 @@ function MetricGrid({
     </div>
   );
 }
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <CardTitle
@@ -516,7 +519,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
         fontSize: 20,
         lineHeight: 1.2,
         fontWeight: 700,
-        color: "var(--ink)",
+        color: "var(--text)",
         margin: 0,
       }}
     >
@@ -538,7 +541,7 @@ function SectionSubtitle({
         maxWidth,
         fontSize: 14,
         lineHeight: 1.55,
-        color: "var(--ink)",
+        color: "var(--text)",
         opacity: 0.82,
         marginTop: 6,
       }}
@@ -547,6 +550,7 @@ function SectionSubtitle({
     </CardDescription>
   );
 }
+
 function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -558,7 +562,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [duplicatesIgnored, setDuplicatesIgnored] = useState(0);
   const [viesStatus, setViesStatus] = useState<Array<{ countryCode: string; availability: string }>>([]);
 
-  const [frText, setFrText] = useState("-");
+  const [, setFrText] = useState("-");
   const [lastUpdate, setLastUpdate] = useState("-");
   const [progressText, setProgressText] = useState("0/0");
 
@@ -579,17 +583,10 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [frDebugOn, setFrDebugOn] = useState(false);
   const [frDebug, setFrDebug] = useState<any | null>(null);
   const frDebugOnRef = useRef(false);
+
   useEffect(() => {
     frDebugOnRef.current = frDebugOn;
   }, [frDebugOn]);
-
-  const [savedRuns, setSavedRuns] = useState<SavedRun[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("vat_saved_runs") || "[]");
-    } catch {
-      return [];
-    }
-  });
 
   const [notes, setNotes] = useState<Record<string, { note: string; tag: "whitelist" | "blacklist" | "" }>>(() => {
     try {
@@ -598,10 +595,6 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
       return {};
     }
   });
-
-  useEffect(() => {
-    localStorage.setItem("vat_saved_runs", JSON.stringify(savedRuns.slice(0, 30)));
-  }, [savedRuns]);
 
   useEffect(() => {
     localStorage.setItem("vat_notes", JSON.stringify(notes));
@@ -873,9 +866,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
         setFrText("-");
       }
     } catch (e: any) {
-      if (e?.name === "AbortError") {
-        return;
-      }
+      if (e?.name === "AbortError") return;
     } finally {
       validateAbortRef.current = null;
       setLoading(false);
@@ -1227,11 +1218,6 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
     XLSX.writeFile(wb, filename);
   }
 
-  function saveRun() {
-    const id = crypto.randomUUID();
-    setSavedRuns((prev) => [{ id, ts: Date.now(), caseRef, input: vatInput, results: rows }, ...prev].slice(0, 30));
-  }
-
   useEffect(() => {
     const el = document.getElementById("countryMap");
     if (!el) return;
@@ -1413,13 +1399,13 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-           <CardHeader className="pb-4">
-  <SectionTitle>Input</SectionTitle>
-  <SectionSubtitle maxWidth={760}>
-    Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
-    update via polling.
-  </SectionSubtitle>
-</CardHeader>
+            <CardHeader className="pb-4">
+              <SectionTitle>Input</SectionTitle>
+              <SectionSubtitle maxWidth={760}>
+                Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
+                update via polling.
+              </SectionSubtitle>
+            </CardHeader>
 
             <CardContent className="pt-0">
               <div className="row inputActionsRow">
@@ -1578,12 +1564,10 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <Card>
-    <CardHeader className="pb-4">
-  <SectionTitle>Filter</SectionTitle>
-  <SectionSubtitle maxWidth={520}>
-    Search, sorting and input distribution.
-  </SectionSubtitle>
-</CardHeader>
+              <CardHeader className="pb-4">
+                <SectionTitle>Filter</SectionTitle>
+                <SectionSubtitle maxWidth={520}>Search, sorting and input distribution.</SectionSubtitle>
+              </CardHeader>
 
               <CardContent className="pt-0">
                 <div className="filterBox">
@@ -1623,12 +1607,10 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             </Card>
 
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-       <CardHeader className="pb-4">
-  <SectionTitle>VIES status by country</SectionTitle>
-  <SectionSubtitle maxWidth={520}>
-    Availability according to VIES check status.
-  </SectionSubtitle>
-</CardHeader>
+              <CardHeader className="pb-4">
+                <SectionTitle>VIES status by country</SectionTitle>
+                <SectionSubtitle maxWidth={520}>Availability according to VIES check status.</SectionSubtitle>
+              </CardHeader>
 
               <CardContent
                 className="pt-0"
@@ -1919,23 +1901,6 @@ function dedupeTinText(text: string, countryCode: string) {
     cleanedText: uniqueLines.join("\n"),
     duplicatesRemoved,
     prefixRemoved,
-  };
-}
-
-function getTinInputStats(text: string, countryCode: string) {
-  const prepared = dedupeTinText(text, countryCode);
-  const firstLine = prepared.uniqueLines[0] || "";
-  const normalizedPreview = normalizeTinDuplicateKey(firstLine, countryCode);
-
-  return {
-    totalLines: prepared.totalLines,
-    uniqueCount: prepared.uniqueLines.length,
-    duplicateCount: prepared.duplicatesRemoved,
-    prefixCount: prepared.prefixRemoved,
-    firstLine,
-    normalizedPreview,
-    previewLength: normalizedPreview.length,
-    hasSeparators: /[.\-\/\s]/.test(firstLine),
   };
 }
 
@@ -2278,12 +2243,12 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-       <CardHeader className="pb-4">
-  <SectionTitle>Input</SectionTitle>
-  <SectionSubtitle maxWidth={760}>
-    Select the country, paste one or more TINs, and validate them in batch.
-  </SectionSubtitle>
-</CardHeader>
+            <CardHeader className="pb-4">
+              <SectionTitle>Input</SectionTitle>
+              <SectionSubtitle maxWidth={760}>
+                Select the country, paste one or more TINs, and validate them in batch.
+              </SectionSubtitle>
+            </CardHeader>
 
             <CardContent className="pt-0">
               <div className="row inputActionsRow">
@@ -2366,12 +2331,11 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </CardContent>
           </Card>
 
-     <CardHeader className="pb-4">
-  <SectionTitle>Dashboard</SectionTitle>
-  <SectionSubtitle maxWidth={520}>
-    Overview, filters and sorting.
-  </SectionSubtitle>
-</CardHeader>
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>Dashboard</SectionTitle>
+              <SectionSubtitle maxWidth={520}>Overview, filters and sorting.</SectionSubtitle>
+            </CardHeader>
 
             <CardContent className="pt-0">
               {error && (
