@@ -1779,11 +1779,12 @@ function VatPage({
                 </div>
               </div>
 
-              <UserDraftsPanel
-                activePage="vat"
-                referenceValue={caseRef}
-                inputValue={vatInput}
-                onRestoreDraft={(draft) => {
+<UserDraftsPanel
+  activePage="vat"
+  referenceValue={caseRef}
+  inputValue={vatInput}
+  language={language}
+  onRestoreDraft={(draft) => {
                   onCancel();
                   setCaseRef(draft.referenceValue || "");
                   setVatInput(draft.inputValue || "");
@@ -2653,11 +2654,12 @@ function TinPage({
                 </Button>
               </div>
 
-              <UserDraftsPanel
-                activePage="tin"
-                referenceValue={country}
-                inputValue={tinInput}
-                onRestoreDraft={(draft) => {
+<UserDraftsPanel
+  activePage="tin"
+  referenceValue={country}
+  inputValue={tinInput}
+  language={language}
+  onRestoreDraft={(draft) => {
                   setCountry(draft.referenceValue || "NL");
                   setTinInput(draft.inputValue || "");
                   setRows([]);
