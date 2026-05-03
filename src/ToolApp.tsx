@@ -30,7 +30,7 @@ const DEFAULT_BRANDING: ClientBranding = {
   id: "default",
   clientName: "RSM Netherlands",
   portalTitle: "RSM Validation Portal",
-  logoUrl: "/rsm-logo.svg",
+  logoUrl: "/rsmlogo.png",
   primaryColor: "#0B2E5F",
   accentColor: "#63C7F2",
   backgroundColor: "#F8FBFF",
