@@ -2313,7 +2313,10 @@ function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  t
   title={branding.portalTitle || "RSM Validation Portal"}
   subtitle={`${branding.clientName || "RSM Netherlands"} · TIN batch checks and review.`}
   modeValue="TIN"
-  meta={[{ label: "Country", value: country }]}
+  meta={[
+  { label: "Credits", value: "Unlimited" },
+  { label: "Country", value: country },
+]}
   activePage={activePage}
   setActivePage={setActivePage}
   branding={branding}
