@@ -1,5 +1,5 @@
 // /src/App.tsx
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ToolApp from "./ToolApp";
 import LoginPage from "./LoginPage";
 import AdminUsersPanel from "./AdminUsersPanel";
@@ -7,6 +7,13 @@ import ChangePasswordPanel from "./ChangePasswordPanel";
 import AccountMenu from "./AccountMenu";
 import AdminUsageDashboard from "./AdminUsageDashboard";
 import AdminClientBrandingPanel from "./AdminClientBrandingPanel";
+import PortalTaskHistoryPanel from "./PortalTaskHistoryPanel";
+import {
+  clearPortalRunHistory,
+  loadPortalRunHistory,
+  upsertPortalRunHistory,
+  type PortalRunSummary,
+} from "./portalRunHistory";
 
 type AuthUser = {
   id: string;
@@ -74,6 +81,9 @@ export default function App() {
   const [usageOpen, setUsageOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
+  const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
+  const [portalRuns, setPortalRuns] = useState<PortalRunSummary[]>([]);
+
   useEffect(() => {
     applyBrandingVars(DEFAULT_BRANDING);
     void loadSession();
@@ -112,6 +122,7 @@ export default function App() {
 
       if (!resp.ok) {
         setUser(null);
+        setPortalRuns([]);
         setBranding(DEFAULT_BRANDING);
         applyBrandingVars(DEFAULT_BRANDING);
         return;
@@ -123,10 +134,12 @@ export default function App() {
       setUser(nextUser);
 
       if (nextUser) {
+        setPortalRuns(loadPortalRunHistory(nextUser.email));
         await loadBranding();
       }
     } catch {
       setUser(null);
+      setPortalRuns([]);
       setBranding(DEFAULT_BRANDING);
       applyBrandingVars(DEFAULT_BRANDING);
     } finally {
@@ -137,10 +150,14 @@ export default function App() {
   async function handleLoggedIn(nextUser: AuthUser) {
     setUser(nextUser);
     setChecking(false);
+
     setAdminOpen(false);
     setChangePasswordOpen(false);
     setUsageOpen(false);
     setBrandingOpen(false);
+    setTaskHistoryOpen(false);
+
+    setPortalRuns(loadPortalRunHistory(nextUser.email));
 
     await loadBranding();
   }
@@ -153,13 +170,34 @@ export default function App() {
       });
     } finally {
       setUser(null);
+
       setAdminOpen(false);
       setChangePasswordOpen(false);
       setUsageOpen(false);
       setBrandingOpen(false);
+      setTaskHistoryOpen(false);
+
+      setPortalRuns([]);
       setBranding(DEFAULT_BRANDING);
       applyBrandingVars(DEFAULT_BRANDING);
     }
+  }
+
+  const handleRunCompleted = useCallback(
+    (summary: PortalRunSummary) => {
+      if (!user || user.role === "admin") return;
+
+      const next = upsertPortalRunHistory(user.email, summary);
+      setPortalRuns(next);
+    },
+    [user]
+  );
+
+  function handleClearPortalRuns() {
+    if (!user) return;
+
+    const next = clearPortalRunHistory(user.email);
+    setPortalRuns(next);
   }
 
   if (checking) {
@@ -176,7 +214,10 @@ export default function App() {
 
   return (
     <>
-      <ToolApp branding={branding} showTaskList={user.role !== "admin"} />
+      <ToolApp
+        branding={branding}
+        onRunCompleted={user.role !== "admin" ? handleRunCompleted : undefined}
+      />
 
       <div style={accountMenuWrapStyle}>
         <AccountMenu
@@ -184,6 +225,7 @@ export default function App() {
           onOpenUsers={() => setAdminOpen(true)}
           onOpenUsage={() => setUsageOpen(true)}
           onOpenBranding={() => setBrandingOpen(true)}
+          onOpenTaskHistory={() => setTaskHistoryOpen(true)}
           onOpenChangePassword={() => setChangePasswordOpen(true)}
           onLogout={handleLogout}
         />
@@ -207,6 +249,15 @@ export default function App() {
         <AdminClientBrandingPanel
           open={brandingOpen}
           onClose={() => setBrandingOpen(false)}
+        />
+      )}
+
+      {user.role !== "admin" && (
+        <PortalTaskHistoryPanel
+          open={taskHistoryOpen}
+          runs={portalRuns}
+          onClose={() => setTaskHistoryOpen(false)}
+          onClear={handleClearPortalRuns}
         />
       )}
 
