@@ -214,7 +214,16 @@ function displayState(r: VatRow): RowState {
   const hasResult = Boolean(String((r as any).name || "").trim() || String((r as any).address || "").trim());
   if (raw === "retry" && hasResult && !errorCode && !errorText) return "valid";
 
-  if (raw === "valid" || raw === "invalid" || raw === "retry" || raw === "queued" || raw === "processing") return raw as RowState;
+  if (
+    raw === "valid" ||
+    raw === "invalid" ||
+    raw === "retry" ||
+    raw === "queued" ||
+    raw === "processing"
+  ) {
+    return raw as RowState;
+  }
+
   return "queued";
 }
 
@@ -1204,116 +1213,80 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
   return (
     <>
-   <div className="banner">
-  <div className="banner-accent" />
-  <div
-    className="banner-inner"
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 18,
-      flexWrap: "wrap",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        minWidth: 0,
-      }}
-    >
-      <div
-        className="mark"
-        aria-hidden="true"
-        style={{
-          padding: "8px 12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 152,
-        }}
-      >
-        <img
-          src="/RSMLOGO.png"
-          alt="RSM"
+      <div className="banner">
+        <div className="banner-accent" />
+        <div
+          className="banner-inner"
           style={{
-            height: 40,
-            width: "auto",
-            display: "block",
-            objectFit: "contain",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 18,
+            flexWrap: "wrap",
           }}
-        />
-      </div>
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              minWidth: 0,
+            }}
+          >
+            <div
+              className="mark"
+              aria-hidden="true"
+              style={{
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 152,
+              }}
+            >
+              <img
+                src="/RSMLOGO.png"
+                alt="RSM"
+                style={{
+                  height: 40,
+                  width: "auto",
+                  display: "block",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-        <div className="title" style={{ fontSize: 20 }}>
-          VAT validation
-        </div>
-        <div style={{ fontSize: 13, color: "var(--muted)" }}>
-          Customer portal for VAT batch checks and review.
-        </div>
-      </div>
-    </div>
-
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-        flexWrap: "wrap",
-        marginLeft: "auto",
-      }}
-    >
-      <div className="chip">
-        <span>Mode</span>
-        <b className="nowrap">VAT / VIES</b>
-      </div>
-
-      <div className="chip">
-        <span>Last update</span>
-        <b className="nowrap">{lastUpdate}</b>
-      </div>
-
-      <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
-    </div>
-  </div>
-</div>
-            <div className="title">VAT validation</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+              <div className="title" style={{ fontSize: 20 }}>
+                VAT validation
+              </div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                Customer portal for VAT batch checks and review.
+              </div>
+            </div>
           </div>
 
- <div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 16,
-    flexWrap: "wrap",
-    width: "100%",
-    maxWidth: 980,
-    marginLeft: "auto",
-  }}
->
-  <div
-    className="chipsRow"
-    style={{
-      marginTop: 0,
-      width: "auto",
-      maxWidth: "none",
-      flex: "0 1 auto",
-    }}
-  >
-    <div className="chip">
-      <span>Last update</span>
-      <b className="nowrap">{lastUpdate}</b>
-    </div>
-  </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+              marginLeft: "auto",
+            }}
+          >
+            <div className="chip">
+              <span>Mode</span>
+              <b className="nowrap">VAT / VIES</b>
+            </div>
 
-  <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
-    <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
-  </div>
-</div>
+            <div className="chip">
+              <span>Last update</span>
+              <b className="nowrap">{lastUpdate}</b>
+            </div>
+
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+          </div>
         </div>
       </div>
 
@@ -1334,9 +1307,9 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                 style={{ flex: 1, minWidth: 220 }}
               />
 
-              <button className="btn btn-secondary" onClick={openImportDialog} disabled={loading}>
+              <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
                 Import XLSX/CSV
-              </button>
+              </Button>
 
               <input
                 ref={importFileRef}
@@ -1346,12 +1319,13 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                 onChange={onImportFileChange}
               />
 
-              <button className="btn btn-secondary btn-export btn-excel" onClick={exportExcel} disabled={!rows.length}>
+              <Button variant="secondary" size="md" onClick={exportExcel} disabled={!rows.length}>
                 Export Excel
-              </button>
-              <button className="btn btn-secondary btn-export btn-pptx" onClick={exportPptxInfographic} disabled={!rows.length}>
+              </Button>
+
+              <Button variant="secondary" size="md" onClick={exportPptxInfographic} disabled={!rows.length}>
                 Export PPTX
-              </button>
+              </Button>
             </div>
 
             <div className="callout" style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
@@ -1388,60 +1362,60 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               </div>
             )}
 
- <textarea
-  value={vatInput}
-  onChange={(e) => setVatInput(e.target.value)}
-  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-/>
+            <textarea
+              value={vatInput}
+              onChange={(e) => setVatInput(e.target.value)}
+              placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+            />
 
-<UserDraftsPanel
-  activePage="vat"
-  referenceValue={caseRef}
-  inputValue={vatInput}
-  onRestoreDraft={(draft) => {
-    onCancel();
-    setCaseRef(draft.referenceValue || "");
-    setVatInput(draft.inputValue || "");
-    setRows([]);
-    setFilter("");
-    setExpandedKey(null);
-    setDuplicatesIgnored(0);
-    setViesStatus([]);
-    setFrText("-");
-    setLastUpdate("-");
-    setProgressText("0/0");
-    setSortState({ colIndex: null, asc: true });
-    setSortLabel("");
-    setFrDebugOn(false);
-    setFrDebug(null);
-  }}
-/>
+            <UserDraftsPanel
+              activePage="vat"
+              referenceValue={caseRef}
+              inputValue={vatInput}
+              onRestoreDraft={(draft) => {
+                onCancel();
+                setCaseRef(draft.referenceValue || "");
+                setVatInput(draft.inputValue || "");
+                setRows([]);
+                setFilter("");
+                setExpandedKey(null);
+                setDuplicatesIgnored(0);
+                setViesStatus([]);
+                setFrText("-");
+                setLastUpdate("-");
+                setProgressText("0/0");
+                setSortState({ colIndex: null, asc: true });
+                setSortLabel("");
+                setFrDebugOn(false);
+                setFrDebug(null);
+              }}
+            />
 
-<div className="callout" style={{ marginTop: 10 }}>
-  <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates ·{" "}
-  {precheck.badFormat} format issues
-  {precheck.badExamples.length > 0 && (
-    <details style={{ marginTop: 8 }}>
-      <summary>Examples</summary>
-      <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
-        {precheck.badExamples.join("\n")}
-      </div>
-    </details>
-  )}
-</div>
+            <div className="callout" style={{ marginTop: 10 }}>
+              <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates ·{" "}
+              {precheck.badFormat} format issues
+              {precheck.badExamples.length > 0 && (
+                <details style={{ marginTop: 8 }}>
+                  <summary>Examples</summary>
+                  <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+                    {precheck.badExamples.join("\n")}
+                  </div>
+                </details>
+              )}
+            </div>
 
             <div className="row">
-              <button className="btn btn-primary" onClick={onValidate} disabled={loading}>
+              <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
                 {loading ? "Validating…" : "Validate"}
-              </button>
+              </Button>
 
-              <button className="btn btn-secondary" onClick={onClear} disabled={loading}>
+              <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
                 Clear
-              </button>
+              </Button>
 
-              <button className="btn btn-secondary" onClick={onCancel} disabled={!loading && !activeFrJobId}>
+              <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
                 Cancel
-              </button>
+              </Button>
 
               <div style={{ flex: 1 }} />
 
@@ -1712,7 +1686,10 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                                 onChange={(e) => {
                                   const key2 = `${(r as any).country_code || ""}:${(r as any).vat_part || ""}`;
                                   const nextNote = e.target.value;
-                                  setNotes((prev) => ({ ...prev, [key2]: { note: nextNote, tag: ((r as any).tag as any) || "" } }));
+                                  setNotes((prev) => ({
+                                    ...prev,
+                                    [key2]: { note: nextNote, tag: ((r as any).tag as any) || "" },
+                                  }));
                                   setRows((prev) =>
                                     prev.map((x) =>
                                       `${(x as any).country_code || ""}:${(x as any).vat_part || ""}` === key2
@@ -2126,12 +2103,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
         r.input_tin || "",
         r.tin_number || "",
         r.status || "",
-        r.structure_valid === null || r.structure_valid === undefined
-          ? ""
-          : String(r.structure_valid),
-        r.syntax_valid === null || r.syntax_valid === undefined
-          ? ""
-          : String(r.syntax_valid),
+        r.structure_valid === null || r.structure_valid === undefined ? "" : String(r.structure_valid),
+        r.syntax_valid === null || r.syntax_valid === undefined ? "" : String(r.syntax_valid),
         r.request_date ? String(r.request_date).slice(0, 10) : "",
         r.message || "",
       ]),
@@ -2152,10 +2125,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "TIN Results");
 
-    const filename = `tin_results_${country}_${new Date()
-      .toISOString()
-      .slice(0, 19)
-      .replace(/[:T]/g, "-")}.xlsx`;
+    const filename = `tin_results_${country}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
 
     XLSX.writeFile(wb, filename);
   }
@@ -2164,71 +2134,77 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
     <>
       <div className="banner">
         <div className="banner-accent" />
-        <div className="banner-inner">
-<div className="brand">
-  <div
-    className="mark"
-    aria-hidden="true"
-    style={{
-      padding: "6px 12px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      minWidth: 152,
-    }}
-  >
-    <img
-      src="/RSMLOGO.png"
-      alt="RSM"
-      style={{
-        height: 40,
-        width: "auto",
-        display: "block",
-        objectFit: "contain",
-      }}
-    />
-  </div>
-  <div className="title">TIN validation</div>
-</div>
+        <div
+          className="banner-inner"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 18,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              minWidth: 0,
+            }}
+          >
+            <div
+              className="mark"
+              aria-hidden="true"
+              style={{
+                padding: "8px 12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 152,
+              }}
+            >
+              <img
+                src="/RSMLOGO.png"
+                alt="RSM"
+                style={{
+                  height: 40,
+                  width: "auto",
+                  display: "block",
+                  objectFit: "contain",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+              <div className="title" style={{ fontSize: 20 }}>
+                TIN validation
+              </div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                Customer portal for TIN batch checks and review.
+              </div>
+            </div>
+          </div>
 
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "flex-end",
-              gap: 16,
+              gap: 12,
               flexWrap: "wrap",
-              width: "100%",
-              maxWidth: 980,
               marginLeft: "auto",
             }}
           >
-            <div
-              className="chipsRow"
-              aria-hidden="true"
-              style={{
-                marginTop: 0,
-                width: "auto",
-                maxWidth: "none",
-                flex: "0 1 auto",
-                visibility: "hidden",
-                pointerEvents: "none",
-              }}
-            >
-              <div className="chip">
-                <span>FR job</span>
-                <b className="nowrap">-</b>
-              </div>
-
-              <div className="chip">
-                <span>Last update</span>
-                <b className="nowrap">-</b>
-              </div>
+            <div className="chip">
+              <span>Mode</span>
+              <b className="nowrap">TIN</b>
             </div>
 
-            <div style={{ flex: "0 0 auto", marginLeft: "auto" }}>
-              <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+            <div className="chip">
+              <span>Country</span>
+              <b className="nowrap">{country}</b>
             </div>
+
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
           </div>
         </div>
       </div>
@@ -2237,9 +2213,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
         <div className="grid" style={{ alignItems: "stretch" }}>
           <div className="card">
             <h2>Input</h2>
-            <p className="hint">
-               
-            </p>
+            <p className="hint"></p>
 
             <div className="row inputActionsRow">
               <select
@@ -2259,17 +2233,13 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 ))}
               </select>
 
-              <button className="btn btn-secondary" onClick={openImportDialog} disabled={loading}>
+              <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
                 Import XLSX/CSV
-              </button>
+              </Button>
 
-              <button
-                className="btn btn-secondary btn-export btn-excel"
-                onClick={exportTinExcel}
-                disabled={!filteredRows.length}
-              >
+              <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
                 Export Excel
-              </button>
+              </Button>
 
               <input
                 ref={importFileRef}
@@ -2285,22 +2255,24 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               onChange={(e) => setTinInput(e.target.value)}
               placeholder={`123456782\n987654321\n...`}
             />
-<UserDraftsPanel
-  activePage="tin"
-  referenceValue={country}
-  inputValue={tinInput}
-  onRestoreDraft={(draft) => {
-    setCountry(draft.referenceValue || "NL");
-    setTinInput(draft.inputValue || "");
-    setRows([]);
-    setError("");
-    setInfoMessage("");
-    setSearch("");
-    setStatusFilter("all");
-    setSortKey("status");
-    setSortAsc(true);
-  }}
-/>
+
+            <UserDraftsPanel
+              activePage="tin"
+              referenceValue={country}
+              inputValue={tinInput}
+              onRestoreDraft={(draft) => {
+                setCountry(draft.referenceValue || "NL");
+                setTinInput(draft.inputValue || "");
+                setRows([]);
+                setError("");
+                setInfoMessage("");
+                setSearch("");
+                setStatusFilter("all");
+                setSortKey("status");
+                setSortAsc(true);
+              }}
+            />
+
             {infoMessage && (
               <div className="callout" style={{ marginTop: 10 }}>
                 {infoMessage}
@@ -2308,17 +2280,18 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             )}
 
             <div className="row" style={{ marginTop: 12 }}>
-              <button
-                className="btn btn-primary"
+              <Button
+                variant="primary"
+                size="md"
                 onClick={onValidateTinBatch}
                 disabled={loading || !tinInput.trim()}
               >
                 {loading ? "Validating…" : "Validate"}
-              </button>
+              </Button>
 
-              <button className="btn btn-secondary" onClick={onClearTin} disabled={loading}>
+              <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
                 Clear
-              </button>
+              </Button>
             </div>
 
             <div className="callout" style={{ marginTop: 14 }}>
@@ -2489,4 +2462,3 @@ export default function App() {
     <TinPage activePage={activePage} setActivePage={setActivePage} />
   );
 }
-
