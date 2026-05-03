@@ -457,20 +457,22 @@ function PortalBanner({
           style={{
             display: "flex",
             flexDirection: "column",
-            alignItems: "flex-end",
             justifyContent: "flex-end",
-            gap: 10,
+            alignItems: "stretch",
+            gap: 12,
             marginLeft: "auto",
             alignSelf: "flex-end",
+            minWidth: 340,
           }}
         >
           <div
             style={{
               display: "flex",
+              justifyContent: "center",
               alignItems: "center",
-              justifyContent: "flex-end",
               gap: 12,
               flexWrap: "wrap",
+              width: "100%",
             }}
           >
             <div className="chip">
@@ -486,7 +488,16 @@ function PortalBanner({
             ))}
           </div>
 
-          <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+          </div>
         </div>
       </div>
     </div>
@@ -1515,7 +1526,16 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                 }}
               />
 
-              <div className="callout" style={{ marginTop: 10 }}>
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "#0B2E5F",
+                }}
+              >
                 <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines · {precheck.duplicates} duplicates
                 · {precheck.badFormat} format issues
                 {precheck.badExamples.length > 0 && (
@@ -1695,7 +1715,7 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
           </div>
         </div>
 
-        <div className="tableWrap">
+        <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
             <strong>Results</strong>
             <div className="muted">
@@ -2413,7 +2433,7 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           </Card>
         </div>
 
-        <div className="tableWrap">
+        <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
             <strong>Results</strong>
             <div className="muted">
