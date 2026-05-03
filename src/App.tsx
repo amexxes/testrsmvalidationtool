@@ -117,9 +117,12 @@ export default function App() {
         <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
       )}
 
-      {user.role === "admin" && (
-        <AdminUsageDashboard open={usageOpen} onClose={() => setUsageOpen(false)} />
-      )}
+   {user.role === "admin" && (
+  <AdminClientBrandingPanel
+    open={brandingOpen}
+    onClose={() => setBrandingOpen(false)}
+  />
+)}
 
       <ChangePasswordPanel
         open={changePasswordOpen}
