@@ -550,6 +550,7 @@ function PortalBanner({
     {title}
   </div>
 </div>
+</div>
 
         <div
           style={{
