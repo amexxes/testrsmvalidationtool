@@ -509,7 +509,44 @@ function MetricGrid({
     </div>
   );
 }
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <CardTitle
+      style={{
+        fontSize: 20,
+        lineHeight: 1.2,
+        fontWeight: 700,
+        color: "var(--ink)",
+        margin: 0,
+      }}
+    >
+      {children}
+    </CardTitle>
+  );
+}
 
+function SectionSubtitle({
+  children,
+  maxWidth = 760,
+}: {
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  return (
+    <CardDescription
+      style={{
+        maxWidth,
+        fontSize: 14,
+        lineHeight: 1.55,
+        color: "var(--ink)",
+        opacity: 0.82,
+        marginTop: 6,
+      }}
+    >
+      {children}
+    </CardDescription>
+  );
+}
 function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -1376,13 +1413,13 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <CardTitle>Input</CardTitle>
-              <CardDescription style={{ maxWidth: 760 }}>
-                Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
-                update via polling.
-              </CardDescription>
-            </CardHeader>
+           <CardHeader className="pb-4">
+  <SectionTitle>Input</SectionTitle>
+  <SectionSubtitle maxWidth={760}>
+    Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
+    update via polling.
+  </SectionSubtitle>
+</CardHeader>
 
             <CardContent className="pt-0">
               <div className="row inputActionsRow">
@@ -1541,12 +1578,12 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <Card>
-              <CardHeader className="pb-4">
-                <CardTitle>Filter</CardTitle>
-                <CardDescription style={{ maxWidth: 520 }}>
-                  Search, sorting and input distribution.
-                </CardDescription>
-              </CardHeader>
+    <CardHeader className="pb-4">
+  <SectionTitle>Filter</SectionTitle>
+  <SectionSubtitle maxWidth={520}>
+    Search, sorting and input distribution.
+  </SectionSubtitle>
+</CardHeader>
 
               <CardContent className="pt-0">
                 <div className="filterBox">
@@ -1586,12 +1623,12 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
             </Card>
 
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <CardHeader className="pb-4">
-                <CardTitle>VIES status by country</CardTitle>
-                <CardDescription style={{ maxWidth: 520 }}>
-                  Availability according to VIES check status.
-                </CardDescription>
-              </CardHeader>
+       <CardHeader className="pb-4">
+  <SectionTitle>VIES status by country</SectionTitle>
+  <SectionSubtitle maxWidth={520}>
+    Availability according to VIES check status.
+  </SectionSubtitle>
+</CardHeader>
 
               <CardContent
                 className="pt-0"
@@ -2241,12 +2278,12 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <CardTitle>Input</CardTitle>
-              <CardDescription style={{ maxWidth: 760 }}>
-                Select the country, paste one or more TINs, and validate them in batch.
-              </CardDescription>
-            </CardHeader>
+       <CardHeader className="pb-4">
+  <SectionTitle>Input</SectionTitle>
+  <SectionSubtitle maxWidth={760}>
+    Select the country, paste one or more TINs, and validate them in batch.
+  </SectionSubtitle>
+</CardHeader>
 
             <CardContent className="pt-0">
               <div className="row inputActionsRow">
@@ -2329,13 +2366,12 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
             </CardContent>
           </Card>
 
-          <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <CardTitle>Dashboard</CardTitle>
-              <CardDescription style={{ maxWidth: 520 }}>
-                Overview, filters and sorting.
-              </CardDescription>
-            </CardHeader>
+     <CardHeader className="pb-4">
+  <SectionTitle>Dashboard</SectionTitle>
+  <SectionSubtitle maxWidth={520}>
+    Overview, filters and sorting.
+  </SectionSubtitle>
+</CardHeader>
 
             <CardContent className="pt-0">
               {error && (
