@@ -1456,7 +1456,10 @@ return {
   title={branding.portalTitle || "RSM Validation Portal"}
   subtitle={`${branding.clientName || "RSM Netherlands"} · VAT / VIES batch checks and review.`}
   modeValue="VAT / VIES"
-  meta={[{ label: "Last update", value: lastUpdate }]}
+  meta={[
+  { label: "Credits", value: "Unlimited" },
+  { label: "Last update", value: lastUpdate },
+]}
   activePage={activePage}
   setActivePage={setActivePage}
   branding={branding}
