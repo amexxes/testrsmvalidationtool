@@ -33,6 +33,7 @@ type ClientBranding = {
 
 type ToolAppProps = {
   branding?: ClientBranding;
+  viewAsEmail?: string;
   onRunCompleted?: (summary: PortalRunSummary) => void;
 };
 
@@ -50,9 +51,12 @@ const DEFAULT_BRANDING: ClientBranding = {
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+  language: PortalLanguage;
 };
 
-type BrandedPageProps = PageSwitcherProps & {
+type BrandedPageProps = {
+  activePage: ActivePage;
+  setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
   branding: ClientBranding;
   language: PortalLanguage;
   setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
@@ -106,13 +110,43 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   XI: { lat: 54.5973, lon: -5.9301 },
 };
 
-const ERROR_MAP: Record<string, string> = {
-  MS_MAX_CONCURRENT_REQ: "Member State has too many concurrent checks; we will try again later.",
-  MS_UNAVAILABLE: "Member State is temporarily unavailable; we will try again later.",
-  TIMEOUT: "Timeout when calling VIES; we will try again later.",
-  GLOBAL_MAX_CONCURRENT_REQ: "VIES is busy; we will try again later.",
-  SERVICE_UNAVAILABLE: "VIES service is unavailable; we will try again later.",
-  NETWORK_ERROR: "Network error when calling VIES; we will try again later.",
+const ERROR_MAP: Record<string, Partial<Record<PortalLanguage, string>> & { en: string }> = {
+  MS_MAX_CONCURRENT_REQ: {
+    en: "Member State has too many concurrent checks; we will try again later.",
+    nl: "De lidstaat heeft te veel gelijktijdige controles; we proberen het later opnieuw.",
+    de: "Der Mitgliedstaat hat zu viele gleichzeitige Prüfungen; wir versuchen es später erneut.",
+    fr: "L’État membre a trop de contrôles simultanés ; nous réessaierons plus tard.",
+  },
+  MS_UNAVAILABLE: {
+    en: "Member State is temporarily unavailable; we will try again later.",
+    nl: "De lidstaat is tijdelijk niet beschikbaar; we proberen het later opnieuw.",
+    de: "Der Mitgliedstaat ist vorübergehend nicht verfügbar; wir versuchen es später erneut.",
+    fr: "L’État membre est temporairement indisponible ; nous réessaierons plus tard.",
+  },
+  TIMEOUT: {
+    en: "Timeout when calling VIES; we will try again later.",
+    nl: "Timeout bij het aanroepen van VIES; we proberen het later opnieuw.",
+    de: "Zeitüberschreitung beim Aufruf von VIES; wir versuchen es später erneut.",
+    fr: "Délai dépassé lors de l’appel à VIES ; nous réessaierons plus tard.",
+  },
+  GLOBAL_MAX_CONCURRENT_REQ: {
+    en: "VIES is busy; we will try again later.",
+    nl: "VIES is druk; we proberen het later opnieuw.",
+    de: "VIES ist ausgelastet; wir versuchen es später erneut.",
+    fr: "VIES est occupé ; nous réessaierons plus tard.",
+  },
+  SERVICE_UNAVAILABLE: {
+    en: "VIES service is unavailable; we will try again later.",
+    nl: "De VIES-service is niet beschikbaar; we proberen het later opnieuw.",
+    de: "Der VIES-Dienst ist nicht verfügbar; wir versuchen es später erneut.",
+    fr: "Le service VIES est indisponible ; nous réessaierons plus tard.",
+  },
+  NETWORK_ERROR: {
+    en: "Network error when calling VIES; we will try again later.",
+    nl: "Netwerkfout bij het aanroepen van VIES; we proberen het later opnieuw.",
+    de: "Netzwerkfehler beim Aufruf von VIES; wir versuchen es später erneut.",
+    fr: "Erreur réseau lors de l’appel à VIES ; nous réessaierons plus tard.",
+  },
 };
 
 const VAT_PATTERNS: Record<string, RegExp> = {
@@ -187,14 +221,34 @@ function stateClass(state?: string): string {
   return "queued";
 }
 
-function stateLabel(state?: string): string {
+function stateLabel(state: string | undefined, language: PortalLanguage): string {
   const s = String(state || "").toLowerCase();
+
+  if (s === "valid") return t(language, "valid");
+  if (s === "invalid") return t(language, "invalid");
+  if (s === "queued") return t(language, "pending");
+  if (s === "processing") return t(language, "pending");
+  if (s === "error") return t(language, "error");
+
+  if (s === "retry") {
+    if (language === "nl") return "Opnieuw";
+    if (language === "de") return "Erneut";
+    if (language === "fr") return "Réessai";
+    return "Retry";
+  }
+
   return s || "unknown";
 }
 
-function humanError(code?: string, fallback?: string) {
+function humanError(code?: string, fallback?: string, language: PortalLanguage = "en") {
   const c = (code || "").trim();
-  return ERROR_MAP[c] || fallback || c || "";
+  const mapped = ERROR_MAP[c];
+
+  if (mapped) {
+    return mapped[language] || mapped.en;
+  }
+
+  return fallback || c || "";
 }
 
 function formatEta(ts?: number) {
@@ -315,12 +369,35 @@ function vatCcToIso2ForFlag(ccRaw: string): string {
   return cc;
 }
 
+function localeForLanguage(language: PortalLanguage): string {
+  if (language === "nl") return "nl";
+  if (language === "de") return "de";
+  if (language === "fr") return "fr";
+  return "en";
+}
+
+function countryName(code: string, language: PortalLanguage): string {
+  const displayCode = code === "EL" ? "GR" : code;
+
+  try {
+    const DisplayNames = (Intl as any).DisplayNames;
+    if (!DisplayNames) return code;
+
+    const names = new DisplayNames([localeForLanguage(language)], { type: "region" });
+    return names.of(displayCode) || code;
+  } catch {
+    return code;
+  }
+}
+
 function InputCountryBarChart({
   inputEntries,
   maxInputCount,
+  language,
 }: {
   inputEntries: Array<[string, number]>;
   maxInputCount: number;
+  language: PortalLanguage;
 }) {
   if (!inputEntries.length) return null;
 
@@ -339,9 +416,9 @@ function InputCountryBarChart({
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-        <div style={{ fontSize: 12, color: "var(--muted)" }}>Input by country</div>
+        <div style={{ fontSize: 12, color: "var(--muted)" }}>{t(language, "inputByCountry")}</div>
         <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-          {total} total
+          {total} {t(language, "total").toLowerCase()}
         </div>
       </div>
 
@@ -400,7 +477,7 @@ function InputCountryBarChart({
   );
 }
 
-function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
+function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
   return (
     <div
       style={{
@@ -425,7 +502,7 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
         onClick={() => setActivePage("vat")}
         style={{ minWidth: 158 }}
       >
-        VAT VIES Validation
+        {t(language, "vatTab")}
       </Button>
 
       <Button
@@ -435,7 +512,7 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
         onClick={() => setActivePage("tin")}
         style={{ minWidth: 120 }}
       >
-        TIN Validation
+        {t(language, "tinTab")}
       </Button>
     </div>
   );
@@ -545,12 +622,12 @@ function PortalBanner({
             />
           </div>
 
- <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
-  <div className="title" style={{ fontSize: 20 }}>
-    {title}
-  </div>
-</div>
-</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+            <div className="title" style={{ fontSize: 20 }}>
+              {title}
+            </div>
+          </div>
+        </div>
 
         <div
           style={{
@@ -597,7 +674,7 @@ function PortalBanner({
               width: "100%",
             }}
           >
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} />
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
           </div>
         </div>
       </div>
@@ -1084,7 +1161,7 @@ function VatPage({
         return copy;
       });
 
-      setSortLabel(`Sort: ${label} (${asc ? "asc" : "desc"})`);
+      setSortLabel(`${t(language, "sort")}: ${label} (${asc ? "asc" : "desc"})`);
       return { colIndex, asc };
     });
   }
@@ -1181,11 +1258,11 @@ function VatPage({
     });
 
     const boxes = [
-      { label: "Total", value: String(stats.total), color: "0B2E5F" },
-      { label: "Valid", value: String(stats.vOk), color: "0A7A3D" },
-      { label: "Invalid", value: String(stats.vBad), color: "B91C1C" },
-      { label: "Pending", value: String(stats.pending), color: "B45309" },
-      { label: "Error", value: String(stats.err), color: "B91C1C" },
+      { label: t(language, "total"), value: String(stats.total), color: "0B2E5F" },
+      { label: t(language, "valid"), value: String(stats.vOk), color: "0A7A3D" },
+      { label: t(language, "invalid"), value: String(stats.vBad), color: "B91C1C" },
+      { label: t(language, "pending"), value: String(stats.pending), color: "B45309" },
+      { label: t(language, "error"), value: String(stats.err), color: "B91C1C" },
     ];
 
     const startX = 0.5;
@@ -1230,7 +1307,7 @@ function VatPage({
     const top = inputEntries.slice(0, 12);
     const max = top.length ? Math.max(...top.map(([, n]) => n)) : 0;
 
-    slide.addText("Input per land (top 12)", {
+    slide.addText(t(language, "inputByCountry"), {
       x: 0.5,
       y: 2.25,
       w: 12.3,
@@ -1580,11 +1657,8 @@ function VatPage({
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
-              <SectionTitle>Input</SectionTitle>
-              <SectionSubtitle maxWidth={760}>
-                Paste VAT numbers (1 per line). Non-FR is checked realtime. FR is queued (retry/backoff) and will
-                update via polling.
-              </SectionSubtitle>
+              <SectionTitle>{t(language, "input")}</SectionTitle>
+              <SectionSubtitle maxWidth={760}>{t(language, "vatInputHelp")}</SectionSubtitle>
             </CardHeader>
 
             <CardContent className="pt-0">
@@ -1593,12 +1667,12 @@ function VatPage({
                   type="text"
                   value={caseRef}
                   onChange={(e) => setCaseRef(e.target.value)}
-                  placeholder="Client / Case (optional)"
+                  placeholder={t(language, "clientCasePlaceholder")}
                   style={{ flex: 1, minWidth: 220 }}
                 />
 
                 <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
-                  Import XLSX/CSV
+                  {t(language, "importXlsxCsv")}
                 </Button>
 
                 <input
@@ -1610,11 +1684,11 @@ function VatPage({
                 />
 
                 <Button variant="secondary" size="md" onClick={exportExcel} disabled={!rows.length}>
-                  Export Excel
+                  {t(language, "exportExcel")}
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={exportPptxInfographic} disabled={!rows.length}>
-                  Export PPTX
+                  {t(language, "exportPptx")}
                 </Button>
               </div>
 
@@ -1630,18 +1704,18 @@ function VatPage({
                     }}
                     disabled={!activeFrJobId}
                   />
-                  <b>FR debug</b>
+                  <b>{t(language, "frDebug")}</b>
                 </label>
 
                 {!activeFrJobId && (
-                  <span style={{ color: "var(--muted)", fontSize: 12 }}>start an FR job to see debug info</span>
+                  <span style={{ color: "var(--muted)", fontSize: 12 }}>{t(language, "frDebugHint")}</span>
                 )}
               </div>
 
               {frDebugOn && frDebug && (
                 <details className="callout" style={{ marginTop: 10 }}>
                   <summary>
-                    <b>Debug info</b>
+                    <b>{t(language, "debugInfo")}</b>
                   </summary>
                   <pre className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 8 }}>
                     {JSON.stringify(frDebug, null, 2)}
@@ -1651,7 +1725,7 @@ function VatPage({
 
               {duplicatesIgnored > 0 && (
                 <div className="callout" style={{ marginTop: 10 }}>
-                  <b>{duplicatesIgnored}</b> duplicates ignored.
+                  <b>{duplicatesIgnored}</b> {t(language, "duplicatesIgnored")}.
                 </div>
               )}
 
@@ -1673,10 +1747,9 @@ function VatPage({
               >
                 <b>{t(language, "preCheck")}</b>: {precheck.unique} unique / {precheck.totalLines} lines ·{" "}
                 {precheck.duplicates} duplicates · {precheck.badFormat} format issues
-
                 {precheck.badExamples.length > 0 && (
                   <details style={{ marginTop: 8 }}>
-                    <summary>Examples</summary>
+                    <summary>{t(language, "examples")}</summary>
                     <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
                       {precheck.badExamples.join("\n")}
                     </div>
@@ -1700,8 +1773,8 @@ function VatPage({
                 <div style={{ flex: 1 }} />
 
                 <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-                 <span>{t(language, "progress")}: </span>
-<b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
+                  <span>{t(language, "progress")}: </span>
+                  <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
                   <b style={{ color: "var(--text)" }}>{progressPct}%</b>
                 </div>
               </div>
@@ -1735,29 +1808,28 @@ function VatPage({
 
               <MetricGrid
                 items={[
-                  { label: "Total", value: stats.total },
-                  { label: "Done", value: stats.done },
-                  { label: "Valid", value: stats.vOk, tone: "ok" },
-                  { label: "Invalid", value: stats.vBad, tone: "bad" },
-                  { label: "Pending", value: stats.pending, tone: "warn" },
-                  { label: "Error", value: stats.err, tone: "bad" },
+                  { label: t(language, "total"), value: stats.total },
+                  { label: t(language, "done"), value: stats.done },
+                  { label: t(language, "valid"), value: stats.vOk, tone: "ok" },
+                  { label: t(language, "invalid"), value: stats.vBad, tone: "bad" },
+                  { label: t(language, "pending"), value: stats.pending, tone: "warn" },
+                  { label: t(language, "error"), value: stats.err, tone: "bad" },
                 ]}
               />
 
               <div className="callout" style={{ marginTop: 14 }}>
-                <b>Tip</b>: Use the filter to search within results. Click a column header to sort. Click a row to
-                expand details.
+                {t(language, "vatTip")}
               </div>
 
-              <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} />
+              <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} language={language} />
             </CardContent>
           </Card>
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <Card>
               <CardHeader className="pb-4">
-                <SectionTitle>Filter</SectionTitle>
-                <SectionSubtitle maxWidth={520}>Search, sorting and input distribution.</SectionSubtitle>
+                <SectionTitle>{t(language, "filter")}</SectionTitle>
+                <SectionSubtitle maxWidth={520}>{t(language, "filterHelp")}</SectionSubtitle>
               </CardHeader>
 
               <CardContent className="pt-0">
@@ -1766,16 +1838,16 @@ function VatPage({
                     type="text"
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    placeholder="Search in results…"
+                    placeholder={t(language, "searchResults")}
                   />
                   <div className="callout">
-                    Sorting: <span className="mono">{sortLabel || "—"}</span>
+                    {t(language, "sorting")}: <span className="mono">{sortLabel || "—"}</span>
                   </div>
                 </div>
 
                 <div className="mapbox">
                   <div className="mapbox-head">
-                    <div className="mapbox-title">Input distribution</div>
+                    <div className="mapbox-title">{t(language, "inputDistribution")}</div>
                     <div className="mapbox-sub">
                       <span className="nowrap">{mapCount}</span>
                     </div>
@@ -1799,8 +1871,8 @@ function VatPage({
 
             <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
               <CardHeader className="pb-4">
-                <SectionTitle>VIES status by country</SectionTitle>
-                <SectionSubtitle maxWidth={520}>Availability according to VIES check status.</SectionSubtitle>
+                <SectionTitle>{t(language, "viesStatusTitle")}</SectionTitle>
+                <SectionSubtitle maxWidth={520}>{t(language, "viesStatusHelp")}</SectionSubtitle>
               </CardHeader>
 
               <CardContent
@@ -1809,7 +1881,7 @@ function VatPage({
               >
                 <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
                   {!viesStatus.length ? (
-                    <div style={{ padding: 12, color: "var(--muted)" }}>No data</div>
+                    <div style={{ padding: 12, color: "var(--muted)" }}>{t(language, "noData")}</div>
                   ) : (
                     <div
                       style={{
@@ -1879,7 +1951,8 @@ function VatPage({
           <div className="tableHeader">
             <strong>{t(language, "results")}</strong>
             <div className="muted">
-              Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
+              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+              {t(language, "rows")}
             </div>
           </div>
 
@@ -1887,20 +1960,20 @@ function VatPage({
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: 160 }} onClick={() => sortByColumn(0, "State")}>
-                    State
+                  <th style={{ width: 160 }} onClick={() => sortByColumn(0, t(language, "state"))}>
+                    {t(language, "state")}
                   </th>
-                  <th style={{ width: 180 }} onClick={() => sortByColumn(1, "VAT")}>
-                    VAT
+                  <th style={{ width: 180 }} onClick={() => sortByColumn(1, t(language, "vat"))}>
+                    {t(language, "vat")}
                   </th>
-                  <th style={{ width: 280 }} onClick={() => sortByColumn(2, "Name")}>
-                    Name
+                  <th style={{ width: 280 }} onClick={() => sortByColumn(2, t(language, "name"))}>
+                    {t(language, "name")}
                   </th>
-                  <th style={{ width: 280 }} onClick={() => sortByColumn(3, "Address")}>
-                    Address
+                  <th style={{ width: 280 }} onClick={() => sortByColumn(3, t(language, "address"))}>
+                    {t(language, "address")}
                   </th>
-                  <th style={{ width: 240 }} onClick={() => sortByColumn(4, "Error")}>
-                    Error
+                  <th style={{ width: 240 }} onClick={() => sortByColumn(4, t(language, "error"))}>
+                    {t(language, "error")}
                   </th>
                 </tr>
               </thead>
@@ -1908,7 +1981,7 @@ function VatPage({
               <tbody>
                 {filteredRows.map((r, idx) => {
                   const ds = displayState(r);
-                  const st = stateLabel(ds);
+                  const st = stateLabel(ds, language);
                   const cls = stateClass(ds);
 
                   const key = rowKeyStable(r, idx);
@@ -1918,7 +1991,7 @@ function VatPage({
                   const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
 
                   const isDone = ds === "valid" || ds === "invalid";
-                  const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error);
+                  const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error, language);
 
                   return (
                     <React.Fragment key={`${key}-${idx}`}>
@@ -1945,25 +2018,29 @@ function VatPage({
                         <tr>
                           <td colSpan={5} className="rowDetails">
                             <div className="kv">
-                              <span>Case</span>
+                              <span>{t(language, "case")}</span>
                               <b>{(r as any).case_ref || "—"}</b>
 
-                              <span>Checked at</span>
-                              <b>{(r as any).checked_at ? new Date((r as any).checked_at).toLocaleString("nl-NL") : "—"}</b>
+                              <span>{t(language, "checkedAt")}</span>
+                              <b>
+                                {(r as any).checked_at
+                                  ? new Date((r as any).checked_at).toLocaleString("nl-NL")
+                                  : "—"}
+                              </b>
 
-                              <span>Error code</span>
+                              <span>{t(language, "errorCode")}</span>
                               <b>{isDone ? "—" : (r as any).error_code || "—"}</b>
 
-                              <span>Details</span>
+                              <span>{t(language, "details")}</span>
                               <b>{isDone ? "—" : (r as any).details || "—"}</b>
 
-                              <span>Attempt</span>
+                              <span>{t(language, "attempt")}</span>
                               <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "—"}</b>
 
-                              <span>Next retry</span>
+                              <span>{t(language, "nextRetry")}</span>
                               <b>{nra ? new Date(nra).toLocaleString("nl-NL") : "—"}</b>
 
-                              <span>Format</span>
+                              <span>{t(language, "format")}</span>
                               <b>{(r as any).format_ok === false ? `Bad (${(r as any).format_reason})` : "OK"}</b>
                             </div>
 
@@ -1983,9 +2060,9 @@ function VatPage({
                                   );
                                 }}
                               >
-                                <option value="">No tag</option>
-                                <option value="whitelist">Whitelist</option>
-                                <option value="blacklist">Blacklist</option>
+                                <option value="">{t(language, "noTag")}</option>
+                                <option value="whitelist">{t(language, "whitelist")}</option>
+                                <option value="blacklist">{t(language, "blacklist")}</option>
                               </select>
 
                               <input
@@ -2006,7 +2083,7 @@ function VatPage({
                                     )
                                   );
                                 }}
-                                placeholder="Note (optional)"
+                                placeholder={t(language, "notePlaceholder")}
                                 style={{ flex: 1, minWidth: 260 }}
                               />
                             </div>
@@ -2020,7 +2097,7 @@ function VatPage({
                 {!filteredRows.length && (
                   <tr>
                     <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
-                      No results
+                      {t(language, "noResults")}
                     </td>
                   </tr>
                 )}
@@ -2095,6 +2172,37 @@ function dedupeTinText(text: string, countryCode: string) {
   };
 }
 
+function formatTinCleanupMessage(
+  language: PortalLanguage,
+  duplicatesRemoved: number,
+  prefixRemoved: number,
+  phase: "beforeValidation" | "duringImport"
+) {
+  const parts: string[] = [];
+
+  if (language === "nl") {
+    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} dubbele regel(s) verwijderd`);
+    if (prefixRemoved > 0) parts.push(`landcode verwijderd uit ${prefixRemoved} regel(s)`);
+    return `${parts.join(" en ")} ${phase === "beforeValidation" ? "vóór validatie" : "tijdens import"}.`;
+  }
+
+  if (language === "de") {
+    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} doppelte Zeile(n) entfernt`);
+    if (prefixRemoved > 0) parts.push(`Ländercode aus ${prefixRemoved} Zeile(n) entfernt`);
+    return `${parts.join(" und ")} ${phase === "beforeValidation" ? "vor der Prüfung" : "beim Import"}.`;
+  }
+
+  if (language === "fr") {
+    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} ligne(s) en double supprimée(s)`);
+    if (prefixRemoved > 0) parts.push(`code pays supprimé de ${prefixRemoved} ligne(s)`);
+    return `${parts.join(" et ")} ${phase === "beforeValidation" ? "avant validation" : "pendant l’import"}.`;
+  }
+
+  if (duplicatesRemoved > 0) parts.push(`Removed ${duplicatesRemoved} duplicate line(s)`);
+  if (prefixRemoved > 0) parts.push(`removed the country code from ${prefixRemoved} line(s)`);
+  return `${parts.join(" and ")} ${phase === "beforeValidation" ? "before validation" : "during import"}.`;
+}
+
 function TinPage({
   activePage,
   setActivePage,
@@ -2129,34 +2237,37 @@ function TinPage({
   const currentRunStartedAtRef = useRef<string>("");
 
   const countryOptions = [
-    { code: "AT", label: "Austria" },
-    { code: "BE", label: "Belgium" },
-    { code: "BG", label: "Bulgaria" },
-    { code: "CY", label: "Cyprus" },
-    { code: "CZ", label: "Czech Republic" },
-    { code: "DE", label: "Germany" },
-    { code: "DK", label: "Denmark" },
-    { code: "EE", label: "Estonia" },
-    { code: "EL", label: "Greece" },
-    { code: "ES", label: "Spain" },
-    { code: "FI", label: "Finland" },
-    { code: "FR", label: "France" },
-    { code: "HR", label: "Croatia" },
-    { code: "HU", label: "Hungary" },
-    { code: "IE", label: "Ireland" },
-    { code: "IT", label: "Italy" },
-    { code: "LT", label: "Lithuania" },
-    { code: "LU", label: "Luxembourg" },
-    { code: "LV", label: "Latvia" },
-    { code: "MT", label: "Malta" },
-    { code: "NL", label: "Netherlands" },
-    { code: "PL", label: "Poland" },
-    { code: "PT", label: "Portugal" },
-    { code: "RO", label: "Romania" },
-    { code: "SE", label: "Sweden" },
-    { code: "SI", label: "Slovenia" },
-    { code: "SK", label: "Slovakia" },
-  ];
+    "AT",
+    "BE",
+    "BG",
+    "CY",
+    "CZ",
+    "DE",
+    "DK",
+    "EE",
+    "EL",
+    "ES",
+    "FI",
+    "FR",
+    "HR",
+    "HU",
+    "IE",
+    "IT",
+    "LT",
+    "LU",
+    "LV",
+    "MT",
+    "NL",
+    "PL",
+    "PT",
+    "RO",
+    "SE",
+    "SI",
+    "SK",
+  ].map((code) => ({
+    code,
+    label: countryName(code, language),
+  }));
 
   function statusPillClass(status: string) {
     if (status === "valid") return "valid";
@@ -2165,13 +2276,21 @@ function TinPage({
   }
 
   function prettyStatus(status: string) {
-    if (status === "valid") return "Valid";
-    if (status === "invalid") return "Invalid";
-    return "Error";
+    if (status === "valid") return t(language, "valid");
+    if (status === "invalid") return t(language, "invalid");
+    return t(language, "error");
   }
 
   function boolLabel(value: any) {
-    if (value === null || value === undefined) return "n/a";
+    if (value === null || value === undefined) {
+      if (language === "nl") return "n.v.t.";
+      if (language === "de") return "k. A.";
+      return "n/a";
+    }
+
+    if (language === "nl") return value ? "ja" : "nee";
+    if (language === "de") return value ? "ja" : "nein";
+    if (language === "fr") return value ? "oui" : "non";
     return value ? "true" : "false";
   }
 
@@ -2185,6 +2304,16 @@ function TinPage({
     if (status === "valid") return 0;
     if (status === "invalid") return 1;
     return 2;
+  }
+
+  function tinSortLabel(key: TinSortKey) {
+    if (key === "status") return t(language, "state");
+    if (key === "input_tin") return t(language, "inputTin");
+    if (key === "tin_number") return t(language, "returnedTin");
+    if (key === "structure_valid") return t(language, "structure");
+    if (key === "syntax_valid") return t(language, "syntax");
+    if (key === "request_date") return t(language, "date");
+    return t(language, "message");
   }
 
   function sortBy(nextKey: TinSortKey) {
@@ -2259,7 +2388,7 @@ function TinPage({
 
       return sortAsc ? cmp : -cmp;
     });
-  }, [rows, search, statusFilter, sortKey, sortAsc]);
+  }, [rows, search, statusFilter, sortKey, sortAsc, language]);
 
   useEffect(() => {
     if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
@@ -2293,14 +2422,9 @@ function TinPage({
     }
 
     if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
-      const parts = [];
-      if (prepared.duplicatesRemoved > 0) {
-        parts.push(`Removed ${prepared.duplicatesRemoved} duplicate line(s)`);
-      }
-      if (prepared.prefixRemoved > 0) {
-        parts.push(`removed the country code from ${prepared.prefixRemoved} line(s)`);
-      }
-      setInfoMessage(parts.join(" and ") + " before validation.");
+      setInfoMessage(
+        formatTinCleanupMessage(language, prepared.duplicatesRemoved, prepared.prefixRemoved, "beforeValidation")
+      );
     } else {
       setInfoMessage("");
     }
@@ -2386,14 +2510,9 @@ function TinPage({
       setStatusFilter("all");
 
       if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
-        const parts = [];
-        if (prepared.duplicatesRemoved > 0) {
-          parts.push(`Removed ${prepared.duplicatesRemoved} duplicate line(s)`);
-        }
-        if (prepared.prefixRemoved > 0) {
-          parts.push(`removed the country code from ${prepared.prefixRemoved} line(s)`);
-        }
-        setInfoMessage(parts.join(" and ") + " during import.");
+        setInfoMessage(
+          formatTinCleanupMessage(language, prepared.duplicatesRemoved, prepared.prefixRemoved, "duringImport")
+        );
       } else {
         setInfoMessage("");
       }
@@ -2472,10 +2591,8 @@ function TinPage({
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
-              <SectionTitle>Input</SectionTitle>
-              <SectionSubtitle maxWidth={760}>
-                Select the country, paste one or more TINs, and validate them in batch.
-              </SectionSubtitle>
+              <SectionTitle>{t(language, "input")}</SectionTitle>
+              <SectionSubtitle maxWidth={760}>{t(language, "tinInputHelp")}</SectionSubtitle>
             </CardHeader>
 
             <CardContent className="pt-0">
@@ -2498,11 +2615,11 @@ function TinPage({
                 </select>
 
                 <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
-                  Import XLSX/CSV
+                  {t(language, "importXlsxCsv")}
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
-                  Export Excel
+                  {t(language, "exportExcel")}
                 </Button>
 
                 <input
@@ -2554,27 +2671,27 @@ function TinPage({
               />
 
               <div className="callout" style={{ marginTop: 14 }}>
-                <b>Important</b>: Select the correct country and enter the TIN without the country code.
+                {t(language, "tinImportant")}
               </div>
             </CardContent>
           </Card>
 
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
-              <SectionTitle>Dashboard</SectionTitle>
-              <SectionSubtitle maxWidth={520}>Overview, filters and sorting.</SectionSubtitle>
+              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
             </CardHeader>
 
             <CardContent className="pt-0">
               {error && (
                 <div className="callout" style={{ marginTop: 10 }}>
-                  <b style={{ color: "var(--bad)" }}>Error</b>: {error}
+                  <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
                 </div>
               )}
 
               {!error && !rows.length && (
                 <div className="callout" style={{ marginTop: 10 }}>
-                  No results yet.
+                  {t(language, "noResultsYet")}
                 </div>
               )}
 
@@ -2582,17 +2699,17 @@ function TinPage({
                 <>
                   <MetricGrid
                     items={[
-                      { label: "Total", value: stats.total },
-                      { label: "Valid", value: stats.valid, tone: "ok" },
-                      { label: "Invalid", value: stats.invalid, tone: "bad" },
-                      { label: "Error", value: stats.error, tone: "bad" },
+                      { label: t(language, "total"), value: stats.total },
+                      { label: t(language, "valid"), value: stats.valid, tone: "ok" },
+                      { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
+                      { label: t(language, "error"), value: stats.error, tone: "bad" },
                     ]}
                   />
 
                   <div className="callout" style={{ marginTop: 12 }}>
-                    <b>Country</b>: {country}
+                    <b>{t(language, "country")}</b>: {country}
                     <br />
-                    <b>Valid rate</b>: {validPct}%
+                    <b>{t(language, "validRate")}</b>: {validPct}%
                   </div>
 
                   <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
@@ -2604,7 +2721,7 @@ function TinPage({
                       type="text"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search in results…"
+                      placeholder={t(language, "searchResults")}
                     />
 
                     <div className="row" style={{ marginTop: 10 }}>
@@ -2613,14 +2730,17 @@ function TinPage({
                         onChange={(e) => setStatusFilter(e.target.value)}
                         style={{ minWidth: 180 }}
                       >
-                        <option value="all">All statuses</option>
-                        <option value="valid">Valid</option>
-                        <option value="invalid">Invalid</option>
-                        <option value="error">Error</option>
+                        <option value="all">{t(language, "allStatuses")}</option>
+                        <option value="valid">{t(language, "valid")}</option>
+                        <option value="invalid">{t(language, "invalid")}</option>
+                        <option value="error">{t(language, "error")}</option>
                       </select>
 
                       <div className="callout" style={{ margin: 0, padding: "10px 12px" }}>
-                        Sort: <span className="mono">{sortKey}{sortAsc ? " asc" : " desc"}</span>
+                        {t(language, "sort")}:{" "}
+                        <span className="mono">
+                          {tinSortLabel(sortKey)} {sortAsc ? "asc" : "desc"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -2634,7 +2754,8 @@ function TinPage({
           <div className="tableHeader">
             <strong>{t(language, "results")}</strong>
             <div className="muted">
-              Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
+              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+              {t(language, "rows")}
             </div>
           </div>
 
@@ -2643,25 +2764,32 @@ function TinPage({
               <thead>
                 <tr>
                   <th style={{ width: 150, cursor: "pointer" }} onClick={() => sortBy("status")}>
-                    Status{sortIndicator("status")}
+                    {t(language, "state")}
+                    {sortIndicator("status")}
                   </th>
                   <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("input_tin")}>
-                    Input TIN{sortIndicator("input_tin")}
+                    {t(language, "inputTin")}
+                    {sortIndicator("input_tin")}
                   </th>
                   <th style={{ width: 220, cursor: "pointer" }} onClick={() => sortBy("tin_number")}>
-                    Returned TIN{sortIndicator("tin_number")}
+                    {t(language, "returnedTin")}
+                    {sortIndicator("tin_number")}
                   </th>
                   <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("structure_valid")}>
-                    Structure{sortIndicator("structure_valid")}
+                    {t(language, "structure")}
+                    {sortIndicator("structure_valid")}
                   </th>
                   <th style={{ width: 120, cursor: "pointer" }} onClick={() => sortBy("syntax_valid")}>
-                    Syntax{sortIndicator("syntax_valid")}
+                    {t(language, "syntax")}
+                    {sortIndicator("syntax_valid")}
                   </th>
                   <th style={{ width: 140, cursor: "pointer" }} onClick={() => sortBy("request_date")}>
-                    Date{sortIndicator("request_date")}
+                    {t(language, "date")}
+                    {sortIndicator("request_date")}
                   </th>
                   <th style={{ width: 320, cursor: "pointer" }} onClick={() => sortBy("message")}>
-                    Message{sortIndicator("message")}
+                    {t(language, "message")}
+                    {sortIndicator("message")}
                   </th>
                 </tr>
               </thead>
@@ -2687,7 +2815,7 @@ function TinPage({
                 {!filteredRows.length && (
                   <tr>
                     <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
-                      No results
+                      {t(language, "noResults")}
                     </td>
                   </tr>
                 )}
