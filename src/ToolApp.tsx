@@ -2318,44 +2318,44 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
                 />
               </div>
 
-              <textarea
-                value={tinInput}
-                onChange={(e) => setTinInput(e.target.value)}
-                placeholder={`123456782\n987654321\n...`}
-              />
+   <textarea
+  value={tinInput}
+  onChange={(e) => setTinInput(e.target.value)}
+  placeholder={`123456782\n987654321\n...`}
+/>
 
-              <UserDraftsPanel
-                activePage="tin"
-                referenceValue={country}
-                inputValue={tinInput}
-                onRestoreDraft={(draft) => {
-                  setCountry(draft.referenceValue || "NL");
-                  setTinInput(draft.inputValue || "");
-                  setRows([]);
-                  setError("");
-                  setInfoMessage("");
-                  setSearch("");
-                  setStatusFilter("all");
-                  setSortKey("status");
-                  setSortAsc(true);
-                }}
-              />
+{infoMessage && (
+  <div className="callout" style={{ marginTop: 10 }}>
+    {infoMessage}
+  </div>
+)}
 
-              {infoMessage && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  {infoMessage}
-                </div>
-              )}
+<div className="row" style={{ marginTop: 12 }}>
+  <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
+    {loading ? "Validating…" : "Validate"}
+  </Button>
 
-              <div className="row" style={{ marginTop: 12 }}>
-                <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
-                  {loading ? "Validating…" : "Validate"}
-                </Button>
+  <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
+    Clear
+  </Button>
+</div>
 
-                <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
-                  Clear
-                </Button>
-              </div>
+<UserDraftsPanel
+  activePage="tin"
+  referenceValue={country}
+  inputValue={tinInput}
+  onRestoreDraft={(draft) => {
+    setCountry(draft.referenceValue || "NL");
+    setTinInput(draft.inputValue || "");
+    setRows([]);
+    setError("");
+    setInfoMessage("");
+    setSearch("");
+    setStatusFilter("all");
+    setSortKey("status");
+    setSortAsc(true);
+  }}
+/>
 
               <div className="callout" style={{ marginTop: 14 }}>
                 <b>Important</b>: Select the correct country and enter the TIN without the country code.
