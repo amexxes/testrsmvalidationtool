@@ -822,7 +822,7 @@ function VatPage({
   const currentRunStartedAtRef = useRef<string>("");
 
   const [frDebugOn, setFrDebugOn] = useState(false);
-  const [frDebug, setFrDebug] = useState<any | null>(null);
+ const [, setFrDebug] = useState<any | null>(null);
   const frDebugOnRef = useRef(false);
 
   useEffect(() => {
@@ -1723,37 +1723,6 @@ function VatPage({
                 </Button>
               </div>
 
-              <div className="callout" style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={frDebugOn}
-                    onChange={(e) => {
-                      setFrDebugOn(e.target.checked);
-                      setFrDebug(null);
-                      if (activeFrJobId) void pollFrJob(activeFrJobId);
-                    }}
-                    disabled={!activeFrJobId}
-                  />
-                  <b>{t(language, "frDebug")}</b>
-                </label>
-
-                {!activeFrJobId && (
-                  <span style={{ color: "var(--muted)", fontSize: 12 }}>{t(language, "frDebugHint")}</span>
-                )}
-              </div>
-
-              {frDebugOn && frDebug && (
-                <details className="callout" style={{ marginTop: 10 }}>
-                  <summary>
-                    <b>{t(language, "debugInfo")}</b>
-                  </summary>
-                  <pre className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 8 }}>
-                    {JSON.stringify(frDebug, null, 2)}
-                  </pre>
-                </details>
-              )}
-
               {duplicatesIgnored > 0 && (
                 <div className="callout" style={{ marginTop: 10 }}>
                   <b>{duplicatesIgnored}</b> {t(language, "duplicatesIgnored")}.
@@ -2630,7 +2599,15 @@ function TinPage({
             </CardHeader>
 
             <CardContent className="pt-0">
-              <div className="row inputActionsRow">
+              <div
+  className="row inputActionsRow"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "nowrap",
+  }}
+>
                 <select
                   value={country}
                   onChange={(e) => {
@@ -2639,7 +2616,7 @@ function TinPage({
                     setError("");
                     setInfoMessage("");
                   }}
-                  style={{ minWidth: 240 }}
+                 style={{ minWidth: 240, flex: "0 0 240px" }}
                 >
                   {countryOptions.map((c) => (
                     <option key={c.code} value={c.code}>
