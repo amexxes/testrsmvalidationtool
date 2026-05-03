@@ -1353,20 +1353,32 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
           const max = Math.max(0, ...Object.values(countryCounts));
           const ratio = max > 0 ? n / max : 0;
 
-let fill = "#f7fbfd";
+let fill = "#eaf7fb";
+let stroke = "#cfe8f1";
 
-if (ratio >= 0.8) fill = "#9ecfe2";
-else if (ratio >= 0.55) fill = "#b8deeb";
-else if (ratio >= 0.35) fill = "#d2edf5";
-else if (ratio >= 0.18) fill = "#e5f5fa";
-else if (ratio > 0) fill = "#f0f9fc";
+if (ratio >= 0.8) {
+  fill = "#55b9d4";
+  stroke = "#9fd8e8";
+} else if (ratio >= 0.55) {
+  fill = "#78c8dd";
+  stroke = "#b7e2ed";
+} else if (ratio >= 0.35) {
+  fill = "#9ed9e9";
+  stroke = "#cdebf3";
+} else if (ratio >= 0.18) {
+  fill = "#c4e9f3";
+  stroke = "#dff4f8";
+} else if (ratio > 0) {
+  fill = "#ddf4fa";
+  stroke = "#e9f8fb";
+}
 
 return {
-  color: n ? "rgba(11, 46, 95, 0.24)" : "rgba(11, 46, 95, 0.11)",
-  weight: n ? 0.85 : 0.55,
-  opacity: n ? 0.72 : 0.42,
+  color: stroke,
+  weight: n ? 0.9 : 0.65,
+  opacity: n ? 0.95 : 0.75,
   fillColor: fill,
-  fillOpacity: n ? 0.9 : 0.58,
+  fillOpacity: n ? 0.92 : 0.72,
 };
         },
         onEachFeature: (feature: any, lyr: any) => {
