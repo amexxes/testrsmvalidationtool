@@ -1255,12 +1255,6 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
         keyboard: false,
       }).setView([53.5, 10], 3);
 
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-  maxZoom: 6,
-  minZoom: 2,
-  attribution:
-    '&copy; OpenStreetMap contributors &copy; CARTO',
-}).addTo(map);
 
       const layer = L.layerGroup().addTo(map);
 
