@@ -8,9 +8,17 @@ import pptxgen from "pptxgenjs";
 import UserDraftsPanel from "./UserDraftsPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  LANGUAGES,
+  getStoredLanguage,
+  storeLanguage,
+  t,
+  type PortalLanguage,
+} from "./i18n";
 
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin";
+
 type ClientBranding = {
   id?: string;
   clientName?: string;
@@ -37,12 +45,20 @@ const DEFAULT_BRANDING: ClientBranding = {
   textColor: "#1E293B",
 };
 
-type BrandedPageProps = PageSwitcherProps & {
-  branding: ClientBranding;
-};
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
+};
+
+type BrandedPageProps = PageSwitcherProps & {
+  branding: ClientBranding;
+  language: PortalLanguage;
+  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
+};
+
+type LanguageSwitcherProps = {
+  language: PortalLanguage;
+  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
 };
 
 type PortalBannerProps = {
@@ -53,6 +69,8 @@ type PortalBannerProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
   branding?: ClientBranding;
+  language: PortalLanguage;
+  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
 };
 
 const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
@@ -421,6 +439,49 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
   );
 }
 
+function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        padding: 4,
+        borderRadius: 999,
+        border: "1px solid rgba(11,46,95,0.10)",
+        background: "rgba(255,255,255,0.76)",
+        boxShadow: "0 8px 22px rgba(11,46,95,0.045)",
+      }}
+      aria-label="Language selector"
+    >
+      {LANGUAGES.map((item) => {
+        const active = item.code === language;
+
+        return (
+          <button
+            key={item.code}
+            type="button"
+            onClick={() => setLanguage(item.code)}
+            style={{
+              border: 0,
+              borderRadius: 999,
+              padding: "6px 9px",
+              background: active ? "rgba(11,46,95,0.96)" : "transparent",
+              color: active ? "#fff" : "#0B2E5F",
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+              cursor: "pointer",
+            }}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PortalBanner({
   title,
   subtitle,
@@ -429,9 +490,12 @@ function PortalBanner({
   activePage,
   setActivePage,
   branding = DEFAULT_BRANDING,
+  language,
+  setLanguage,
 }: PortalBannerProps) {
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
+
   return (
     <div className="banner">
       <div className="banner-accent" />
@@ -465,19 +529,19 @@ function PortalBanner({
               minWidth: 152,
             }}
           >
-       <img
-  src={logoUrl}
-  alt={logoAlt}
-  onError={(e) => {
-    e.currentTarget.onerror = null;
-    e.currentTarget.src = "/rsmlogo.png";
-  }}
-  style={{
-    maxWidth: 150,
-    maxHeight: 58,
-    objectFit: "contain",
-  }}
-/>
+            <img
+              src={logoUrl}
+              alt={logoAlt}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/rsmlogo.png";
+              }}
+              style={{
+                maxWidth: 150,
+                maxHeight: 58,
+                objectFit: "contain",
+              }}
+            />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
@@ -511,7 +575,7 @@ function PortalBanner({
             }}
           >
             <div className="chip">
-              <span>Mode</span>
+              <span>{t(language, "mode")}</span>
               <b className="nowrap">{modeValue}</b>
             </div>
 
@@ -521,6 +585,8 @@ function PortalBanner({
                 <b className="nowrap">{item.value}</b>
               </div>
             ))}
+
+            <LanguageSwitcher language={language} setLanguage={setLanguage} />
           </div>
 
           <div
@@ -608,7 +674,14 @@ function SectionSubtitle({
   );
 }
 
-function VatPage({ activePage, setActivePage, branding }: BrandedPageProps) {  const [vatInput, setVatInput] = useState<string>("");
+function VatPage({
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+}: BrandedPageProps) {
+  const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
 
@@ -1289,7 +1362,6 @@ function VatPage({ activePage, setActivePage, branding }: BrandedPageProps) {  c
         keyboard: false,
       }).setView([53.5, 10], 3);
 
-
       const layer = L.layerGroup().addTo(map);
 
       mapRef.current = map;
@@ -1387,33 +1459,33 @@ function VatPage({ activePage, setActivePage, branding }: BrandedPageProps) {  c
           const max = Math.max(0, ...Object.values(countryCounts));
           const ratio = max > 0 ? n / max : 0;
 
-let fill = "#d9f0f7";
-let stroke = "#b9deea";
+          let fill = "#d9f0f7";
+          let stroke = "#b9deea";
 
-if (ratio >= 0.8) {
-  fill = "#55b9d4";
-  stroke = "#9fd8e8";
-} else if (ratio >= 0.55) {
-  fill = "#78c8dd";
-  stroke = "#b7e2ed";
-} else if (ratio >= 0.35) {
-  fill = "#9ed9e9";
-  stroke = "#cdebf3";
-} else if (ratio >= 0.18) {
-  fill = "#c4e9f3";
-  stroke = "#dff4f8";
-} else if (ratio > 0) {
-  fill = "#ddf4fa";
-  stroke = "#e9f8fb";
-}
+          if (ratio >= 0.8) {
+            fill = "#55b9d4";
+            stroke = "#9fd8e8";
+          } else if (ratio >= 0.55) {
+            fill = "#78c8dd";
+            stroke = "#b7e2ed";
+          } else if (ratio >= 0.35) {
+            fill = "#9ed9e9";
+            stroke = "#cdebf3";
+          } else if (ratio >= 0.18) {
+            fill = "#c4e9f3";
+            stroke = "#dff4f8";
+          } else if (ratio > 0) {
+            fill = "#ddf4fa";
+            stroke = "#e9f8fb";
+          }
 
-return {
-  color: stroke,
-  weight: n ? 0.9 : 0.65,
-  opacity: n ? 0.95 : 0.75,
-  fillColor: fill,
-  fillOpacity: n ? 0.92 : 0.72,
-};
+          return {
+            color: stroke,
+            weight: n ? 0.9 : 0.65,
+            opacity: n ? 0.95 : 0.75,
+            fillColor: fill,
+            fillOpacity: n ? 0.92 : 0.72,
+          };
         },
         onEachFeature: (feature: any, lyr: any) => {
           const p = feature?.properties || {};
@@ -1452,18 +1524,20 @@ return {
 
   return (
     <>
- <PortalBanner
-  title={branding.portalTitle || "RSM Validation Portal"}
-  subtitle={`${branding.clientName || "RSM Netherlands"} · VAT / VIES batch checks and review.`}
-  modeValue="VAT / VIES"
-  meta={[
-  { label: "Credits:", value: "Unlimited" },
-  { label: "Last update", value: lastUpdate },
-]}
-  activePage={activePage}
-  setActivePage={setActivePage}
-  branding={branding}
-/>
+      <PortalBanner
+        title={branding.portalTitle || "RSM Validation Portal"}
+        subtitle={`${branding.clientName || "RSM Netherlands"} · ${t(language, "vatSubtitle")}`}
+        modeValue="VAT / VIES"
+        meta={[
+          { label: t(language, "credits"), value: t(language, "unlimited") },
+          { label: t(language, "lastUpdate"), value: lastUpdate },
+        ]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+      />
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
@@ -1544,78 +1618,78 @@ return {
                 </div>
               )}
 
-<textarea
-  value={vatInput}
-  onChange={(e) => setVatInput(e.target.value)}
-  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-/>
+              <textarea
+                value={vatInput}
+                onChange={(e) => setVatInput(e.target.value)}
+                placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+              />
 
-<div
-  className="callout"
-  style={{
-    marginTop: 10,
-    fontSize: 14,
-    lineHeight: 1.55,
-    fontWeight: 500,
-    color: "#0B2E5F",
-  }}
->
-  <b>Pre-check</b>: {precheck.unique} unique / {precheck.totalLines} lines ·{" "}
-  {precheck.duplicates} duplicates · {precheck.badFormat} format issues
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "#0B2E5F",
+                }}
+              >
+                <b>{t(language, "preCheck")}</b>: {precheck.unique} unique / {precheck.totalLines} lines ·{" "}
+                {precheck.duplicates} duplicates · {precheck.badFormat} format issues
 
-  {precheck.badExamples.length > 0 && (
-    <details style={{ marginTop: 8 }}>
-      <summary>Examples</summary>
-      <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
-        {precheck.badExamples.join("\n")}
-      </div>
-    </details>
-  )}
-</div>
+                {precheck.badExamples.length > 0 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary>Examples</summary>
+                    <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+                      {precheck.badExamples.join("\n")}
+                    </div>
+                  </details>
+                )}
+              </div>
 
-<div className="row">
-  <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
-    {loading ? "Validating…" : "Validate"}
-  </Button>
+              <div className="row">
+                <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
+                  {loading ? t(language, "validating") : t(language, "validate")}
+                </Button>
 
-  <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
-    Clear
-  </Button>
+                <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
+                  {t(language, "clear")}
+                </Button>
 
-  <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
-    Cancel
-  </Button>
+                <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
+                  {t(language, "cancel")}
+                </Button>
 
-  <div style={{ flex: 1 }} />
+                <div style={{ flex: 1 }} />
 
-  <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-    Progress: <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
-    <b style={{ color: "var(--text)" }}>{progressPct}%</b>
-  </div>
-</div>
+                <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
+                  {t(language, "progress")}: <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
+                  <b style={{ color: "var(--text)" }}>{progressPct}%</b>
+                </div>
+              </div>
 
-<UserDraftsPanel
-  activePage="vat"
-  referenceValue={caseRef}
-  inputValue={vatInput}
-  onRestoreDraft={(draft) => {
-    onCancel();
-    setCaseRef(draft.referenceValue || "");
-    setVatInput(draft.inputValue || "");
-    setRows([]);
-    setFilter("");
-    setExpandedKey(null);
-    setDuplicatesIgnored(0);
-    setViesStatus([]);
-    setFrText("-");
-    setLastUpdate("-");
-    setProgressText("0/0");
-    setSortState({ colIndex: null, asc: true });
-    setSortLabel("");
-    setFrDebugOn(false);
-    setFrDebug(null);
-  }}
-/>
+              <UserDraftsPanel
+                activePage="vat"
+                referenceValue={caseRef}
+                inputValue={vatInput}
+                onRestoreDraft={(draft) => {
+                  onCancel();
+                  setCaseRef(draft.referenceValue || "");
+                  setVatInput(draft.inputValue || "");
+                  setRows([]);
+                  setFilter("");
+                  setExpandedKey(null);
+                  setDuplicatesIgnored(0);
+                  setViesStatus([]);
+                  setFrText("-");
+                  setLastUpdate("-");
+                  setProgressText("0/0");
+                  setSortState({ colIndex: null, asc: true });
+                  setSortLabel("");
+                  setFrDebugOn(false);
+                  setFrDebug(null);
+                }}
+              />
 
               <div className="progress" aria-hidden="true">
                 <div className="bar" style={{ width: `${progressPct}%` }} />
@@ -1765,7 +1839,7 @@ return {
 
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
-            <strong>Results</strong>
+            <strong>{t(language, "results")}</strong>
             <div className="muted">
               Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
             </div>
@@ -1983,7 +2057,14 @@ function dedupeTinText(text: string, countryCode: string) {
   };
 }
 
-function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  type TinSortKey =
+function TinPage({
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+}: BrandedPageProps) {
+  type TinSortKey =
     | "status"
     | "input_tin"
     | "tin_number"
@@ -2309,18 +2390,20 @@ function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  t
 
   return (
     <>
-<PortalBanner
-  title={branding.portalTitle || "RSM Validation Portal"}
-  subtitle={`${branding.clientName || "RSM Netherlands"} · TIN batch checks and review.`}
-  modeValue="TIN"
-  meta={[
-  { label: "Credits:", value: "Unlimited" },
-  { label: "Country", value: country },
-]}
-  activePage={activePage}
-  setActivePage={setActivePage}
-  branding={branding}
-/>
+      <PortalBanner
+        title={branding.portalTitle || "RSM Validation Portal"}
+        subtitle={`${branding.clientName || "RSM Netherlands"} · ${t(language, "tinSubtitle")}`}
+        modeValue="TIN"
+        meta={[
+          { label: t(language, "credits"), value: t(language, "unlimited") },
+          { label: t(language, "country"), value: country },
+        ]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+      />
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
@@ -2368,44 +2451,44 @@ function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  t
                 />
               </div>
 
-   <textarea
-  value={tinInput}
-  onChange={(e) => setTinInput(e.target.value)}
-  placeholder={`123456782\n987654321\n...`}
-/>
+              <textarea
+                value={tinInput}
+                onChange={(e) => setTinInput(e.target.value)}
+                placeholder={`123456782\n987654321\n...`}
+              />
 
-{infoMessage && (
-  <div className="callout" style={{ marginTop: 10 }}>
-    {infoMessage}
-  </div>
-)}
+              {infoMessage && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {infoMessage}
+                </div>
+              )}
 
-<div className="row" style={{ marginTop: 12 }}>
-  <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
-    {loading ? "Validating…" : "Validate"}
-  </Button>
+              <div className="row" style={{ marginTop: 12 }}>
+                <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
+                  {loading ? t(language, "validating") : t(language, "validate")}
+                </Button>
 
-  <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
-    Clear
-  </Button>
-</div>
+                <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
+                  {t(language, "clear")}
+                </Button>
+              </div>
 
-<UserDraftsPanel
-  activePage="tin"
-  referenceValue={country}
-  inputValue={tinInput}
-  onRestoreDraft={(draft) => {
-    setCountry(draft.referenceValue || "NL");
-    setTinInput(draft.inputValue || "");
-    setRows([]);
-    setError("");
-    setInfoMessage("");
-    setSearch("");
-    setStatusFilter("all");
-    setSortKey("status");
-    setSortAsc(true);
-  }}
-/>
+              <UserDraftsPanel
+                activePage="tin"
+                referenceValue={country}
+                inputValue={tinInput}
+                onRestoreDraft={(draft) => {
+                  setCountry(draft.referenceValue || "NL");
+                  setTinInput(draft.inputValue || "");
+                  setRows([]);
+                  setError("");
+                  setInfoMessage("");
+                  setSearch("");
+                  setStatusFilter("all");
+                  setSortKey("status");
+                  setSortAsc(true);
+                }}
+              />
 
               <div className="callout" style={{ marginTop: 14 }}>
                 <b>Important</b>: Select the correct country and enter the TIN without the country code.
@@ -2486,7 +2569,7 @@ function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  t
 
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
-            <strong>Results</strong>
+            <strong>{t(language, "results")}</strong>
             <div className="muted">
               Showing <b style={{ color: "var(--text)" }}>{filteredRows.length}</b> rows
             </div>
@@ -2556,18 +2639,27 @@ function TinPage({ activePage, setActivePage, branding }: BrandedPageProps) {  t
 
 export default function App({ branding = DEFAULT_BRANDING }: ToolAppProps) {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
+  const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
+
+  useEffect(() => {
+    storeLanguage(language);
+  }, [language]);
 
   return activePage === "vat" ? (
     <VatPage
       activePage={activePage}
       setActivePage={setActivePage}
       branding={branding}
+      language={language}
+      setLanguage={setLanguage}
     />
   ) : (
     <TinPage
       activePage={activePage}
       setActivePage={setActivePage}
       branding={branding}
+      language={language}
+      setLanguage={setLanguage}
     />
   );
 }
