@@ -1,5 +1,5 @@
 // /src/App.tsx
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ToolApp from "./ToolApp";
 import LoginPage from "./LoginPage";
 import AdminUsersPanel from "./AdminUsersPanel";
@@ -8,6 +8,7 @@ import AccountMenu from "./AccountMenu";
 import AdminUsageDashboard from "./AdminUsageDashboard";
 import AdminClientBrandingPanel from "./AdminClientBrandingPanel";
 import PortalTaskHistoryPanel from "./PortalTaskHistoryPanel";
+import AdminViewAsUserPanel from "./AdminViewAsUserPanel";
 import {
   clearPortalRunHistory,
   loadPortalRunHistory,
@@ -84,6 +85,16 @@ export default function App() {
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
   const [portalRuns, setPortalRuns] = useState<PortalRunSummary[]>([]);
 
+  const [viewAsOpen, setViewAsOpen] = useState(false);
+  const [viewAsLoading, setViewAsLoading] = useState(false);
+  const [viewAsError, setViewAsError] = useState("");
+  const [viewAsEmail, setViewAsEmail] = useState("");
+  const [viewAsBranding, setViewAsBranding] = useState<ClientBranding | null>(null);
+
+  const effectiveBranding = useMemo(() => {
+    return viewAsBranding || branding;
+  }, [viewAsBranding, branding]);
+
   useEffect(() => {
     applyBrandingVars(DEFAULT_BRANDING);
     void loadSession();
@@ -123,6 +134,7 @@ export default function App() {
       if (!resp.ok) {
         setUser(null);
         setPortalRuns([]);
+        resetViewAs(false);
         setBranding(DEFAULT_BRANDING);
         applyBrandingVars(DEFAULT_BRANDING);
         return;
@@ -140,6 +152,7 @@ export default function App() {
     } catch {
       setUser(null);
       setPortalRuns([]);
+      resetViewAs(false);
       setBranding(DEFAULT_BRANDING);
       applyBrandingVars(DEFAULT_BRANDING);
     } finally {
@@ -156,6 +169,7 @@ export default function App() {
     setUsageOpen(false);
     setBrandingOpen(false);
     setTaskHistoryOpen(false);
+    resetViewAs(false);
 
     setPortalRuns(loadPortalRunHistory(nextUser.email));
 
@@ -177,6 +191,7 @@ export default function App() {
       setBrandingOpen(false);
       setTaskHistoryOpen(false);
 
+      resetViewAs(false);
       setPortalRuns([]);
       setBranding(DEFAULT_BRANDING);
       applyBrandingVars(DEFAULT_BRANDING);
@@ -200,6 +215,58 @@ export default function App() {
     setPortalRuns(next);
   }
 
+  function resetViewAs(applyCurrentBranding = true) {
+    setViewAsOpen(false);
+    setViewAsLoading(false);
+    setViewAsError("");
+    setViewAsEmail("");
+    setViewAsBranding(null);
+
+    if (applyCurrentBranding) {
+      applyBrandingVars(branding);
+    }
+  }
+
+  async function handleViewAsUser(email: string) {
+    const cleanEmail = String(email || "").trim().toLowerCase();
+
+    if (!cleanEmail) {
+      setViewAsError("Customer email is required");
+      return;
+    }
+
+    setViewAsLoading(true);
+    setViewAsError("");
+
+    try {
+      const resp = await fetch(
+        `/api/admin/view-as/branding?email=${encodeURIComponent(cleanEmail)}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      const data = await readApiResponse(resp);
+
+      if (!resp.ok) {
+        setViewAsError(data?.error || data?.message || "Could not load view-as user");
+        return;
+      }
+
+      const nextBranding = data?.branding || DEFAULT_BRANDING;
+
+      setViewAsEmail(data?.viewAs?.email || cleanEmail);
+      setViewAsBranding(nextBranding);
+      applyBrandingVars(nextBranding);
+      setViewAsOpen(false);
+    } catch {
+      setViewAsError("Could not load view-as user");
+    } finally {
+      setViewAsLoading(false);
+    }
+  }
+
   if (checking) {
     return (
       <div style={loadingShellStyle}>
@@ -214,8 +281,21 @@ export default function App() {
 
   return (
     <>
+      {user.role === "admin" && viewAsEmail && (
+        <div style={viewAsBarStyle}>
+          <div style={{ minWidth: 0 }}>
+            <b>Viewing as</b>{" "}
+            <span style={{ wordBreak: "break-word" }}>{viewAsEmail}</span>
+          </div>
+
+          <button type="button" onClick={() => resetViewAs(true)} style={viewAsStopButtonStyle}>
+            Stop view as
+          </button>
+        </div>
+      )}
+
       <ToolApp
-        branding={branding}
+        branding={effectiveBranding}
         onRunCompleted={user.role !== "admin" ? handleRunCompleted : undefined}
       />
 
@@ -225,6 +305,10 @@ export default function App() {
           onOpenUsers={() => setAdminOpen(true)}
           onOpenUsage={() => setUsageOpen(true)}
           onOpenBranding={() => setBrandingOpen(true)}
+          onOpenViewAsUser={() => {
+            setViewAsError("");
+            setViewAsOpen(true);
+          }}
           onOpenTaskHistory={() => setTaskHistoryOpen(true)}
           onOpenChangePassword={() => setChangePasswordOpen(true)}
           onLogout={handleLogout}
@@ -249,6 +333,16 @@ export default function App() {
         <AdminClientBrandingPanel
           open={brandingOpen}
           onClose={() => setBrandingOpen(false)}
+        />
+      )}
+
+      {user.role === "admin" && (
+        <AdminViewAsUserPanel
+          open={viewAsOpen}
+          loading={viewAsLoading}
+          error={viewAsError}
+          onClose={() => setViewAsOpen(false)}
+          onApply={handleViewAsUser}
         />
       )}
 
@@ -299,4 +393,34 @@ const accountMenuWrapStyle: React.CSSProperties = {
   right: 24,
   zIndex: 25000,
   maxWidth: "calc(100vw - 32px)",
+};
+
+const viewAsBarStyle: React.CSSProperties = {
+  position: "fixed",
+  top: 16,
+  right: 24,
+  zIndex: 26000,
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  maxWidth: "calc(100vw - 48px)",
+  padding: "10px 12px",
+  borderRadius: 16,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "rgba(255,255,255,0.96)",
+  color: "#0B2E5F",
+  boxShadow: "0 18px 44px rgba(11,46,95,0.14)",
+  fontSize: 13,
+};
+
+const viewAsStopButtonStyle: React.CSSProperties = {
+  flexShrink: 0,
+  padding: "7px 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(185,28,28,0.14)",
+  background: "rgba(185,28,28,0.06)",
+  color: "#8f1d1d",
+  fontWeight: 800,
+  cursor: "pointer",
+  fontSize: 12,
 };
