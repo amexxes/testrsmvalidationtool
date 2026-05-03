@@ -757,24 +757,30 @@ function PortalBanner({
           </div>
         </div>
 
-  <div
+ <div
   style={{
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 12,
+    gap: 10,
     marginLeft: "auto",
     alignSelf: "center",
-    minWidth: 340,
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
+    minWidth: 0,
   }}
 >
   <div
     className="chip"
     style={{
-      minHeight: 42,
+      flex: "0 0 auto",
+      width: "auto",
+      minWidth: 0,
+      minHeight: 40,
       display: "inline-flex",
       alignItems: "center",
+      gap: 6,
+      whiteSpace: "nowrap",
+      padding: "8px 10px",
     }}
   >
     <span>{t(language, "mode")}</span>
@@ -786,9 +792,15 @@ function PortalBanner({
       className="chip"
       key={item.label}
       style={{
-        minHeight: 42,
+        flex: "0 0 auto",
+        width: "auto",
+        minWidth: 0,
+        minHeight: 40,
         display: "inline-flex",
         alignItems: "center",
+        gap: 6,
+        whiteSpace: "nowrap",
+        padding: "8px 10px",
       }}
     >
       <span>{item.label}</span>
@@ -798,9 +810,10 @@ function PortalBanner({
 
   <div
     style={{
-      minHeight: 42,
+      flex: "0 0 auto",
       display: "inline-flex",
-      alignItems: "flex-end",
+      alignItems: "center",
+      minHeight: 40,
     }}
   >
     <LanguageSwitcher language={language} setLanguage={setLanguage} />
@@ -808,9 +821,10 @@ function PortalBanner({
 
   <div
     style={{
-      minHeight: 42,
+      flex: "0 0 auto",
       display: "inline-flex",
-     alignItems: "flex-end",
+      alignItems: "center",
+      minHeight: 40,
     }}
   >
     <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
