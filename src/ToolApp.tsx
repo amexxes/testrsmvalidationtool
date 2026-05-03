@@ -39,7 +39,7 @@ type ToolAppProps = {
 const DEFAULT_BRANDING: ClientBranding = {
   id: "default",
   clientName: "RSM Netherlands",
-  portalTitle: "RSM Validation Portal",
+  portalTitle: "Validation Portal",
   logoUrl: "/rsmlogo.png",
   primaryColor: "#0B2E5F",
   accentColor: "#63C7F2",
