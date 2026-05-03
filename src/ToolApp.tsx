@@ -465,9 +465,13 @@ function PortalBanner({
               minWidth: 152,
             }}
           >
-        <img
+       <img
   src={logoUrl}
   alt={logoAlt}
+  onError={(e) => {
+    e.currentTarget.onerror = null;
+    e.currentTarget.src = "/rsmlogo.png";
+  }}
   style={{
     maxWidth: 150,
     maxHeight: 58,
