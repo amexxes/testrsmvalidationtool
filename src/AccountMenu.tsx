@@ -1,12 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 
 type Props = {
-  user: {
-    email: string;
-    role: "admin" | "user";
-  };
+  user: { email: string; role: "admin" | "user" };
   onOpenUsers: () => void;
   onOpenUsage: () => void;
+  onOpenBranding: () => void;
   onOpenChangePassword: () => void;
   onLogout: () => void;
 };
@@ -15,6 +13,7 @@ export default function AccountMenu({
   user,
   onOpenUsers,
   onOpenUsage,
+  onOpenBranding,
   onOpenChangePassword,
   onLogout,
 }: Props) {
