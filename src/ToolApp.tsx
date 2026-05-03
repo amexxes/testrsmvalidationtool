@@ -359,6 +359,23 @@ const VAT_PATTERNS: Record<string, RegExp> = {
 
 type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error";
 
+type ImportPreviewData = {
+  totalFound: number;
+  readyCount: number;
+  duplicatesRemoved: number;
+  skippedCount: number;
+  prefixRemoved?: number;
+  columnLabel: string;
+  examples: string[];
+  payloadText: string;
+};
+
+type ParsedImportFileValues = {
+  values: string[];
+  totalFound: number;
+  columnLabel: string;
+};
+
 function normalizeLine(s: string): string {
   return String(s || "")
     .trim()
@@ -530,6 +547,110 @@ function validateFormat(vatNumberWithPrefix: string) {
   if (!rest) return { ok: false, reason: "Missing VAT digits" };
   if (!/^[A-Z0-9]+$/.test(rest)) return { ok: false, reason: "Invalid characters" };
   return { ok: true, reason: "" };
+}
+
+function excelColumnName(index: number): string {
+  let n = index + 1;
+  let out = "";
+
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    out = String.fromCharCode(65 + rem) + out;
+    n = Math.floor((n - 1) / 26);
+  }
+
+  return out;
+}
+
+function isLikelyImportHeader(value: string): boolean {
+  const v = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_\-./]/g, "");
+
+  return [
+    "vat",
+    "vatnumber",
+    "btwnummer",
+    "btw",
+    "tin",
+    "tinnumber",
+    "inputtin",
+    "taxnumber",
+    "taxidentificationnumber",
+    "number",
+    "nummer",
+  ].includes(v);
+}
+
+async function readImportFileValues(
+  file: File,
+  isUsefulValue: (value: string) => boolean
+): Promise<ParsedImportFileValues> {
+  const name = (file.name || "").toLowerCase();
+  const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
+
+  if (isCsvLike) {
+    const text = await file.text();
+
+    const values = text
+      .split(/\r?\n|,|;|\t/)
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
+
+    return {
+      values,
+      totalFound: values.length,
+      columnLabel: "CSV/TXT",
+    };
+  }
+
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const firstSheetName = wb.SheetNames?.[0];
+  const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
+
+  if (!ws) {
+    return {
+      values: [],
+      totalFound: 0,
+      columnLabel: "—",
+    };
+  }
+
+  const aoa = XLSX.utils.sheet_to_json(ws, {
+    header: 1,
+    raw: false,
+    defval: "",
+  }) as any[][];
+
+  const maxCols = aoa.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+
+  let bestCol = 0;
+  let bestScore = -1;
+  let bestFilled = -1;
+  let bestValues: string[] = [];
+
+  for (let col = 0; col < maxCols; col++) {
+    const values = aoa
+      .map((row) => String(row?.[col] ?? "").trim())
+      .filter(Boolean);
+
+    const score = values.reduce((sum, value) => sum + (isUsefulValue(value) ? 1 : 0), 0);
+
+    if (score > bestScore || (score === bestScore && values.length > bestFilled)) {
+      bestCol = col;
+      bestScore = score;
+      bestFilled = values.length;
+      bestValues = values;
+    }
+  }
+
+  return {
+    values: bestValues,
+    totalFound: bestValues.length,
+    columnLabel: `Sheet 1, kolom ${excelColumnName(bestCol)}`,
+  };
 }
 
 function isRetryableError(codeOrError?: string, details?: string) {
@@ -968,6 +1089,101 @@ function SectionSubtitle({
   return <CardDescription style={{ ...PAGE_SUBTITLE_STYLE, maxWidth }}>{children}</CardDescription>;
 }
 
+function ImportPreviewPanel({
+  preview,
+  language,
+  onCancel,
+  onConfirm,
+}: {
+  preview: ImportPreviewData;
+  language: PortalLanguage;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const labels: Record<string, Record<string, string>> = {
+    en: {
+      title: "Import preview",
+      ready: "ready for import",
+      found: "found",
+      duplicates: "duplicates removed",
+      skipped: "rows skipped",
+      prefixes: "country codes removed",
+      column: "Column used",
+      example: "Example",
+      confirm: "Confirm import",
+    },
+    nl: {
+      title: "Importvoorbeeld",
+      ready: "klaar voor import",
+      found: "gevonden",
+      duplicates: "duplicaten verwijderd",
+      skipped: "regels overgeslagen",
+      prefixes: "landcodes verwijderd",
+      column: "Gebruikte kolom",
+      example: "Voorbeeld",
+      confirm: "Import bevestigen",
+    },
+    de: {
+      title: "Importvorschau",
+      ready: "bereit für Import",
+      found: "gefunden",
+      duplicates: "Duplikate entfernt",
+      skipped: "Zeilen übersprungen",
+      prefixes: "Ländercodes entfernt",
+      column: "Verwendete Spalte",
+      example: "Beispiel",
+      confirm: "Import bestätigen",
+    },
+    fr: {
+      title: "Aperçu de l’import",
+      ready: "prêt pour l’import",
+      found: "trouvé",
+      duplicates: "doublons supprimés",
+      skipped: "lignes ignorées",
+      prefixes: "codes pays supprimés",
+      column: "Colonne utilisée",
+      example: "Exemple",
+      confirm: "Confirmer l’import",
+    },
+  };
+
+  const copy = labels[language] || labels.en;
+
+  return (
+    <div className="callout" style={{ marginTop: 12 }}>
+      <div style={SMALL_HEADER_STYLE}>{copy.title}</div>
+
+      <div style={{ marginTop: 8, fontSize: 14, lineHeight: 1.55 }}>
+        <b>{preview.readyCount}</b> {copy.ready} · <b>{preview.totalFound}</b> {copy.found} ·{" "}
+        <b>{preview.duplicatesRemoved}</b> {copy.duplicates} · <b>{preview.skippedCount}</b> {copy.skipped}
+        {typeof preview.prefixRemoved === "number" && preview.prefixRemoved > 0
+          ? ` · ${preview.prefixRemoved} ${copy.prefixes}`
+          : ""}
+      </div>
+
+      <div className="mono" style={{ marginTop: 8, fontSize: 12 }}>
+        {copy.column}: {preview.columnLabel}
+      </div>
+
+      <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700 }}>{copy.example}</div>
+
+      <div className="mono" style={{ marginTop: 4, fontSize: 12, whiteSpace: "pre-wrap" }}>
+        {preview.examples.length ? preview.examples.join("\n") : "—"}
+      </div>
+
+      <div className="row" style={{ marginTop: 10 }}>
+        <Button variant="secondary" size="sm" onClick={onCancel}>
+          {t(language, "cancel")}
+        </Button>
+
+        <Button variant="primary" size="sm" onClick={onConfirm} disabled={!preview.readyCount}>
+          {copy.confirm}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function VatPage({
   activePage,
   setActivePage,
@@ -985,6 +1201,7 @@ function VatPage({
 
   const [duplicatesIgnored, setDuplicatesIgnored] = useState(0);
   const [viesStatus, setViesStatus] = useState<Array<{ countryCode: string; availability: string }>>([]);
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
 
   const [, setFrText] = useState("-");
   const [lastUpdate, setLastUpdate] = useState("-");
@@ -1258,6 +1475,7 @@ function VatPage({
 
   async function onValidate() {
     stopPolling();
+    setImportPreview(null);
     setExpandedKey(null);
     setRows([]);
     setFrText("-");
@@ -1337,6 +1555,7 @@ function VatPage({
     setDuplicatesIgnored(0);
     setViesStatus([]);
     setExpandedKey(null);
+    setImportPreview(null);
   }
 
   function getCellText(r: VatRow, colIndex: number): string {
@@ -1381,52 +1600,65 @@ function VatPage({
     importFileRef.current?.click();
   }
 
+  function confirmVatImport() {
+    if (!importPreview) return;
+
+    setVatInput(importPreview.payloadText);
+    setExpandedKey(null);
+    setFilter("");
+    setRows([]);
+    setDuplicatesIgnored(0);
+    setViesStatus([]);
+    setImportPreview(null);
+  }
+
   async function importVatFile(file: File) {
-    const name = (file.name || "").toLowerCase();
-    const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
-
-    let candidates: string[] = [];
-
-    if (isCsvLike) {
-      const text = await file.text();
-      candidates = text
-        .split(/\r?\n|,|;|\t/)
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
-    } else {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      const firstSheetName = wb.SheetNames?.[0];
-      const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
-      if (!ws) return;
-
-      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" }) as any[][];
-      candidates = aoa
-        .flat()
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
-    }
+    const parsed = await readImportFileValues(file, (value) => {
+      const n = normalizeVatCandidate(value);
+      return Boolean(n) && validateFormat(n).ok && !isLikelyImportHeader(value);
+    });
 
     const seen = new Set<string>();
     const out: string[] = [];
+    let duplicatesRemoved = 0;
+    let skippedCount = 0;
 
-    for (const c of candidates) {
-      const n = normalizeVatCandidate(c);
-      if (!n) continue;
+    for (const value of parsed.values) {
+      if (isLikelyImportHeader(value)) {
+        skippedCount++;
+        continue;
+      }
+
+      const n = normalizeVatCandidate(value);
+      if (!n) {
+        skippedCount++;
+        continue;
+      }
 
       const fmt = validateFormat(n);
-      if (!fmt.ok) continue;
+      if (!fmt.ok) {
+        skippedCount++;
+        continue;
+      }
 
-      if (seen.has(n)) continue;
+      if (seen.has(n)) {
+        duplicatesRemoved++;
+        continue;
+      }
+
       seen.add(n);
       out.push(n);
     }
 
-    if (out.length) {
-      setVatInput(out.join("\n"));
-      setExpandedKey(null);
-      setFilter("");
-    }
+    setImportPreview({
+      totalFound: parsed.totalFound,
+      readyCount: out.length,
+      duplicatesRemoved,
+      skippedCount,
+      columnLabel: parsed.columnLabel,
+      examples: out.slice(0, 10),
+      payloadText: out.join("\n"),
+    });
   }
 
   function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1765,18 +1997,30 @@ function VatPage({
                 />
               </div>
 
+              {importPreview && (
+                <ImportPreviewPanel
+                  preview={importPreview}
+                  language={language}
+                  onCancel={() => setImportPreview(null)}
+                  onConfirm={confirmVatImport}
+                />
+              )}
+
               {duplicatesIgnored > 0 && (
                 <div className="callout" style={{ marginTop: 10 }}>
                   <b>{duplicatesIgnored}</b> {t(language, "duplicatesIgnored")}.
                 </div>
               )}
 
-<textarea
-  value={vatInput}
-  onChange={(e) => setVatInput(e.target.value)}
-  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-  style={{ marginTop: 12 }}
-/>
+              <textarea
+                value={vatInput}
+                onChange={(e) => {
+                  setVatInput(e.target.value);
+                  setImportPreview(null);
+                }}
+                placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+                style={{ marginTop: 12 }}
+              />
 
               <div
                 className="callout"
@@ -1843,6 +2087,7 @@ function VatPage({
                   setProgressText("0/0");
                   setSortState({ colIndex: null, asc: true });
                   setSortLabel("");
+                  setImportPreview(null);
                 }}
               />
 
@@ -1860,7 +2105,6 @@ function VatPage({
                   { label: t(language, "error"), value: stats.err, tone: "bad" },
                 ]}
               />
-
 
               <InputCountryBarChart inputEntries={inputEntries} maxInputCount={maxInputCount} language={language} />
             </CardContent>
@@ -2292,6 +2536,7 @@ function TinPage({
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortKey, setSortKey] = useState<TinSortKey>("status");
   const [sortAsc, setSortAsc] = useState(true);
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
 
   const importFileRef = useRef<HTMLInputElement | null>(null);
 
@@ -2480,6 +2725,8 @@ function TinPage({
     currentRunIdRef.current = `tin-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     currentRunStartedAtRef.current = new Date().toISOString();
 
+    setImportPreview(null);
+
     if (prepared.cleanedText !== tinInput) {
       setTinInput(prepared.cleanedText);
     }
@@ -2527,60 +2774,66 @@ function TinPage({
     setStatusFilter("all");
     setSortKey("status");
     setSortAsc(true);
+    setImportPreview(null);
   }
 
   function openImportDialog() {
     importFileRef.current?.click();
   }
 
-  async function importTinFile(file: File) {
-    const name = (file.name || "").toLowerCase();
-    const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
+  function confirmTinImport() {
+    if (!importPreview) return;
 
-    let candidates: string[] = [];
+    setTinInput(importPreview.payloadText);
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
 
-    if (isCsvLike) {
-      const text = await file.text();
-      candidates = text
-        .split(/\r?\n|,|;|\t/)
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
+    if ((importPreview.duplicatesRemoved || 0) > 0 || (importPreview.prefixRemoved || 0) > 0) {
+      setInfoMessage(
+        formatTinCleanupMessage(
+          language,
+          importPreview.duplicatesRemoved || 0,
+          importPreview.prefixRemoved || 0,
+          "duringImport"
+        )
+      );
     } else {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      const firstSheetName = wb.SheetNames?.[0];
-      const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
-      if (!ws) return;
-
-      const aoa = XLSX.utils.sheet_to_json(ws, {
-        header: 1,
-        raw: false,
-        defval: "",
-      }) as any[][];
-
-      candidates = aoa
-        .flat()
-        .map((x) => String(x || "").trim())
-        .filter(Boolean);
+      setInfoMessage("");
     }
 
-    if (candidates.length) {
-      const prepared = dedupeTinText(candidates.join("\n"), country);
+    setImportPreview(null);
+  }
 
-      setTinInput(prepared.cleanedText);
-      setRows([]);
-      setError("");
-      setSearch("");
-      setStatusFilter("all");
+  async function importTinFile(file: File) {
+    const parsed = await readImportFileValues(file, (value) => {
+      if (isLikelyImportHeader(value)) return false;
+      return normalizeTinDuplicateKey(value, country).length >= 3;
+    });
 
-      if (prepared.duplicatesRemoved > 0 || prepared.prefixRemoved > 0) {
-        setInfoMessage(
-          formatTinCleanupMessage(language, prepared.duplicatesRemoved, prepared.prefixRemoved, "duringImport")
-        );
-      } else {
-        setInfoMessage("");
-      }
-    }
+    const candidates = parsed.values.filter((value) => {
+      if (isLikelyImportHeader(value)) return false;
+      return normalizeTinDuplicateKey(value, country).length >= 3;
+    });
+
+    const prepared = dedupeTinText(candidates.join("\n"), country);
+
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+
+    setImportPreview({
+      totalFound: parsed.totalFound,
+      readyCount: prepared.uniqueLines.length,
+      duplicatesRemoved: prepared.duplicatesRemoved,
+      skippedCount: parsed.totalFound - candidates.length,
+      prefixRemoved: prepared.prefixRemoved,
+      columnLabel: parsed.columnLabel,
+      examples: prepared.uniqueLines.slice(0, 10),
+      payloadText: prepared.cleanedText,
+    });
   }
 
   function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -2669,13 +2922,13 @@ function TinPage({
                     setRows([]);
                     setError("");
                     setInfoMessage("");
+                    setImportPreview(null);
                   }}
                   style={{
-  ...ACTION_FIRST_FIELD_STYLE,
-  lineHeight: "normal",
-  paddingTop: 0,
-  paddingBottom: 0,
-}}
+                    ...ACTION_FIRST_FIELD_STYLE,
+                    lineHeight: "20px",
+                    padding: "0 10px",
+                  }}
                 >
                   {countryOptions.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -2713,12 +2966,24 @@ function TinPage({
                 />
               </div>
 
-<textarea
-  value={tinInput}
-  onChange={(e) => setTinInput(e.target.value)}
-  placeholder={`123456782\n987654321\n...`}
-  style={{ marginTop: 12 }}
-/>
+              {importPreview && (
+                <ImportPreviewPanel
+                  preview={importPreview}
+                  language={language}
+                  onCancel={() => setImportPreview(null)}
+                  onConfirm={confirmTinImport}
+                />
+              )}
+
+              <textarea
+                value={tinInput}
+                onChange={(e) => {
+                  setTinInput(e.target.value);
+                  setImportPreview(null);
+                }}
+                placeholder={`123456782\n987654321\n...`}
+                style={{ marginTop: 12 }}
+              />
 
               {infoMessage && (
                 <div className="callout" style={{ marginTop: 10 }}>
@@ -2751,6 +3016,7 @@ function TinPage({
                   setStatusFilter("all");
                   setSortKey("status");
                   setSortAsc(true);
+                  setImportPreview(null);
                 }}
               />
 
