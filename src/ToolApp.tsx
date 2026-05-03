@@ -102,16 +102,30 @@ const TH_STYLE: React.CSSProperties = {
 };
 
 const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
-  flex: "0 0 420px",
   width: 420,
   minWidth: 420,
   maxWidth: "100%",
 };
-const ACTION_BUTTON_STYLE: React.CSSProperties = {
-  width: 150,
-  minWidth: 150,
-  justifyContent: "center",
+
+const ACTION_ROW_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "420px 170px 170px",
+  alignItems: "center",
+  gap: 10,
+  width: "100%",
 };
+
+const ACTION_BUTTON_STYLE: React.CSSProperties = {
+  width: "100%",
+  minWidth: 0,
+  height: 38,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center",
+  whiteSpace: "nowrap",
+};
+
 const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -821,10 +835,7 @@ function PortalBanner({
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
-  const statusItems = [
-    { label: t(language, "mode"), value: modeValue },
-    ...meta,
-  ];
+  const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
 
   return (
     <div className="banner">
@@ -894,11 +905,7 @@ function PortalBanner({
           </div>
 
           <div style={BANNER_CONTROL_STYLE}>
-            <PageSwitcher
-              activePage={activePage}
-              setActivePage={setActivePage}
-              language={language}
-            />
+            <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
           </div>
         </div>
       </div>
@@ -947,11 +954,7 @@ function SectionSubtitle({
   children: React.ReactNode;
   maxWidth?: number;
 }) {
-  return (
-    <CardDescription style={{ ...PAGE_SUBTITLE_STYLE, maxWidth }}>
-      {children}
-    </CardDescription>
-  );
+  return <CardDescription style={{ ...PAGE_SUBTITLE_STYLE, maxWidth }}>{children}</CardDescription>;
 }
 
 function VatPage({
@@ -1422,7 +1425,6 @@ function VatPage({
     void importVatFile(f);
   }
 
-
   function exportExcel() {
     const headers = [
       "case_ref",
@@ -1714,54 +1716,43 @@ function VatPage({
             </CardHeader>
 
             <CardContent className="pt-0">
-    <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "420px 150px 150px",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-  }}
->
-  <input
-    type="text"
-    value={caseRef}
-    onChange={(e) => setCaseRef(e.target.value)}
-    placeholder={t(language, "clientCasePlaceholder")}
-    style={{
-      width: "420px",
-      minWidth: "420px",
-    }}
-  />
+              <div style={ACTION_ROW_STYLE}>
+                <input
+                  type="text"
+                  value={caseRef}
+                  onChange={(e) => setCaseRef(e.target.value)}
+                  placeholder={t(language, "clientCasePlaceholder")}
+                  style={ACTION_FIRST_FIELD_STYLE}
+                />
 
-  <Button
-    variant="secondary"
-    size="md"
-    onClick={openImportDialog}
-    disabled={loading}
-    style={ACTION_BUTTON_STYLE}
-  >
-    {t(language, "importXlsxCsv")}
-  </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={openImportDialog}
+                  disabled={loading}
+                  style={ACTION_BUTTON_STYLE}
+                >
+                  {t(language, "importXlsxCsv")}
+                </Button>
 
-  <Button
-    variant="secondary"
-    size="md"
-    onClick={exportExcel}
-    disabled={!rows.length}
-    style={ACTION_BUTTON_STYLE}
-  >
-    {t(language, "exportExcel")}
-  </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportExcel}
+                  disabled={!rows.length}
+                  style={ACTION_BUTTON_STYLE}
+                >
+                  {t(language, "exportExcel")}
+                </Button>
 
-  <input
-    ref={importFileRef}
-    type="file"
-    accept=".xlsx,.xls,.csv,.txt"
-    style={{ display: "none" }}
-    onChange={onImportFileChange}
-  />
-</div>
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt"
+                  style={{ display: "none" }}
+                  onChange={onImportFileChange}
+                />
+              </div>
 
               {duplicatesIgnored > 0 && (
                 <div className="callout" style={{ marginTop: 10 }}>
@@ -2661,15 +2652,7 @@ function TinPage({
             </CardHeader>
 
             <CardContent className="pt-0">
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "420px auto auto",
-                  alignItems: "center",
-                  gap: 10,
-                  width: "100%",
-                }}
-              >
+              <div style={ACTION_ROW_STYLE}>
                 <select
                   value={country}
                   onChange={(e) => {
@@ -2678,10 +2661,7 @@ function TinPage({
                     setError("");
                     setInfoMessage("");
                   }}
-                  style={{
-                    width: "420px",
-                    minWidth: "420px",
-                  }}
+                  style={ACTION_FIRST_FIELD_STYLE}
                 >
                   {countryOptions.map((c) => (
                     <option key={c.code} value={c.code}>
@@ -2690,11 +2670,23 @@ function TinPage({
                   ))}
                 </select>
 
-                <Button variant="secondary" size="md" onClick={openImportDialog} disabled={loading}>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={openImportDialog}
+                  disabled={loading}
+                  style={ACTION_BUTTON_STYLE}
+                >
                   {t(language, "importXlsxCsv")}
                 </Button>
 
-                <Button variant="secondary" size="md" onClick={exportTinExcel} disabled={!filteredRows.length}>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportTinExcel}
+                  disabled={!filteredRows.length}
+                  style={ACTION_BUTTON_STYLE}
+                >
                   {t(language, "exportExcel")}
                 </Button>
 
