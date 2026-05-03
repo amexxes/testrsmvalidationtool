@@ -6,6 +6,7 @@ import AdminUsersPanel from "./AdminUsersPanel";
 import ChangePasswordPanel from "./ChangePasswordPanel";
 import AccountMenu from "./AccountMenu";
 import AdminUsageDashboard from "./AdminUsageDashboard";
+import AdminClientBrandingPanel from "./AdminClientBrandingPanel";
 
 type AuthUser = {
   id: string;
@@ -33,6 +34,7 @@ export default function App() {
   const [adminOpen, setAdminOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
+  const [brandingOpen, setBrandingOpen] = useState(false);
 
   useEffect(() => {
     void loadSession();
@@ -66,6 +68,7 @@ export default function App() {
     setAdminOpen(false);
     setChangePasswordOpen(false);
     setUsageOpen(false);
+    setBrandingOpen(false);
   }
 
   async function handleLogout() {
@@ -79,6 +82,7 @@ export default function App() {
       setAdminOpen(false);
       setChangePasswordOpen(false);
       setUsageOpen(false);
+      setBrandingOpen(false);
     }
   }
 
@@ -103,6 +107,7 @@ export default function App() {
           user={user}
           onOpenUsers={() => setAdminOpen(true)}
           onOpenUsage={() => setUsageOpen(true)}
+          onOpenBranding={() => setBrandingOpen(true)}
           onOpenChangePassword={() => setChangePasswordOpen(true)}
           onLogout={handleLogout}
         />
