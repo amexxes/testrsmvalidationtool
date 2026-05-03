@@ -1469,9 +1469,15 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
 </Card>
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
-            <div className="card">
-              <h2>Filter</h2>
-              <div className="filterBox">
+          <Card>
+  <CardHeader className="px-0 pt-0 pb-4">
+    <CardTitle>Filter</CardTitle>
+    <CardDescription>
+      Search, sorting and input distribution.
+    </CardDescription>
+  </CardHeader>
+  <CardContent className="px-0 pb-0">
+    <div className="filterBox">
                 <input type="text" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search in results…" />
                 <div className="callout">
                   Sorting: <span className="mono">{sortLabel || "—"}</span>
@@ -1484,7 +1490,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
                   <div className="mapbox-sub">
                     <span className="nowrap">{mapCount}</span>
                   </div>
-                </div>
+                </CardContent>
+</Card>
 
                 <div id="countryMap" />
 
@@ -1501,9 +1508,14 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               </div>
             </div>
 
-            <div className="card" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-              <h2>VIES status by country</h2>
-              <p className="hint">Availability according to VIES check status.</p>
+<Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+  <CardHeader className="px-0 pt-0 pb-4">
+    <CardTitle>VIES status by country</CardTitle>
+    <CardDescription>
+      Availability according to VIES check status.
+    </CardDescription>
+  </CardHeader>
+  <CardContent className="px-0 pb-0" style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
 
               <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
                 {!viesStatus.length ? (
@@ -1570,7 +1582,8 @@ function VatPage({ activePage, setActivePage }: PageSwitcherProps) {
               </div>
             </div>
           </div>
-        </div>
+          </CardContent>
+</Card>
 
         <div className="tableWrap">
           <div className="tableHeader">
@@ -2310,9 +2323,14 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
           </CardContent>
 </Card>
 
-          <div className="card">
-            <h2>Dashboard</h2>
-            <p className="hint">Overview, filters and sorting.</p>
+<Card>
+  <CardHeader className="px-0 pt-0 pb-4">
+    <CardTitle>Dashboard</CardTitle>
+    <CardDescription>
+      Overview, filters and sorting.
+    </CardDescription>
+  </CardHeader>
+  <CardContent className="px-0 pb-0">
 
             {error && (
               <div className="callout" style={{ marginTop: 10 }}>
@@ -2392,7 +2410,8 @@ function TinPage({ activePage, setActivePage }: PageSwitcherProps) {
               </>
             )}
           </div>
-        </div>
+          </CardContent>
+</Card>
 
         <div className="tableWrap">
           <div className="tableHeader">
