@@ -710,7 +710,7 @@ function PortalBanner({
         className="banner-inner"
         style={{
           display: "flex",
-          alignItems: "flex-end",
+          alignItems: "center",
           justifyContent: "space-between",
           gap: 18,
           flexWrap: "wrap",
@@ -769,41 +769,43 @@ function PortalBanner({
             minWidth: 340,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-              width: "100%",
-            }}
-          >
-            <div className="chip">
-              <span>{t(language, "mode")}</span>
-              <b className="nowrap">{modeValue}</b>
-            </div>
+         <div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 12,
+    marginLeft: "auto",
+    alignSelf: "center",
+    minWidth: 340,
+    flexWrap: "wrap",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 12,
+      flexWrap: "wrap",
+    }}
+  >
+    <div className="chip">
+      <span>{t(language, "mode")}</span>
+      <b className="nowrap">{modeValue}</b>
+    </div>
 
-            {meta.map((item) => (
-              <div className="chip" key={item.label}>
-                <span>{item.label}</span>
-                <b className="nowrap">{item.value}</b>
-              </div>
-            ))}
+    {meta.map((item) => (
+      <div className="chip" key={item.label}>
+        <span>{item.label}</span>
+        <b className="nowrap">{item.value}</b>
+      </div>
+    ))}
 
-            <LanguageSwitcher language={language} setLanguage={setLanguage} />
-          </div>
+    <LanguageSwitcher language={language} setLanguage={setLanguage} />
+  </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              alignItems: "center",
-              width: "100%",
-            }}
-          >
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
-          </div>
+  <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+</div>
         </div>
       </div>
     </div>
@@ -1851,11 +1853,12 @@ function VatPage({
                 </div>
               </div>
 
-              <UserDraftsPanel
-                activePage="vat"
-                referenceValue={caseRef}
-                inputValue={vatInput}
-                onRestoreDraft={(draft) => {
+ <UserDraftsPanel
+  activePage="vat"
+  referenceValue={caseRef}
+  inputValue={vatInput}
+  language={language}
+  onRestoreDraft={(draft) => {
                   onCancel();
                   setCaseRef(draft.referenceValue || "");
                   setVatInput(draft.inputValue || "");
@@ -2755,11 +2758,12 @@ function TinPage({
                 </Button>
               </div>
 
-              <UserDraftsPanel
-                activePage="tin"
-                referenceValue={country}
-                inputValue={tinInput}
-                onRestoreDraft={(draft) => {
+        <UserDraftsPanel
+  activePage="tin"
+  referenceValue={country}
+  inputValue={tinInput}
+  language={language}
+  onRestoreDraft={(draft) => {
                   setCountry(draft.referenceValue || "NL");
                   setTinInput(draft.inputValue || "");
                   setRows([]);
