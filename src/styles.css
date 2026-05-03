@@ -573,15 +573,15 @@ details > summary::-webkit-details-marker {
 .banner-inner {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) minmax(190px, auto) minmax(280px, 1fr);
-  grid-template-rows: auto auto;
-  align-items: end !important;
+  grid-template-rows: auto;
+  align-items: center !important;
   gap: 10px 18px !important;
   padding: 18px 24px 20px;
 }
 
 .banner-inner > div:first-child {
   grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   min-width: 0;
   align-self: center;
 }
@@ -602,6 +602,7 @@ details > summary::-webkit-details-marker {
   align-items: center !important;
   gap: 10px !important;
   justify-self: center;
+  align-self: center;
 }
 
 .banner-inner > div:last-child > div:first-child .chip:first-child {
@@ -615,7 +616,7 @@ details > summary::-webkit-details-marker {
 
 .banner-inner > div:last-child > div:last-child {
   grid-column: 3;
-  grid-row: 2;
+  grid-row: 1;
   width: auto !important;
   display: flex !important;
   justify-content: flex-end !important;
