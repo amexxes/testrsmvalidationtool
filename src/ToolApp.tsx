@@ -66,12 +66,11 @@ type LanguageSwitcherProps = {
 
 type PortalBannerProps = {
   title: string;
-  subtitle: string;
   modeValue: string;
-  meta?: Array<{ label: string; value: string }>;
+  meta: { label: string; value: string }[];
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
-  branding?: ClientBranding;
+  branding: ClientBranding;
   language: PortalLanguage;
   setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
 };
@@ -487,7 +486,6 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
 
 function PortalBanner({
   title,
-  subtitle,
   modeValue,
   meta = [],
   activePage,
