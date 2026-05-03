@@ -2673,7 +2673,12 @@ function TinPage({
                     setError("");
                     setInfoMessage("");
                   }}
-                  style={ACTION_FIRST_FIELD_STYLE}
+                  style={{
+  ...ACTION_FIRST_FIELD_STYLE,
+  lineHeight: "normal",
+  paddingTop: 0,
+  paddingBottom: 0,
+}}
                 >
                   {countryOptions.map((c) => (
                     <option key={c.code} value={c.code}>
