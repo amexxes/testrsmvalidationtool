@@ -1700,7 +1700,8 @@ function VatPage({
                 <div style={{ flex: 1 }} />
 
                 <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-                  {t(language, "progress")}: <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
+                 <span>{t(language, "progress")}: </span>
+<b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
                   <b style={{ color: "var(--text)" }}>{progressPct}%</b>
                 </div>
               </div>
