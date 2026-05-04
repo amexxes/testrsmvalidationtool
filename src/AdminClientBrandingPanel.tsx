@@ -43,6 +43,17 @@ const LOGO_PRESETS = [
     backgroundColor: "#F8FBF7",
     textColor: "#1E293B",
   },
+    {
+    key: "fastenal",
+    label: "Fastenal",
+    clientName: "Fastenal",
+    portalTitle: "Fastenal Validation Portal",
+    logoUrl: "/fastenallogo.png",
+    primaryColor: "#003A8F",
+    accentColor: "#E11C2A",
+    backgroundColor: "#F4F7FB",
+    textColor: "#1E293B",
+  },
 ];
 
 const EMPTY_FORM = {
