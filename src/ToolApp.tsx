@@ -648,6 +648,7 @@ function translateSwissVatMessage(raw: string, language: PortalLanguage): string
 
   return message;
 }
+
 function translateNorwayVatMessage(raw: string, language: PortalLanguage): string {
   const message = String(raw || "").trim();
   if (!message) return "";
