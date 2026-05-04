@@ -2353,9 +2353,15 @@ function VatPage({
             loggedIsoRef.current.add(cc);
           }
 
-          const n = cc ? countryCounts[cc] || 0 : 0;
-          const max = Math.max(0, ...Object.values(countryCounts));
-          const ratio = max > 0 ? n / max : 0;
+const n = cc ? countryCounts[cc] || 0 : 0;
+
+const positiveCounts = Object.values(countryCounts).filter((count) => count > 0);
+const max = Math.max(0, ...positiveCounts);
+
+const ratio =
+  max > 0 && n > 0
+    ? Math.log1p(n) / Math.log1p(max)
+    : 0;
 
           let fill = "#d9f0f7";
           let stroke = "#b9deea";
