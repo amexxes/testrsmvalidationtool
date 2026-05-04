@@ -5,13 +5,22 @@ const CH_UID_ENDPOINT =
 
 const MAX_BATCH_SIZE = Number(process.env.CH_VAT_MAX_BATCH_SIZE || 20);
 const TIMEOUT_MS = Number(process.env.CH_UID_TIMEOUT_MS || 15000);
+const RETRY_AFTER_MS = Number(process.env.CH_UID_RETRY_AFTER_MS || 60000);
+const MAX_RATE_LIMIT_RETRIES = Number(process.env.CH_UID_MAX_RATE_LIMIT_RETRIES || 1);
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function normalizeSwissVat(value) {
   const raw = String(value || "").trim().toUpperCase();
 
-  const digits = raw.replace(/[^0-9]/g, "");
+  const compact = raw
+    .replace(/\s+/g, "")
+    .replace(/[.\-_/]/g, "")
+    .replace(/(MWST|TVA|IVA)$/i, "");
 
-  if (digits.length !== 9) {
+  if (!compact.startsWith("CHE") && !compact.startsWith("CH")) {
     return {
       ok: false,
       input: raw,
@@ -20,11 +29,25 @@ function normalizeSwissVat(value) {
     };
   }
 
+  const digits = compact.replace(/^[A-Z]+/, "");
+
+  if (!/^\d{9}$/.test(digits)) {
+    return {
+      ok: false,
+      input: raw,
+      vat_number: raw,
+      reason: "Expected Swiss VAT format: CHE-123.456.789 or CHE123456789",
+    };
+  }
+
+  const canonical = `CHE-${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}`;
+
   return {
     ok: true,
     input: raw,
     digits,
-    vat_number: `CHE-${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}`,
+    query: canonical,
+    vat_number: `${canonical} MWST`,
   };
 }
 
@@ -37,15 +60,12 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-function buildSoapEnvelope(digits) {
+function buildSoapEnvelope(vatNumber) {
   return `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
   <s:Body>
     <ValidateVatNumber xmlns="http://www.uid.admin.ch/xmlns/uid-wse/5">
-      <vatNumber>
-        <uidOrganisationIdCategorie>CHE</uidOrganisationIdCategorie>
-        <uidOrganisationId>${escapeXml(digits)}</uidOrganisationId>
-      </vatNumber>
+      <vatNumber>${escapeXml(vatNumber)}</vatNumber>
     </ValidateVatNumber>
   </s:Body>
 </s:Envelope>`;
@@ -67,7 +87,7 @@ async function fetchWithTimeout(url, options = {}) {
 
 function parseValidateVatResult(xml) {
   const match = String(xml || "").match(
-    /<[^:>]*:?ValidateVatNumberResult[^>]*>(true|false)<\/[^:>]*:?ValidateVatNumberResult>/i
+    /<[^:>]*:?ValidateVatNumberResult[^>]*>\s*(true|false)\s*<\/[^:>]*:?ValidateVatNumberResult>/i
   );
 
   if (!match) return null;
@@ -75,12 +95,31 @@ function parseValidateVatResult(xml) {
 }
 
 function parseSoapFault(xml) {
-  const fault = String(xml || "").match(/<faultstring[^>]*>([\s\S]*?)<\/faultstring>/i);
-  return fault ? fault[1].trim() : "";
+  const faultString = String(xml || "").match(/<[^:>]*:?faultstring[^>]*>([\s\S]*?)<\/[^:>]*:?faultstring>/i);
+  const reasonText = String(xml || "").match(/<[^:>]*:?Text[^>]*>([\s\S]*?)<\/[^:>]*:?Text>/i);
+  const code = String(xml || "").match(/Request_limit_exceeded|Data_validation_failed|Permission_denied/i);
+
+  return {
+    message: faultString?.[1]?.trim() || reasonText?.[1]?.trim() || "",
+    code: code?.[0] || "",
+  };
 }
 
-async function checkSwissVat(item) {
-  const envelope = buildSoapEnvelope(item.digits);
+function isRateLimitError(error) {
+  const text = `${error?.message || ""} ${error?.code || ""}`.toLowerCase();
+
+  return (
+    error?.status === 429 ||
+    text.includes("request_limit_exceeded") ||
+    text.includes("request limit") ||
+    text.includes("rate limit") ||
+    text.includes("too many") ||
+    text.includes("temporarily blocked")
+  );
+}
+
+async function checkSwissVatOnce(item) {
+  const envelope = buildSoapEnvelope(item.query);
 
   const response = await fetchWithTimeout(CH_UID_ENDPOINT, {
     method: "POST",
@@ -95,33 +134,78 @@ async function checkSwissVat(item) {
   const xml = await response.text();
   const fault = parseSoapFault(xml);
 
-  if (fault) {
-    throw new Error(fault);
+  if (fault.message || fault.code) {
+    const error = new Error(fault.message || fault.code || "Swiss UID SOAP fault");
+    error.code = fault.code || "CH_UID_FAULT";
+    error.status = response.status;
+    throw error;
   }
 
   if (!response.ok) {
-    throw new Error(`Swiss UID API failed: ${response.status}`);
+    const error = new Error(`Swiss UID API failed: ${response.status}`);
+    error.code = response.status === 429 ? "REQUEST_LIMIT_EXCEEDED" : "CH_UID_HTTP_ERROR";
+    error.status = response.status;
+    throw error;
   }
 
   const valid = parseValidateVatResult(xml);
 
   if (valid === null) {
-    throw new Error("Unexpected Swiss UID API response");
+    const error = new Error("Unexpected Swiss UID API response");
+    error.code = "CH_UID_UNEXPECTED_RESPONSE";
+    error.status = response.status;
+    throw error;
   }
 
-  return {
-    input: item.input,
-    vat_number: item.vat_number,
-    country_code: "CH",
-    valid,
-    state: valid ? "valid" : "invalid",
-    name: "",
-    address: "",
-    error: "",
-    error_code: "",
-    checked_at: new Date().toISOString(),
-    source: "ch_uid",
-  };
+  return valid;
+}
+
+async function checkSwissVat(item) {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      const valid = await checkSwissVatOnce(item);
+
+      return {
+        input: item.input,
+        vat_number: item.vat_number,
+        country_code: "CH",
+        valid,
+        state: valid ? "valid" : "invalid",
+        name: "",
+        address: "",
+        error: "",
+        error_code: "",
+        attempt: attempt + 1,
+        checked_at: new Date().toISOString(),
+        source: "ch_uid",
+      };
+    } catch (error) {
+      const retryable = isRateLimitError(error);
+
+      if (!retryable || attempt >= MAX_RATE_LIMIT_RETRIES) {
+        return {
+          input: item.input,
+          vat_number: item.vat_number,
+          country_code: "CH",
+          valid: false,
+          state: "error",
+          name: "",
+          address: "",
+          error: error instanceof Error ? error.message : String(error),
+          error_code: error?.code || "CH_UID_ERROR",
+          attempt: attempt + 1,
+          checked_at: new Date().toISOString(),
+          source: "ch_uid",
+          retry_after_ms: retryable ? RETRY_AFTER_MS : undefined,
+        };
+      }
+
+      attempt += 1;
+      await sleep(RETRY_AFTER_MS);
+    }
+  }
 }
 
 export default async function handler(req, res) {
@@ -186,23 +270,7 @@ export default async function handler(req, res) {
     }
 
     for (const item of prepared) {
-      try {
-        results.push(await checkSwissVat(item));
-      } catch (error) {
-        results.push({
-          input: item.input,
-          vat_number: item.vat_number,
-          country_code: "CH",
-          valid: false,
-          state: "error",
-          name: "",
-          address: "",
-          error: error instanceof Error ? error.message : String(error),
-          error_code: "CH_UID_ERROR",
-          checked_at: new Date().toISOString(),
-          source: "ch_uid",
-        });
-      }
+      results.push(await checkSwissVat(item));
     }
 
     return res.status(200).json({
