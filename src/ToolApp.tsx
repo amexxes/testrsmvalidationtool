@@ -1998,10 +1998,9 @@ function VatPage({
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <SectionTitle>{t(language, "input")}</SectionTitle>
-              <SectionSubtitle maxWidth={760}>{t(language, "vatInputHelp")}</SectionSubtitle>
-            </CardHeader>
+<CardHeader className="pb-4">
+  <SectionTitle>{t(language, "input")}</SectionTitle>
+</CardHeader>
 
             <CardContent className="pt-0">
               <div style={ACTION_ROW_STYLE}>
