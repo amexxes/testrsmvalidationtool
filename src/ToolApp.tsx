@@ -346,7 +346,7 @@ const ERROR_MAP: Record<string, Partial<Record<PortalLanguage, string>> & { en: 
 
 const VAT_PATTERNS: Record<string, RegExp> = {
   GB: /^\d{9}(?:\d{3})?$/,
-  CH: /^E?\d{9}(?:MWST|TVA|IVA)?$/,
+    CH: /^(?:E?\d{9}(?:MWST|TVA|IVA)?|\d{11})$/,
   AT: /^U\d{8}$/,
   BE: /^\d{10}$/,
   BG: /^\d{9,10}$/,
