@@ -3863,24 +3863,15 @@ const validInputEoris = useMemo(() => {
     void importEoriFile(f);
   }
 
-async function runEoriValidation(eoris: string[]) {
-  const prepared = eoris
-    .map(normalizeEoriCandidate)
-    .map((value) => ({
-      value,
-      check: validateEoriFormat(value),
-    }))
-    .filter((item) => item.check.ok && item.check.service);
+async function async function runEoriValidation(eoris: string[]) {
+  const validEoris = eoris
+    .map((value: string) => normalizeEoriCandidate(value))
+    .filter((value: string) => validateEoriFormat(value).ok);
 
-  const hmrcEoris = prepared
-    .filter((item) => item.check.service === "hmrc")
-    .map((item) => item.value);
+  if (!validEoris.length) return;
 
-  const euEoris = prepared
-    .filter((item) => item.check.service === "eu")
-    .map((item) => item.value);
-
-  if (!hmrcEoris.length && !euEoris.length) return;
+  const hmrcEoris = validEoris.filter((value: string) => validateEoriFormat(value).service === "hmrc");
+  const euEoris = validEoris.filter((value: string) => validateEoriFormat(value).service === "eu");
 
   setLoading(true);
   setError("");
@@ -3894,43 +3885,41 @@ async function runEoriValidation(eoris: string[]) {
     const resultSets: any[][] = [];
 
     if (hmrcEoris.length) {
-      const resp = await fetch("/api/eori-validate-batch", {
+      const hmrcResp = await fetch("/api/eori-validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eoris: hmrcEoris }),
       });
 
-      const data = await resp.json();
+      const hmrcData = await hmrcResp.json();
 
-      if (!resp.ok) {
-        setError(data?.message || data?.error || "GB EORI validation failed");
-        return;
+      if (!hmrcResp.ok) {
+        throw new Error(hmrcData?.message || hmrcData?.error || "HMRC EORI validation failed");
       }
 
-      resultSets.push(Array.isArray(data?.results) ? data.results : []);
+      resultSets.push(Array.isArray(hmrcData?.results) ? hmrcData.results : []);
     }
 
     if (euEoris.length) {
-      const resp = await fetch("/api/eu-eori-validate-batch", {
+      const euResp = await fetch("/api/eu-eori-validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eoris: euEoris }),
       });
 
-      const data = await resp.json();
+      const euData = await euResp.json();
 
-      if (!resp.ok) {
-        setError(data?.message || data?.error || "EU EORI validation failed");
-        return;
+      if (!euResp.ok) {
+        throw new Error(euData?.message || euData?.error || "EU EORI validation failed");
       }
 
-      resultSets.push(Array.isArray(data?.results) ? data.results : []);
+      resultSets.push(Array.isArray(euData?.results) ? euData.results : []);
     }
 
     setRows(resultSets.flat());
     setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
-  } catch {
-    setError("EORI validation failed");
+  } catch (error: any) {
+    setError(error?.message || "EORI validation failed");
   } finally {
     setLoading(false);
   }
