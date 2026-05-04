@@ -3590,7 +3590,19 @@ function TinPage({
     </>
   );
 }
+function eoriState(row: EoriRow): "valid" | "invalid" | "error" {
+  const status = String(row.status || "").toLowerCase();
 
+  if (status === "valid") return "valid";
+  if (status === "invalid") return "invalid";
+  if (status === "error") return "error";
+
+  if (typeof row.valid === "boolean") {
+    return row.valid ? "valid" : "invalid";
+  }
+
+  return "error";
+}
 function EoriPage({
   activePage,
   setActivePage,
