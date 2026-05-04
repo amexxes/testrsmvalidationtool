@@ -1302,7 +1302,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
           justifyContent: "center",
         }}
       >
-        {localText(language, "eoriTab")}
+        {t(language, "eoriTab")}
       </Button>
     </div>
   );
@@ -3941,7 +3941,7 @@ async function runEoriValidation(eoris: string[]) {
     setRows(nextRows);
     setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
   } catch (error: unknown) {
-    setError(error instanceof Error ? error.message : "EORI validation failed");
+    setError(error instanceof Error ? error.message : t(language, "eoriValidationFailed"));
   } finally {
     setLoading(false);
   }
@@ -4026,20 +4026,20 @@ async function runEoriValidation(eoris: string[]) {
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
               <SectionTitle>{t(language, "input")}</SectionTitle>
-              <SectionSubtitle maxWidth={760}>{localText(language, "eoriInputHelp")}</SectionSubtitle>
+              <SectionSubtitle maxWidth={760}>{t(language, "eoriInputHelp")}</SectionSubtitle>
             </CardHeader>
 
             <CardContent className="pt-0">
               <div style={ACTION_ROW_STYLE}>
-                <input
-                  type="text"
-                  value="GB EORI"
-                  readOnly
-                  style={{
-                    ...ACTION_FIRST_FIELD_STYLE,
-                    opacity: 0.9,
-                  }}
-                />
+<input
+  type="text"
+  value={t(language, "eori")}
+  readOnly
+  style={{
+    ...ACTION_FIRST_FIELD_STYLE,
+    opacity: 0.9,
+  }}
+/>
 
                 <Button
                   variant="secondary"
@@ -4086,7 +4086,7 @@ async function runEoriValidation(eoris: string[]) {
                   setEoriInput(e.target.value);
                   setImportPreview(null);
                 }}
-                placeholder={`GB123456789000\nGB987654321000\n...`}
+                placeholder={`${t(language, "eoriPlaceholder")}\n...`}
                 style={{ marginTop: 12 }}
               />
 
@@ -4140,7 +4140,7 @@ async function runEoriValidation(eoris: string[]) {
 
 <UserDraftsPanel
   activePage="eori"
-                referenceValue="GB"
+                 referenceValue="EORI"
                 inputValue={eoriInput}
                 language={language}
                 onRestoreDraft={(draft) => {
@@ -4155,7 +4155,7 @@ async function runEoriValidation(eoris: string[]) {
               />
 
               <div className="callout" style={{ marginTop: 14 }}>
-                {localText(language, "eoriImportant")}
+                {t(language, "eoriImportant")}
               </div>
             </CardContent>
           </Card>
@@ -4191,7 +4191,7 @@ async function runEoriValidation(eoris: string[]) {
                   />
 
                   <div className="callout" style={{ marginTop: 12 }}>
-                    <b>{localText(language, "eori")}</b>: GB
+                    <b>{t(language, "eori")}</b>: HMRC + EU database
                     <br />
                     <b>{t(language, "validRate")}</b>: {validPct}%
                   </div>
@@ -4242,11 +4242,11 @@ async function runEoriValidation(eoris: string[]) {
               <thead>
                 <tr>
                   <th style={{ ...TH_STYLE, width: 150 }}>{t(language, "state")}</th>
-                  <th style={{ ...TH_STYLE, width: 220 }}>{localText(language, "inputEori")}</th>
-                  <th style={{ ...TH_STYLE, width: 220 }}>{localText(language, "eori")}</th>
-                  <th style={{ ...TH_STYLE, width: 260 }}>{localText(language, "traderName")}</th>
+<th style={{ ...TH_STYLE, width: 220 }}>{t(language, "inputEori")}</th>
+<th style={{ ...TH_STYLE, width: 220 }}>{t(language, "eori")}</th>
+<th style={{ ...TH_STYLE, width: 260 }}>{t(language, "traderName")}</th>
                   <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "address")}</th>
-                  <th style={{ ...TH_STYLE, width: 160 }}>{localText(language, "processingDate")}</th>
+                  <th style={{ ...TH_STYLE, width: 160 }}>{t(language, "processingDate")}</th>
                   <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "message")}</th>
                 </tr>
               </thead>
