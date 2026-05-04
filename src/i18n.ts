@@ -45,6 +45,7 @@ const translations = {
 
     vatTab: "VAT VIES Validation",
     tinTab: "TIN Validation",
+    eoriTab: "EORI Validation",
 
     input: "Input",
     filter: "Filter",
@@ -100,8 +101,10 @@ const translations = {
     blacklist: "Blacklist",
     notePlaceholder: "Note (optional)",
 
-    tinInputHelp: "Select the country, paste one or more TINs, and validate them in batch.",
-    tinImportant: "Select the correct country and enter the TIN without the country code.",
+    tinInputHelp:
+      "Select the country, paste one or more TINs, and validate them in batch.",
+    tinImportant:
+      "Select the correct country and enter the TIN without the country code.",
     overviewFiltersSorting: "Overview, filters and sorting.",
     validRate: "Valid rate",
     allStatuses: "All statuses",
@@ -112,8 +115,20 @@ const translations = {
     date: "Date",
     message: "Message",
 
+    eoriInputHelp:
+      "Check GB EORI numbers via HMRC and EU EORI numbers via the EU database.",
+    eoriImportant:
+      "GB EORI numbers are checked via HMRC. EU EORI numbers are checked via the EU EORI database.",
+    eori: "EORI",
+    inputEori: "Input EORI",
+    traderName: "Trader name",
+    processingDate: "Processing date",
+    eoriPlaceholder: "NL123456789 / GB123456789000",
+    eoriValidationFailed: "EORI validation failed",
+
     vatSubtitle: "VAT / VIES batch checks and review.",
     tinSubtitle: "TIN batch checks and review.",
+    eoriSubtitle: "GB and EU EORI batch checks and review.",
   },
 
   nl: {
@@ -137,6 +152,7 @@ const translations = {
 
     vatTab: "VAT VIES-validatie",
     tinTab: "TIN-validatie",
+    eoriTab: "EORI-validatie",
 
     input: "Invoer",
     filter: "Filter",
@@ -192,8 +208,10 @@ const translations = {
     blacklist: "Blacklist",
     notePlaceholder: "Notitie (optioneel)",
 
-    tinInputHelp: "Selecteer het land, plak één of meer TINs en valideer ze in batch.",
-    tinImportant: "Selecteer het juiste land en voer de TIN in zonder landcode.",
+    tinInputHelp:
+      "Selecteer het land, plak één of meer TINs en valideer ze in batch.",
+    tinImportant:
+      "Selecteer het juiste land en voer de TIN in zonder landcode.",
     overviewFiltersSorting: "Overzicht, filters en sortering.",
     validRate: "Geldig percentage",
     allStatuses: "Alle statussen",
@@ -204,8 +222,20 @@ const translations = {
     date: "Datum",
     message: "Melding",
 
+    eoriInputHelp:
+      "Controleer GB EORI-nummers via HMRC en EU EORI-nummers via de EU-database.",
+    eoriImportant:
+      "GB EORI-nummers worden gecontroleerd via HMRC. EU EORI-nummers worden gecontroleerd via de EU EORI-database.",
+    eori: "EORI",
+    inputEori: "Invoer-EORI",
+    traderName: "Handelsnaam",
+    processingDate: "Verwerkingsdatum",
+    eoriPlaceholder: "NL123456789 / GB123456789000",
+    eoriValidationFailed: "EORI-validatie mislukt",
+
     vatSubtitle: "VAT / VIES batchvalidaties en review.",
     tinSubtitle: "TIN batchvalidaties en review.",
+    eoriSubtitle: "GB- en EU-EORI batchvalidaties en review.",
   },
 
   de: {
@@ -229,6 +259,7 @@ const translations = {
 
     vatTab: "VAT VIES-Prüfung",
     tinTab: "TIN-Prüfung",
+    eoriTab: "EORI-Prüfung",
 
     input: "Eingabe",
     filter: "Filter",
@@ -284,8 +315,10 @@ const translations = {
     blacklist: "Blacklist",
     notePlaceholder: "Notiz (optional)",
 
-    tinInputHelp: "Wählen Sie das Land, fügen Sie eine oder mehrere TINs ein und prüfen Sie diese als Batch.",
-    tinImportant: "Wählen Sie das richtige Land und geben Sie die TIN ohne Ländercode ein.",
+    tinInputHelp:
+      "Wählen Sie das Land, fügen Sie eine oder mehrere TINs ein und prüfen Sie diese als Batch.",
+    tinImportant:
+      "Wählen Sie das richtige Land und geben Sie die TIN ohne Ländercode ein.",
     overviewFiltersSorting: "Übersicht, Filter und Sortierung.",
     validRate: "Gültigkeitsrate",
     allStatuses: "Alle Status",
@@ -296,8 +329,20 @@ const translations = {
     date: "Datum",
     message: "Meldung",
 
+    eoriInputHelp:
+      "Prüfen Sie GB-EORI-Nummern über HMRC und EU-EORI-Nummern über die EU-Datenbank.",
+    eoriImportant:
+      "GB-EORI-Nummern werden über HMRC geprüft. EU-EORI-Nummern werden über die EU-EORI-Datenbank geprüft.",
+    eori: "EORI",
+    inputEori: "Eingabe-EORI",
+    traderName: "Unternehmensname",
+    processingDate: "Verarbeitungsdatum",
+    eoriPlaceholder: "NL123456789 / GB123456789000",
+    eoriValidationFailed: "EORI-Prüfung fehlgeschlagen",
+
     vatSubtitle: "VAT / VIES-Batchprüfungen und Review.",
     tinSubtitle: "TIN-Batchprüfungen und Review.",
+    eoriSubtitle: "GB- und EU-EORI-Batchprüfungen und Review.",
   },
 
   fr: {
@@ -321,6 +366,7 @@ const translations = {
 
     vatTab: "Validation VAT VIES",
     tinTab: "Validation TIN",
+    eoriTab: "Validation EORI",
 
     input: "Saisie",
     filter: "Filtre",
@@ -376,8 +422,10 @@ const translations = {
     blacklist: "Blacklist",
     notePlaceholder: "Note (optionnelle)",
 
-    tinInputHelp: "Sélectionnez le pays, collez une ou plusieurs TINs et validez-les en lot.",
-    tinImportant: "Sélectionnez le bon pays et saisissez le TIN sans code pays.",
+    tinInputHelp:
+      "Sélectionnez le pays, collez une ou plusieurs TINs et validez-les en lot.",
+    tinImportant:
+      "Sélectionnez le bon pays et saisissez le TIN sans code pays.",
     overviewFiltersSorting: "Vue d’ensemble, filtres et tri.",
     validRate: "Taux valide",
     allStatuses: "Tous les statuts",
@@ -388,8 +436,20 @@ const translations = {
     date: "Date",
     message: "Message",
 
+    eoriInputHelp:
+      "Contrôlez les numéros EORI GB via HMRC et les numéros EORI UE via la base de données de l’UE.",
+    eoriImportant:
+      "Les numéros EORI GB sont contrôlés via HMRC. Les numéros EORI UE sont contrôlés via la base de données EORI de l’UE.",
+    eori: "EORI",
+    inputEori: "EORI saisi",
+    traderName: "Nom commercial",
+    processingDate: "Date de traitement",
+    eoriPlaceholder: "NL123456789 / GB123456789000",
+    eoriValidationFailed: "Échec de la validation EORI",
+
     vatSubtitle: "Contrôles batch VAT / VIES et revue.",
     tinSubtitle: "Contrôles batch TIN et revue.",
+    eoriSubtitle: "Contrôles batch EORI GB et UE, avec revue.",
   },
 } as const;
 
