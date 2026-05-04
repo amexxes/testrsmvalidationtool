@@ -452,8 +452,6 @@ function isSwissVatCandidate(value: string): boolean {
 }
 
 function normalizeEoriCandidate(v: string): string {
-
-function normalizeEoriCandidate(v: string): string {
   return String(v || "")
     .trim()
     .replace(/\s+/g, "")
