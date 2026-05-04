@@ -17,7 +17,7 @@ import {
 } from "./i18n";
 
 type SortState = { colIndex: number | null; asc: boolean };
-type ActivePage = "vat" | "tin";
+type ActivePage = "vat" | "tin" | "eori";
 
 type ClientBranding = {
   id?: string;
@@ -34,6 +34,17 @@ type ToolAppProps = {
   branding?: ClientBranding;
   viewAsEmail?: string;
   onRunCompleted?: (summary: PortalRunSummary) => void;
+};
+
+type EoriRow = {
+  input_eori?: string;
+  eori?: string;
+  valid?: boolean;
+  status?: "valid" | "invalid" | "error" | string;
+  trader_name?: string;
+  address?: unknown;
+  processing_date?: string;
+  message?: string;
 };
 
 const DEFAULT_BRANDING: ClientBranding = {
@@ -393,6 +404,48 @@ function normalizeVatCandidate(v: string): string {
   return n;
 }
 
+function normalizeEoriCandidate(v: string): string {
+  return String(v || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[.\-_/]/g, "")
+    .toUpperCase();
+}
+
+function validateEoriFormat(value: string): { ok: boolean; reason: string } {
+  const eori = normalizeEoriCandidate(value);
+
+  if (!eori) return { ok: false, reason: "Missing EORI" };
+
+  if (eori.startsWith("XI")) {
+    return { ok: false, reason: "XI EORI numbers must be checked via the EU EORI service" };
+  }
+
+  if (!eori.startsWith("GB")) {
+    return { ok: false, reason: "Only GB EORI numbers are supported by the HMRC API" };
+  }
+
+  if (!/^GB\d{12,15}$/.test(eori)) {
+    return { ok: false, reason: "Expected format: GB followed by 12 to 15 digits" };
+  }
+
+  return { ok: true, reason: "" };
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value.map(displayValue).filter(Boolean).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).map(displayValue).filter(Boolean).join(", ");
+  }
+
+  return String(value);
+}
+
 function normalizeTsMs(ts: any): number | undefined {
   const n = typeof ts === "number" ? ts : Number(ts);
   if (!Number.isFinite(n) || n <= 0) return undefined;
@@ -437,6 +490,18 @@ function stateLabel(state: string | undefined, language: PortalLanguage): string
   return s || "unknown";
 }
 
+function eoriDisplayState(row: EoriRow): RowState {
+  const raw = String(row.status || "").toLowerCase();
+
+  if (raw === "valid") return "valid";
+  if (raw === "invalid") return "invalid";
+  if (raw === "error") return "error";
+
+  if (typeof row.valid === "boolean") return row.valid ? "valid" : "invalid";
+
+  return "queued";
+}
+
 function humanError(code?: string, fallback?: string, language: PortalLanguage = "en") {
   const c = (code || "").trim();
   const mapped = ERROR_MAP[c];
@@ -463,8 +528,18 @@ function localText(language: PortalLanguage, key: string): string {
       asc: "asc",
       desc: "desc",
       tinValidationFailed: "TIN validation failed",
+      eoriValidationFailed: "EORI validation failed",
       vatInfographic: "VAT validation - infographic",
       retryUnresolved: "Retry unresolved",
+      eoriTab: "EORI Validation",
+      eoriInputHelp: "Check UK-issued GB EORI numbers in batch via HMRC.",
+      eoriImportant:
+        "Only GB EORI numbers are supported by the HMRC API. XI EORI numbers must be checked via the EU EORI service.",
+      eori: "EORI",
+      inputEori: "Input EORI",
+      traderName: "Trader name",
+      processingDate: "Processing date",
+      eoriPlaceholder: "GB123456789000",
     },
     nl: {
       unique: "uniek",
@@ -479,8 +554,18 @@ function localText(language: PortalLanguage, key: string): string {
       asc: "oplopend",
       desc: "aflopend",
       tinValidationFailed: "TIN-validatie mislukt",
+      eoriValidationFailed: "EORI-validatie mislukt",
       vatInfographic: "VAT-validatie - infographic",
       retryUnresolved: "Opnieuw proberen",
+      eoriTab: "EORI-validatie",
+      eoriInputHelp: "Controleer UK-uitgegeven GB EORI-nummers in batch via HMRC.",
+      eoriImportant:
+        "Alleen GB EORI-nummers worden ondersteund door de HMRC API. XI EORI-nummers moeten via de EU EORI-service worden gecontroleerd.",
+      eori: "EORI",
+      inputEori: "Invoer-EORI",
+      traderName: "Handelsnaam",
+      processingDate: "Verwerkingsdatum",
+      eoriPlaceholder: "GB123456789000",
     },
     de: {
       unique: "eindeutig",
@@ -495,8 +580,18 @@ function localText(language: PortalLanguage, key: string): string {
       asc: "aufsteigend",
       desc: "absteigend",
       tinValidationFailed: "TIN-Pruefung fehlgeschlagen",
+      eoriValidationFailed: "EORI-Pruefung fehlgeschlagen",
       vatInfographic: "VAT-Pruefung - Infografik",
       retryUnresolved: "Offene erneut versuchen",
+      eoriTab: "EORI-Pruefung",
+      eoriInputHelp: "Pruefen Sie in UK ausgestellte GB-EORI-Nummern per Batch ueber HMRC.",
+      eoriImportant:
+        "Die HMRC API unterstuetzt nur GB-EORI-Nummern. XI-EORI-Nummern muessen ueber den EU-EORI-Dienst geprueft werden.",
+      eori: "EORI",
+      inputEori: "Eingabe-EORI",
+      traderName: "Unternehmensname",
+      processingDate: "Verarbeitungsdatum",
+      eoriPlaceholder: "GB123456789000",
     },
     fr: {
       unique: "uniques",
@@ -511,8 +606,18 @@ function localText(language: PortalLanguage, key: string): string {
       asc: "croissant",
       desc: "decroissant",
       tinValidationFailed: "Echec de la validation TIN",
+      eoriValidationFailed: "Echec de la validation EORI",
       vatInfographic: "Validation VAT - infographie",
       retryUnresolved: "Reessayer les non resolus",
+      eoriTab: "Validation EORI",
+      eoriInputHelp: "Controlez les numeros EORI GB emis au Royaume-Uni en lot via HMRC.",
+      eoriImportant:
+        "Seuls les numeros EORI GB sont pris en charge par l'API HMRC. Les numeros EORI XI doivent etre verifies via le service EORI de l'UE.",
+      eori: "EORI",
+      inputEori: "EORI saisi",
+      traderName: "Nom commercial",
+      processingDate: "Date de traitement",
+      eoriPlaceholder: "GB123456789000",
     },
   };
 
@@ -637,6 +742,9 @@ function isLikelyImportHeader(value: string): boolean {
     "taxidentificationnumber",
     "number",
     "nummer",
+    "eori",
+    "eorinumber",
+    "inputeori",
   ].includes(v);
 }
 
@@ -823,6 +931,47 @@ function buildTinImportPreview(
   };
 }
 
+function buildEoriImportPreview(columns: ImportColumnOption[], selectedColumnKey: string): ImportPreviewData {
+  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let duplicatesRemoved = 0;
+  let skippedCount = 0;
+
+  for (const value of selected?.values || []) {
+    if (isLikelyImportHeader(value)) {
+      skippedCount++;
+      continue;
+    }
+
+    const n = normalizeEoriCandidate(value);
+    if (!n || !validateEoriFormat(n).ok) {
+      skippedCount++;
+      continue;
+    }
+
+    if (seen.has(n)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(n);
+    out.push(n);
+  }
+
+  return {
+    columns,
+    selectedColumnKey: selected?.key || "col-0",
+    totalFound: selected?.totalFound || 0,
+    readyCount: out.length,
+    duplicatesRemoved,
+    skippedCount,
+    columnLabel: selected?.label || "Kolom A",
+    examples: out.slice(0, 10),
+    payloadText: out.join("\n"),
+  };
+}
 function isRetryableError(codeOrError?: string, details?: string) {
   const c = String(codeOrError || "").trim().toUpperCase();
   const d = String(details || "").toLowerCase();
@@ -1029,7 +1178,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
       style={{
         height: 36,
         display: "inline-grid",
-        gridTemplateColumns: "max-content max-content",
+        gridTemplateColumns: "max-content max-content max-content",
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
@@ -1078,6 +1227,24 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
         }}
       >
         {t(language, "tinTab")}
+      </Button>
+
+      <Button
+        type="button"
+        variant={activePage === "eori" ? "primary" : "secondary"}
+        size="sm"
+        onClick={() => setActivePage("eori")}
+        style={{
+          height: 28,
+          minWidth: 128,
+          padding: "0 12px",
+          whiteSpace: "nowrap",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {localText(language, "eoriTab")}
       </Button>
     </div>
   );
@@ -1793,8 +1960,7 @@ function VatPage({
     setExpandedKey(null);
     setImportPreview(null);
   }
-
-  function getCellText(r: VatRow, colIndex: number): string {
+    function getCellText(r: VatRow, colIndex: number): string {
     const cols: Array<string> = [
       displayState(r),
       (r as any).vat_number ?? "",
@@ -2720,6 +2886,123 @@ function formatTinCleanupMessage(
   if (prefixRemoved > 0) parts.push(`removed the country code from ${prefixRemoved} line(s)`);
   return `${parts.join(" and ")} ${phase === "beforeValidation" ? "before validation" : "during import"}.`;
 }
+function normalizeEoriCandidate(value: string): string {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[.\-_/]/g, "")
+    .toUpperCase();
+}
+
+function validateEoriFormat(value: string): { ok: boolean; reason: string } {
+  const eori = normalizeEoriCandidate(value);
+
+  if (!eori) return { ok: false, reason: "Missing EORI" };
+
+  if (eori.startsWith("XI")) {
+    return {
+      ok: false,
+      reason: "XI EORI numbers must be checked via the EU EORI service",
+    };
+  }
+
+  if (!eori.startsWith("GB")) {
+    return {
+      ok: false,
+      reason: "Only GB EORI numbers are supported by the HMRC API",
+    };
+  }
+
+  if (!/^GB\d{12,15}$/.test(eori)) {
+    return {
+      ok: false,
+      reason: "Expected format: GB followed by 12 to 15 digits",
+    };
+  }
+
+  return { ok: true, reason: "" };
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+
+  if (Array.isArray(value)) {
+    return value.map(displayValue).filter(Boolean).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).map(displayValue).filter(Boolean).join(", ");
+  }
+
+  return String(value);
+}
+
+type EoriRow = {
+  input_eori?: string;
+  eori?: string;
+  valid?: boolean;
+  status?: "valid" | "invalid" | "error" | string;
+  trader_name?: string;
+  address?: unknown;
+  processing_date?: string;
+  message?: string;
+};
+
+function eoriState(row: EoriRow): "valid" | "invalid" | "error" {
+  const rawStatus = String(row.status || "").toLowerCase();
+
+  if (rawStatus === "valid") return "valid";
+  if (rawStatus === "invalid") return "invalid";
+  if (rawStatus === "error") return "error";
+
+  if (typeof row.valid === "boolean") {
+    return row.valid ? "valid" : "invalid";
+  }
+
+  return "error";
+}
+
+function buildEoriImportPreview(columns: ImportColumnOption[], selectedColumnKey: string): ImportPreviewData {
+  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let duplicatesRemoved = 0;
+  let skippedCount = 0;
+
+  for (const value of selected?.values || []) {
+    if (isLikelyImportHeader(value)) {
+      skippedCount++;
+      continue;
+    }
+
+    const n = normalizeEoriCandidate(value);
+    if (!n || !validateEoriFormat(n).ok) {
+      skippedCount++;
+      continue;
+    }
+
+    if (seen.has(n)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(n);
+    out.push(n);
+  }
+
+  return {
+    columns,
+    selectedColumnKey: selected?.key || "col-0",
+    totalFound: selected?.totalFound || 0,
+    readyCount: out.length,
+    duplicatesRemoved,
+    skippedCount,
+    columnLabel: selected?.label || "Kolom A",
+    examples: out.slice(0, 10),
+    payloadText: out.join("\n"),
+  };
+}
 
 function TinPage({
   activePage,
@@ -3325,7 +3608,7 @@ function TinPage({
                       </select>
 
                       <div className="callout" style={{ margin: 0, padding: "10px 12px" }}>
-                        {t(language, "sort")}: {" "}
+                        {t(language, "sort")}:{" "}
                         <span className="mono">
                           {tinSortLabel(sortKey)} {sortAsc ? localText(language, "asc") : localText(language, "desc")}
                         </span>
@@ -3424,6 +3707,573 @@ function TinPage({
   );
 }
 
+function EoriPage({
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+  onRunCompleted,
+}: BrandedPageProps) {
+  const [eoriInput, setEoriInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<EoriRow[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+  const [lastUpdate, setLastUpdate] = useState("-");
+
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+  const currentRunIdRef = useRef<string | null>(null);
+  const currentRunStartedAtRef = useRef<string>("");
+
+  const preparedEoris = useMemo(() => {
+    const normalized = eoriInput
+      .split(/\r?\n/)
+      .map((x) => normalizeEoriCandidate(x))
+      .filter(Boolean);
+
+    return Array.from(new Set(normalized));
+  }, [eoriInput]);
+
+  const precheck = useMemo(() => {
+    const rawLines = eoriInput
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const seen = new Set<string>();
+    let duplicates = 0;
+    let badFormat = 0;
+    const badExamples: string[] = [];
+
+    for (const line of rawLines) {
+      const n = normalizeEoriCandidate(line);
+      if (!n) continue;
+
+      if (seen.has(n)) {
+        duplicates++;
+        continue;
+      }
+
+      seen.add(n);
+
+      const fmt = validateEoriFormat(n);
+      if (!fmt.ok) {
+        badFormat++;
+        if (badExamples.length < 5) badExamples.push(`${line} - ${fmt.reason}`);
+      }
+    }
+
+    return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
+  }, [eoriInput]);
+
+  const validInputEoris = useMemo(() => {
+    return preparedEoris.filter((value) => validateEoriFormat(value).ok);
+  }, [preparedEoris]);
+
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const valid = rows.filter((r) => eoriState(r) === "valid").length;
+    const invalid = rows.filter((r) => eoriState(r) === "invalid").length;
+    const errorCount = rows.filter((r) => eoriState(r) === "error").length;
+
+    return {
+      total,
+      valid,
+      invalid,
+      error: errorCount,
+    };
+  }, [rows]);
+
+  const validPct = useMemo(() => {
+    if (!stats.total) return 0;
+    return Math.round((stats.valid / stats.total) * 100);
+  }, [stats.total, stats.valid]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return rows.filter((r) => {
+      const state = eoriState(r);
+      const matchesStatus = statusFilter === "all" ? true : state === statusFilter;
+      if (!matchesStatus) return false;
+      if (!q) return true;
+
+      return JSON.stringify(r).toLowerCase().includes(q);
+    });
+  }, [rows, search, statusFilter]);
+
+  const retryEoriLines = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+
+    for (const row of rows) {
+      if (eoriState(row) !== "error") continue;
+
+      const eori = normalizeEoriCandidate(row.input_eori || row.eori || "");
+      if (!eori || seen.has(eori)) continue;
+
+      seen.add(eori);
+      out.push(eori);
+    }
+
+    return out;
+  }, [rows]);
+
+  useEffect(() => {
+    if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
+
+    onRunCompleted({
+      id: currentRunIdRef.current,
+      type: "eori" as any,
+      createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      label: "EORI validation run",
+      total: stats.total,
+      done: stats.total,
+      valid: stats.valid,
+      invalid: stats.invalid,
+      pending: 0,
+      errors: stats.error,
+      formatIssues: precheck.badFormat,
+      country: "GB",
+    });
+  }, [
+    onRunCompleted,
+    precheck.badFormat,
+    rows.length,
+    stats.error,
+    stats.invalid,
+    stats.total,
+    stats.valid,
+  ]);
+
+  function openImportDialog() {
+    importFileRef.current?.click();
+  }
+
+  function changeEoriImportColumn(columnKey: string) {
+    if (!importPreview) return;
+    setImportPreview(buildEoriImportPreview(importPreview.columns, columnKey));
+  }
+
+  function confirmEoriImport() {
+    if (!importPreview) return;
+
+    setEoriInput(importPreview.payloadText);
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(null);
+  }
+
+  async function importEoriFile(file: File) {
+    const columns = await readImportFileColumns(file);
+
+    const bestColumn = selectBestImportColumn(columns, (value) => {
+      const n = normalizeEoriCandidate(value);
+      return !isLikelyImportHeader(value) && Boolean(n) && validateEoriFormat(n).ok;
+    });
+
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(buildEoriImportPreview(columns, bestColumn.key));
+  }
+
+  function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    void importEoriFile(f);
+  }
+
+  async function runEoriValidation(eoris: string[]) {
+    const validEoris = eoris.map(normalizeEoriCandidate).filter((value) => validateEoriFormat(value).ok);
+    if (!validEoris.length) return;
+
+    setLoading(true);
+    setError("");
+    setRows([]);
+    setImportPreview(null);
+
+    currentRunIdRef.current = `eori-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    currentRunStartedAtRef.current = new Date().toISOString();
+
+    try {
+      const resp = await fetch("/api/eori-validate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eoris: validEoris }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.message || data?.error || "EORI validation failed");
+        return;
+      }
+
+      setRows(Array.isArray(data?.results) ? data.results : []);
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+    } catch {
+      setError("EORI validation failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onValidateEoriBatch() {
+    await runEoriValidation(validInputEoris);
+  }
+
+  async function onRetryEoriUnresolved() {
+    if (!retryEoriLines.length || loading) return;
+
+    setEoriInput(retryEoriLines.join("\n"));
+    await runEoriValidation(retryEoriLines);
+  }
+
+  function onClearEori() {
+    setEoriInput("");
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(null);
+    setLastUpdate("-");
+  }
+
+  function exportEoriExcel() {
+    const headers = ["input_eori", "eori", "status", "valid", "trader_name", "address", "processing_date", "message"];
+
+    const aoa = [
+      headers,
+      ...filteredRows.map((r) => [
+        r.input_eori || "",
+        r.eori || "",
+        eoriState(r),
+        typeof r.valid === "boolean" ? String(r.valid) : "",
+        r.trader_name || "",
+        displayValue(r.address),
+        r.processing_date || "",
+        r.message || "",
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    ws["!cols"] = [
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 28 },
+      { wch: 46 },
+      { wch: 18 },
+      { wch: 40 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "EORI Results");
+
+    const filename = `eori_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  return (
+    <>
+      <PortalBanner
+        title={branding.portalTitle || "Validation Portal"}
+        modeValue="EORI"
+        meta={[
+          { label: t(language, "credits"), value: t(language, "unlimited") },
+          { label: t(language, "lastUpdate"), value: lastUpdate },
+        ]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+      />
+
+      <div className="wrap">
+        <div className="grid" style={{ alignItems: "stretch" }}>
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>{t(language, "input")}</SectionTitle>
+              <SectionSubtitle maxWidth={760}>{localText(language, "eoriInputHelp")}</SectionSubtitle>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <div style={ACTION_ROW_STYLE}>
+                <input
+                  type="text"
+                  value="GB EORI"
+                  readOnly
+                  style={{
+                    ...ACTION_FIRST_FIELD_STYLE,
+                    opacity: 0.9,
+                  }}
+                />
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={openImportDialog}
+                  disabled={loading}
+                  style={ACTION_BUTTON_STYLE}
+                >
+                  {t(language, "importXlsxCsv")}
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportEoriExcel}
+                  disabled={!filteredRows.length}
+                  style={ACTION_BUTTON_STYLE}
+                >
+                  {t(language, "exportExcel")}
+                </Button>
+
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt"
+                  style={{ display: "none" }}
+                  onChange={onImportFileChange}
+                />
+              </div>
+
+              {importPreview && (
+                <ImportPreviewPanel
+                  preview={importPreview}
+                  language={language}
+                  onColumnChange={changeEoriImportColumn}
+                  onCancel={() => setImportPreview(null)}
+                  onConfirm={confirmEoriImport}
+                />
+              )}
+
+              <textarea
+                value={eoriInput}
+                onChange={(e) => {
+                  setEoriInput(e.target.value);
+                  setImportPreview(null);
+                }}
+                placeholder={`GB123456789000\nGB987654321000\n...`}
+                style={{ marginTop: 12 }}
+              />
+
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "#0B2E5F",
+                }}
+              >
+                <b>{t(language, "preCheck")}</b>: {precheck.unique} {localText(language, "unique")} /{" "}
+                {precheck.totalLines} {localText(language, "lines")} | {precheck.duplicates}{" "}
+                {localText(language, "duplicates")} | {precheck.badFormat} {localText(language, "formatIssues")}
+
+                {precheck.badExamples.length > 0 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary>{t(language, "examples")}</summary>
+                    <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+                      {precheck.badExamples.join("\n")}
+                    </div>
+                  </details>
+                )}
+              </div>
+
+              <div className="row" style={{ marginTop: 12 }}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={onValidateEoriBatch}
+                  disabled={loading || !validInputEoris.length}
+                >
+                  {loading ? t(language, "validating") : t(language, "validate")}
+                </Button>
+
+                <Button variant="secondary" size="md" onClick={onClearEori} disabled={loading}>
+                  {t(language, "clear")}
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onRetryEoriUnresolved}
+                  disabled={loading || !retryEoriLines.length}
+                >
+                  {localText(language, "retryUnresolved")}
+                </Button>
+              </div>
+
+              <UserDraftsPanel
+                activePage="eori" as any
+                referenceValue="GB"
+                inputValue={eoriInput}
+                language={language}
+                onRestoreDraft={(draft) => {
+                  setEoriInput(draft.inputValue || "");
+                  setRows([]);
+                  setError("");
+                  setSearch("");
+                  setStatusFilter("all");
+                  setImportPreview(null);
+                  setLastUpdate("-");
+                }}
+              />
+
+              <div className="callout" style={{ marginTop: 14 }}>
+                {localText(language, "eoriImportant")}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              {error && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
+                </div>
+              )}
+
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
+
+              {!!rows.length && (
+                <>
+                  <MetricGrid
+                    items={[
+                      { label: t(language, "total"), value: stats.total },
+                      { label: t(language, "valid"), value: stats.valid, tone: "ok" },
+                      { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
+                      { label: t(language, "error"), value: stats.error, tone: "bad" },
+                    ]}
+                  />
+
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    <b>{localText(language, "eori")}</b>: GB
+                    <br />
+                    <b>{t(language, "validRate")}</b>: {validPct}%
+                  </div>
+
+                  <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
+                    <div className="bar" style={{ width: `${validPct}%` }} />
+                  </div>
+
+                  <div className="filterBox" style={{ marginTop: 14 }}>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={t(language, "searchResults")}
+                    />
+
+                    <div className="row" style={{ marginTop: 10 }}>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        style={{ minWidth: 180 }}
+                      >
+                        <option value="all">{t(language, "allStatuses")}</option>
+                        <option value="valid">{t(language, "valid")}</option>
+                        <option value="invalid">{t(language, "invalid")}</option>
+                        <option value="error">{t(language, "error")}</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="tableWrap" style={{ marginLeft: 12 }}>
+          <div className="tableHeader">
+            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+
+            <div className="muted" style={TABLE_META_STYLE}>
+              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+              {t(language, "rows")}
+            </div>
+          </div>
+
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ ...TH_STYLE, width: 150 }}>{t(language, "state")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{localText(language, "inputEori")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{localText(language, "eori")}</th>
+                  <th style={{ ...TH_STYLE, width: 260 }}>{localText(language, "traderName")}</th>
+                  <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "address")}</th>
+                  <th style={{ ...TH_STYLE, width: 160 }}>{localText(language, "processingDate")}</th>
+                  <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "message")}</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRows.map((r, idx) => {
+                  const state = eoriState(r);
+
+                  return (
+                    <tr key={`${r.input_eori || r.eori}-${idx}`}>
+                      <td>
+                        <span className={`pill ${state}`}>
+                          <i aria-hidden="true" />
+                          {state === "valid"
+                            ? t(language, "valid")
+                            : state === "invalid"
+                              ? t(language, "invalid")
+                              : t(language, "error")}
+                        </span>
+                      </td>
+
+                      <td className="mono nowrap">{r.input_eori || ""}</td>
+                      <td className="mono nowrap">{r.eori || ""}</td>
+                      <td>{r.trader_name || ""}</td>
+                      <td title={displayValue(r.address)}>{displayValue(r.address)}</td>
+                      <td>{r.processing_date || "-"}</td>
+                      <td title={r.message || ""}>{r.message || ""}</td>
+                    </tr>
+                  );
+                })}
+
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 16, color: "var(--muted)" }}>
+                      {t(language, "noResults")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function App({
   branding = DEFAULT_BRANDING,
   onRunCompleted,
@@ -3444,8 +4294,17 @@ export default function App({
       setLanguage={setLanguage}
       onRunCompleted={onRunCompleted}
     />
-  ) : (
+  ) : activePage === "tin" ? (
     <TinPage
+      activePage={activePage}
+      setActivePage={setActivePage}
+      branding={branding}
+      language={language}
+      setLanguage={setLanguage}
+      onRunCompleted={onRunCompleted}
+    />
+  ) : (
+    <EoriPage
       activePage={activePage}
       setActivePage={setActivePage}
       branding={branding}
