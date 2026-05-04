@@ -24,6 +24,16 @@ function isValidUkVatFormat(vrn) {
   return /^\d{9}$/.test(vrn) || /^\d{12}$/.test(vrn);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isHmrcThrottle(data, response) {
+  const text = JSON.stringify(data || "").toUpperCase();
+
+  return response?.status === 429 || text.includes("MESSAGE_THROTTLED_OUT");
+}
+
 function mapAddress(address) {
   if (!address || typeof address !== "object") return "";
 
@@ -86,64 +96,94 @@ async function getHmrcAccessToken() {
 
 async function checkUkVat(vrn, token) {
   const baseUrl = getHmrcBaseUrl();
+  const url = `${baseUrl}/organisations/vat/check-vat-number/lookup/${encodeURIComponent(vrn)}`;
 
-  const response = await fetch(
-    `${baseUrl}/organisations/vat/check-vat-number/lookup/${encodeURIComponent(vrn)}`,
-    {
+  let lastData = {};
+  let lastStatus = 0;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: HMRC_ACCEPT_HEADER,
         Authorization: `Bearer ${token}`,
       },
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    lastData = data;
+    lastStatus = response.status;
+
+    if (isHmrcThrottle(data, response) && attempt < 2) {
+      await sleep(1000 * (attempt + 1));
+      continue;
     }
-  );
 
-  const data = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      return {
+        input: `GB${vrn}`,
+        vat_number: `GB${vrn}`,
+        country_code: "GB",
+        valid: false,
+        state: "invalid",
+        name: "",
+        address: "",
+        error: data?.message || "VAT number not found by HMRC",
+        error_code: data?.code || "NOT_FOUND",
+        checked_at: new Date().toISOString(),
+      };
+    }
 
-  if (response.status === 404) {
+    if (!response.ok) {
+      return {
+        input: `GB${vrn}`,
+        vat_number: `GB${vrn}`,
+        country_code: "GB",
+        valid: false,
+        state: "error",
+        name: "",
+        address: "",
+        error:
+          data?.message ||
+          data?.code ||
+          `HMRC VAT check failed: ${response.status}`,
+        error_code: data?.code || "HMRC_ERROR",
+        checked_at: new Date().toISOString(),
+      };
+    }
+
+    const target = data?.target || {};
+
     return {
       input: `GB${vrn}`,
-      vat_number: `GB${vrn}`,
+      vat_number: `GB${target.vatNumber || vrn}`,
       country_code: "GB",
-      valid: false,
-      state: "invalid",
-      name: "",
-      address: "",
-      error: data?.message || "VAT number not found by HMRC",
-      error_code: data?.code || "NOT_FOUND",
-      checked_at: new Date().toISOString(),
+      valid: true,
+      state: "valid",
+      name: target.name || "",
+      address: mapAddress(target.address),
+      error: "",
+      error_code: "",
+      checked_at: data?.processingDate || new Date().toISOString(),
+      processing_date: data?.processingDate || "",
     };
   }
-
-  if (!response.ok) {
-    return {
-      input: `GB${vrn}`,
-      vat_number: `GB${vrn}`,
-      country_code: "GB",
-      valid: false,
-      state: "error",
-      name: "",
-      address: "",
-      error: data?.message || `HMRC VAT check failed: ${response.status}`,
-      error_code: data?.code || "HMRC_ERROR",
-      checked_at: new Date().toISOString(),
-    };
-  }
-
-  const target = data?.target || {};
 
   return {
     input: `GB${vrn}`,
-    vat_number: `GB${target.vatNumber || vrn}`,
+    vat_number: `GB${vrn}`,
     country_code: "GB",
-    valid: true,
-    state: "valid",
-    name: target.name || "",
-    address: mapAddress(target.address),
-    error: "",
-    error_code: "",
-    checked_at: data?.processingDate || new Date().toISOString(),
-    processing_date: data?.processingDate || "",
+    valid: false,
+    state: "error",
+    name: "",
+    address: "",
+    error:
+      lastData?.message ||
+      lastData?.code ||
+      `HMRC VAT check failed: ${lastStatus}`,
+    error_code: lastData?.code || "HMRC_ERROR",
+    checked_at: new Date().toISOString(),
   };
 }
 
