@@ -1,5 +1,3 @@
-// /src/portalRunHistory.ts
-
 export type PortalRunType = "vat" | "tin" | "eori";
 
 export type PortalRunSummary = {
