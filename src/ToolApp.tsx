@@ -440,6 +440,10 @@ function normalizeVatCandidate(v: string): string {
   return n;
 }
 
+function isUkVatCandidate(value: string): boolean {
+  return normalizeVatCandidate(value).startsWith("GB");
+}
+
 function normalizeEoriCandidate(v: string): string {
   return String(v || "")
     .trim()
@@ -2389,9 +2393,17 @@ function VatPage({
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-            <CardHeader className="pb-4">
-              <SectionTitle>{t(language, "input")}</SectionTitle>
-            </CardHeader>
+<CardHeader className="pb-4">
+  <SectionTitle>{t(language, "input")}</SectionTitle>
+
+  <SectionSubtitle maxWidth={760}>
+    {t(language, "vatInputHelp")}
+  </SectionSubtitle>
+
+  <div className="callout" style={{ marginTop: 10 }}>
+    UK VAT checks via HMRC are currently being prepared and will go live soon.
+  </div>
+</CardHeader>
 
             <CardContent className="pt-0">
               <div style={ACTION_ROW_STYLE}>
