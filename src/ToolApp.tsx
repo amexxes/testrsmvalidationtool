@@ -2568,28 +2568,30 @@ function VatPage({
                 </div>
               </div>
 
-              <UserDraftsPanel
-                activePage="vat"
-                referenceValue={caseRef}
-                inputValue={vatInput}
-                language={language}
-                onRestoreDraft={(draft) => {
-                  onCancel();
-                  setCaseRef(draft.referenceValue || "");
-                  setVatInput(draft.inputValue || "");
-                  setRows([]);
-                  setFilter("");
-                  setExpandedKey(null);
-                  setDuplicatesIgnored(0);
-                  setViesStatus([]);
-                  setFrText("-");
-                  setLastUpdate("-");
-                  setProgressText("0/0");
-                  setSortState({ colIndex: null, asc: true });
-                  setSortLabel("");
-                  setImportPreview(null);
-                }}
-              />
+<div style={{ marginTop: 14 }}>
+  <UserDraftsPanel
+    activePage="vat"
+    referenceValue={caseRef}
+    inputValue={vatInput}
+    language={language}
+    onRestoreDraft={(draft) => {
+      onCancel();
+      setCaseRef(draft.referenceValue || "");
+      setVatInput(draft.inputValue || "");
+      setRows([]);
+      setFilter("");
+      setExpandedKey(null);
+      setDuplicatesIgnored(0);
+      setViesStatus([]);
+      setFrText("-");
+      setLastUpdate("-");
+      setProgressText("0/0");
+      setSortState({ colIndex: null, asc: true });
+      setSortLabel("");
+      setImportPreview(null);
+    }}
+  />
+</div>
 
               <div className="progress" aria-hidden="true">
                 <div className="bar" style={{ width: `${progressPct}%` }} />
@@ -3528,24 +3530,26 @@ function TinPage({
                 </Button>
               </div>
 
-              <UserDraftsPanel
-                activePage="tin"
-                referenceValue={country}
-                inputValue={tinInput}
-                language={language}
-                onRestoreDraft={(draft) => {
-                  setCountry(draft.referenceValue || "NL");
-                  setTinInput(draft.inputValue || "");
-                  setRows([]);
-                  setError("");
-                  setInfoMessage("");
-                  setSearch("");
-                  setStatusFilter("all");
-                  setSortKey("status");
-                  setSortAsc(true);
-                  setImportPreview(null);
-                }}
-              />
+<div style={{ marginTop: 14 }}>
+  <UserDraftsPanel
+    activePage="tin"
+    referenceValue={country}
+    inputValue={tinInput}
+    language={language}
+    onRestoreDraft={(draft) => {
+      setCountry(draft.referenceValue || "NL");
+      setTinInput(draft.inputValue || "");
+      setRows([]);
+      setError("");
+      setInfoMessage("");
+      setSearch("");
+      setStatusFilter("all");
+      setSortKey("status");
+      setSortAsc(true);
+      setImportPreview(null);
+    }}
+  />
+</div>
 
               <div className="callout" style={{ marginTop: 14 }}>
                 {t(language, "tinImportant")}
@@ -4202,21 +4206,23 @@ async function runEoriValidation(eoris: string[]) {
                 </Button>
               </div>
 
-<UserDraftsPanel
-  activePage="eori"
-                 referenceValue="EORI"
-                inputValue={eoriInput}
-                language={language}
-                onRestoreDraft={(draft) => {
-                  setEoriInput(draft.inputValue || "");
-                  setRows([]);
-                  setError("");
-                  setSearch("");
-                  setStatusFilter("all");
-                  setImportPreview(null);
-                  setLastUpdate("-");
-                }}
-              />
+<div style={{ marginTop: 14 }}>
+  <UserDraftsPanel
+    activePage="eori"
+    referenceValue="EORI"
+    inputValue={eoriInput}
+    language={language}
+    onRestoreDraft={(draft) => {
+      setEoriInput(draft.inputValue || "");
+      setRows([]);
+      setError("");
+      setSearch("");
+      setStatusFilter("all");
+      setImportPreview(null);
+      setLastUpdate("-");
+    }}
+  />
+</div>
 
               <div className="callout" style={{ marginTop: 14 }}>
                 {t(language, "eoriImportant")}
