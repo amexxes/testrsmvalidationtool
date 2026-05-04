@@ -287,6 +287,7 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   ES: { lat: 40.4168, lon: -3.7038 },
   FI: { lat: 60.1699, lon: 24.9384 },
   FR: { lat: 48.8566, lon: 2.3522 },
+  GB: { lat: 51.5074, lon: -0.1278 },
   HR: { lat: 45.815, lon: 15.9819 },
   HU: { lat: 47.4979, lon: 19.0402 },
   IE: { lat: 53.3498, lon: -6.2603 },
@@ -2454,10 +2455,11 @@ function VatPage({
           if (cc === "ITA") cc = "IT";
           if (cc === "IRL") cc = "IE";
           if (cc === "GRC") cc = "EL";
-          if (cc === "GBR") cc = "XI";
+          if (cc === "GBR") cc = "GB";
+          if (cc === "FRANCE") cc = "FR";
+          if (cc === "UNITED KINGDOM") cc = "GB";
 
           if (cc === "GR") cc = "EL";
-          if (cc === "GB") cc = "XI";
 
           if (cc && !loggedIsoRef.current.has(cc)) {
             loggedIsoRef.current.add(cc);
@@ -2510,9 +2512,10 @@ if (ratio >= 0.85) {
           if (cc === "DEU") cc = "DE";
           if (cc === "NLD") cc = "NL";
           if (cc === "GRC") cc = "EL";
-          if (cc === "GBR") cc = "XI";
+          if (cc === "GBR") cc = "GB";
+          if (cc === "FRANCE") cc = "FR";
+          if (cc === "UNITED KINGDOM") cc = "GB";
           if (cc === "GR") cc = "EL";
-          if (cc === "GB") cc = "XI";
 
           if (!cc) return;
 
