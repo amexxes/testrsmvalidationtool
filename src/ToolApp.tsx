@@ -2363,25 +2363,25 @@ const ratio =
     ? Math.log1p(n) / Math.log1p(max)
     : 0;
 
-          let fill = "#d9f0f7";
-          let stroke = "#b9deea";
+let fill = "#eef8fb";
+let stroke = "#d6edf4";
 
-          if (ratio >= 0.8) {
-            fill = "#55b9d4";
-            stroke = "#9fd8e8";
-          } else if (ratio >= 0.55) {
-            fill = "#78c8dd";
-            stroke = "#b7e2ed";
-          } else if (ratio >= 0.35) {
-            fill = "#9ed9e9";
-            stroke = "#cdebf3";
-          } else if (ratio >= 0.18) {
-            fill = "#c4e9f3";
-            stroke = "#dff4f8";
-          } else if (ratio > 0) {
-            fill = "#ddf4fa";
-            stroke = "#e9f8fb";
-          }
+if (ratio >= 0.85) {
+  fill = "#1f8fb3";
+  stroke = "#0b6f91";
+} else if (ratio >= 0.65) {
+  fill = "#3fa9c9";
+  stroke = "#2385a5";
+} else if (ratio >= 0.45) {
+  fill = "#6fc2d8";
+  stroke = "#3fa9c9";
+} else if (ratio >= 0.25) {
+  fill = "#99d7e7";
+  stroke = "#6fc2d8";
+} else if (ratio > 0) {
+  fill = "#bfeaf3";
+  stroke = "#8fd3e5";
+}
 
           return {
             color: stroke,
