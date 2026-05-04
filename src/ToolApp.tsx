@@ -298,6 +298,7 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   MT: { lat: 35.8989, lon: 14.5146 },
   NL: { lat: 52.3676, lon: 4.9041 },
   PL: { lat: 52.2297, lon: 21.0122 },
+    NO: { lat: 59.9139, lon: 10.7522 },
   PT: { lat: 38.7223, lon: -9.1393 },
   RO: { lat: 44.4268, lon: 26.1025 },
   SE: { lat: 59.3293, lon: 18.0686 },
@@ -369,6 +370,7 @@ const VAT_PATTERNS: Record<string, RegExp> = {
   LV: /^\d{11}$/,
   MT: /^\d{8}$/,
   NL: /^\d{9}B\d{2}$/,
+    NO: /^\d{9}MVA$/,
   PL: /^\d{10}$/,
   PT: /^\d{9}$/,
   RO: /^\d{2,10}$/,
@@ -450,6 +452,10 @@ function isUkVatCandidate(value: string): boolean {
 function isSwissVatCandidate(value: string): boolean {
   const normalized = normalizeVatCandidate(value);
   return normalized.startsWith("CH") || normalized.startsWith("CHE");
+}
+
+function isNorwayVatCandidate(value: string): boolean {
+  return normalizeVatCandidate(value).startsWith("NO");
 }
 
 function normalizeEoriCandidate(v: string): string {
@@ -1223,6 +1229,7 @@ function geoFeatureCountryCode(properties: any): string {
     if (cc === "GBR" || cc === "UNITED KINGDOM") return "GB";
     if (cc === "DEU" || cc === "GERMANY") return "DE";
     if (cc === "NLD" || cc === "NETHERLANDS") return "NL";
+    if (cc === "NOR" || cc === "NORWAY") return "NO";
     if (cc === "BEL" || cc === "BELGIUM") return "BE";
     if (cc === "LUX" || cc === "LUXEMBOURG") return "LU";
     if (cc === "ESP" || cc === "SPAIN") return "ES";
@@ -2064,8 +2071,12 @@ function VatPage({
 
     const ukVatLines = normalizedLines.filter(isUkVatCandidate);
     const chVatLines = normalizedLines.filter(isSwissVatCandidate);
+    const noVatLines = normalizedLines.filter(isNorwayVatCandidate);
     const viesVatLines = normalizedLines.filter(
-      (line) => !isUkVatCandidate(line) && !isSwissVatCandidate(line)
+      (line) =>
+        !isUkVatCandidate(line) &&
+        !isSwissVatCandidate(line) &&
+        !isNorwayVatCandidate(line)
     );
 
     currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -2119,6 +2130,27 @@ function VatPage({
 
         if (Array.isArray(chData.results)) {
           combinedResults.push(...chData.results);
+        }
+      }
+
+      if (noVatLines.length) {
+        const noResp = await fetch("/api/no-vat-validate-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vat_numbers: noVatLines, case_ref: caseRef }),
+          signal: controller.signal,
+        });
+
+        const noData = await noResp.json();
+
+        if (!noResp.ok) {
+          throw new Error(noData?.message || noData?.error || "Norwegian VAT validation failed");
+        }
+
+        duplicatesTotal += Number(noData.duplicates_ignored || 0);
+
+        if (Array.isArray(noData.results)) {
+          combinedResults.push(...noData.results);
         }
       }
 
