@@ -1,3 +1,4 @@
+// /src/PortalTaskHistoryPanel.tsx
 import React from "react";
 import type { PortalRunSummary } from "./portalRunHistory";
 
@@ -28,7 +29,11 @@ function openActions(run: PortalRunSummary) {
 }
 
 function typeLabel(type: PortalRunSummary["type"]) {
-  return type === "vat" ? "VAT / VIES" : "TIN";
+  if (type === "vat") return "VAT / VIES";
+  if (type === "tin") return "TIN";
+  if (type === "eori") return "EORI";
+
+  return "Validation";
 }
 
 function badgeStyle(open: number): React.CSSProperties {
@@ -60,7 +65,7 @@ export default function PortalTaskHistoryPanel({ open, runs, onClose, onClear }:
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={onClear} style={secondaryButtonStyle} disabled={!runs.length}>
+            <button type="button" onClick={onClear} style={secondaryButtonStyle}>
               Clear
             </button>
 
@@ -75,11 +80,11 @@ export default function PortalTaskHistoryPanel({ open, runs, onClose, onClear }:
         ) : (
           <div style={{ display: "grid", gap: 10 }}>
             {runs.map((run) => {
-              const open = openActions(run);
+              const openCount = openActions(run);
 
               return (
                 <div key={run.id} style={runCardStyle}>
-                  <div style={{ minWidth: 0 }}>
+                  <div>
                     <div style={runTitleStyle}>
                       {typeLabel(run.type)} · {formatDate(run.createdAt)}
                     </div>
@@ -97,19 +102,14 @@ export default function PortalTaskHistoryPanel({ open, runs, onClose, onClear }:
                     <Stat label="Valid" value={run.valid} />
                     <Stat label="Invalid" value={run.invalid} />
                     <Stat label="Errors" value={run.errors} />
-                    <Stat label="Pending" value={run.pending} />
 
                     <span
                       style={{
-                        padding: "7px 10px",
-                        borderRadius: 999,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        whiteSpace: "nowrap",
-                        ...badgeStyle(open),
+                        ...badgeBaseStyle,
+                        ...badgeStyle(openCount),
                       }}
                     >
-                      {open ? `${open} open` : "All clear"}
+                      {openCount ? `${openCount} open` : "All clear"}
                     </span>
                   </div>
                 </div>
@@ -124,10 +124,10 @@ export default function PortalTaskHistoryPanel({ open, runs, onClose, onClear }:
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div style={statStyle}>
-      <span>{label}</span>
-      <b>{value}</b>
-    </div>
+    <span style={statStyle}>
+      <span style={statLabelStyle}>{label}</span>
+      <b style={statValueStyle}>{value}</b>
+    </span>
   );
 }
 
@@ -234,4 +234,27 @@ const statStyle: React.CSSProperties = {
   border: "1px solid rgba(11,46,95,0.08)",
   color: "#0B2E5F",
   fontSize: 11,
+};
+
+const statLabelStyle: React.CSSProperties = {
+  color: "#64748b",
+  fontWeight: 700,
+};
+
+const statValueStyle: React.CSSProperties = {
+  color: "#0B2E5F",
+  fontSize: 13,
+  fontWeight: 900,
+};
+
+const badgeBaseStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 32,
+  padding: "0 11px",
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 850,
+  whiteSpace: "nowrap",
 };
