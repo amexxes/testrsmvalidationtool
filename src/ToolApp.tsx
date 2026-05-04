@@ -2886,123 +2886,7 @@ function formatTinCleanupMessage(
   if (prefixRemoved > 0) parts.push(`removed the country code from ${prefixRemoved} line(s)`);
   return `${parts.join(" and ")} ${phase === "beforeValidation" ? "before validation" : "during import"}.`;
 }
-function normalizeEoriCandidate(value: string): string {
-  return String(value || "")
-    .trim()
-    .replace(/\s+/g, "")
-    .replace(/[.\-_/]/g, "")
-    .toUpperCase();
-}
 
-function validateEoriFormat(value: string): { ok: boolean; reason: string } {
-  const eori = normalizeEoriCandidate(value);
-
-  if (!eori) return { ok: false, reason: "Missing EORI" };
-
-  if (eori.startsWith("XI")) {
-    return {
-      ok: false,
-      reason: "XI EORI numbers must be checked via the EU EORI service",
-    };
-  }
-
-  if (!eori.startsWith("GB")) {
-    return {
-      ok: false,
-      reason: "Only GB EORI numbers are supported by the HMRC API",
-    };
-  }
-
-  if (!/^GB\d{12,15}$/.test(eori)) {
-    return {
-      ok: false,
-      reason: "Expected format: GB followed by 12 to 15 digits",
-    };
-  }
-
-  return { ok: true, reason: "" };
-}
-
-function displayValue(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "";
-
-  if (Array.isArray(value)) {
-    return value.map(displayValue).filter(Boolean).join(", ");
-  }
-
-  if (typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).map(displayValue).filter(Boolean).join(", ");
-  }
-
-  return String(value);
-}
-
-type EoriRow = {
-  input_eori?: string;
-  eori?: string;
-  valid?: boolean;
-  status?: "valid" | "invalid" | "error" | string;
-  trader_name?: string;
-  address?: unknown;
-  processing_date?: string;
-  message?: string;
-};
-
-function eoriState(row: EoriRow): "valid" | "invalid" | "error" {
-  const rawStatus = String(row.status || "").toLowerCase();
-
-  if (rawStatus === "valid") return "valid";
-  if (rawStatus === "invalid") return "invalid";
-  if (rawStatus === "error") return "error";
-
-  if (typeof row.valid === "boolean") {
-    return row.valid ? "valid" : "invalid";
-  }
-
-  return "error";
-}
-
-function buildEoriImportPreview(columns: ImportColumnOption[], selectedColumnKey: string): ImportPreviewData {
-  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
-
-  const seen = new Set<string>();
-  const out: string[] = [];
-  let duplicatesRemoved = 0;
-  let skippedCount = 0;
-
-  for (const value of selected?.values || []) {
-    if (isLikelyImportHeader(value)) {
-      skippedCount++;
-      continue;
-    }
-
-    const n = normalizeEoriCandidate(value);
-    if (!n || !validateEoriFormat(n).ok) {
-      skippedCount++;
-      continue;
-    }
-
-    if (seen.has(n)) {
-      duplicatesRemoved++;
-      continue;
-    }
-
-    seen.add(n);
-    out.push(n);
-  }
-
-  return {
-    columns,
-    selectedColumnKey: selected?.key || "col-0",
-    totalFound: selected?.totalFound || 0,
-    readyCount: out.length,
-    duplicatesRemoved,
-    skippedCount,
-    columnLabel: selected?.label || "Kolom A",
-    examples: out.slice(0, 10),
-    payloadText: out.join("\n"),
-  };
-}
 
 function TinPage({
   activePage,
@@ -4118,8 +4002,8 @@ function EoriPage({
                 </Button>
               </div>
 
-              <UserDraftsPanel
-                activePage="eori" as any
+<UserDraftsPanel
+  activePage={"eori" as any}
                 referenceValue="GB"
                 inputValue={eoriInput}
                 language={language}
