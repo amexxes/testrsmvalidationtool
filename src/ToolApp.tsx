@@ -367,7 +367,36 @@ const VAT_PATTERNS: Record<string, RegExp> = {
   SK: /^\d{10}$/,
   XI: /^(?:\d{9}|\d{12}|GD\d{3}|HA\d{3})$/,
 };
-
+const EU_EORI_COUNTRY_CODES = new Set([
+  "AT",
+  "BE",
+  "BG",
+  "CY",
+  "CZ",
+  "DE",
+  "DK",
+  "EE",
+  "EL",
+  "ES",
+  "FI",
+  "FR",
+  "HR",
+  "HU",
+  "IE",
+  "IT",
+  "LT",
+  "LU",
+  "LV",
+  "MT",
+  "NL",
+  "PL",
+  "PT",
+  "RO",
+  "SE",
+  "SI",
+  "SK",
+  "XI",
+]);
 type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error";
 
 type ImportColumnOption = {
@@ -412,24 +441,53 @@ function normalizeEoriCandidate(v: string): string {
     .toUpperCase();
 }
 
-function validateEoriFormat(value: string): { ok: boolean; reason: string } {
+type EoriValidationService = "hmrc" | "eu";
+
+function eoriServiceFor(value: string): EoriValidationService | "" {
   const eori = normalizeEoriCandidate(value);
+  const countryCode = eori.slice(0, 2);
+  const euCountryCode = countryCode === "GR" ? "EL" : countryCode;
 
-  if (!eori) return { ok: false, reason: "Missing EORI" };
+  if (countryCode === "GB") return "hmrc";
+  if (EU_EORI_COUNTRY_CODES.has(euCountryCode)) return "eu";
 
-  if (eori.startsWith("XI")) {
-    return { ok: false, reason: "XI EORI numbers must be checked via the EU EORI service" };
+  return "";
+}
+
+function validateEoriFormat(value: string): {
+  ok: boolean;
+  reason: string;
+  service?: EoriValidationService;
+} {
+  const eori = normalizeEoriCandidate(value);
+  const countryCode = eori.slice(0, 2);
+  const euCountryCode = countryCode === "GR" ? "EL" : countryCode;
+
+  if (!eori) {
+    return { ok: false, reason: "Missing EORI" };
   }
 
-  if (!eori.startsWith("GB")) {
-    return { ok: false, reason: "Only GB EORI numbers are supported by the HMRC API" };
+  if (!/^[A-Z]{2}/.test(eori)) {
+    return { ok: false, reason: "Missing country prefix" };
   }
 
-  if (!/^GB\d{12,15}$/.test(eori)) {
-    return { ok: false, reason: "Expected format: GB followed by 12 to 15 digits" };
+  if (countryCode === "GB") {
+    if (!/^GB\d{12,15}$/.test(eori)) {
+      return { ok: false, reason: "Expected GB format: GB followed by 12 to 15 digits" };
+    }
+
+    return { ok: true, reason: "", service: "hmrc" };
   }
 
-  return { ok: true, reason: "" };
+  if (!EU_EORI_COUNTRY_CODES.has(euCountryCode)) {
+    return { ok: false, reason: "Only GB and EU EORI numbers are supported" };
+  }
+
+  if (!/^[A-Z]{2}[A-Z0-9]{1,15}$/.test(eori)) {
+    return { ok: false, reason: "Expected EU format: country code followed by max 15 letters or digits" };
+  }
+
+  return { ok: true, reason: "", service: "eu" };
 }
 
 function displayValue(value: unknown): string {
@@ -3665,9 +3723,26 @@ function EoriPage({
     return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
   }, [eoriInput]);
 
-  const validInputEoris = useMemo(() => {
-    return preparedEoris.filter((value) => validateEoriFormat(value).ok);
-  }, [preparedEoris]);
+const validEoriItems = useMemo(() => {
+  return preparedEoris.values
+    .map((value) => {
+      const result = validateEoriFormat(value);
+
+      if (!result.ok || !result.service) {
+        return null;
+      }
+
+      return {
+        eori: value,
+        service: result.service,
+      };
+    })
+    .filter((item): item is { eori: string; service: EoriValidationService } => item !== null);
+}, [preparedEoris.values]);
+
+const validInputEoris = useMemo(() => {
+  return validEoriItems.map((item) => item.eori);
+}, [validEoriItems]);
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -3788,40 +3863,78 @@ function EoriPage({
     void importEoriFile(f);
   }
 
-  async function runEoriValidation(eoris: string[]) {
-    const validEoris = eoris.map(normalizeEoriCandidate).filter((value) => validateEoriFormat(value).ok);
-    if (!validEoris.length) return;
+async function runEoriValidation(eoris: string[]) {
+  const prepared = eoris
+    .map(normalizeEoriCandidate)
+    .map((value) => ({
+      value,
+      check: validateEoriFormat(value),
+    }))
+    .filter((item) => item.check.ok && item.check.service);
 
-    setLoading(true);
-    setError("");
-    setRows([]);
-    setImportPreview(null);
+  const hmrcEoris = prepared
+    .filter((item) => item.check.service === "hmrc")
+    .map((item) => item.value);
 
-    currentRunIdRef.current = `eori-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    currentRunStartedAtRef.current = new Date().toISOString();
+  const euEoris = prepared
+    .filter((item) => item.check.service === "eu")
+    .map((item) => item.value);
 
-    try {
+  if (!hmrcEoris.length && !euEoris.length) return;
+
+  setLoading(true);
+  setError("");
+  setRows([]);
+  setImportPreview(null);
+
+  currentRunIdRef.current = `eori-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  currentRunStartedAtRef.current = new Date().toISOString();
+
+  try {
+    const resultSets: any[][] = [];
+
+    if (hmrcEoris.length) {
       const resp = await fetch("/api/eori-validate-batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eoris: validEoris }),
+        body: JSON.stringify({ eoris: hmrcEoris }),
       });
 
       const data = await resp.json();
 
       if (!resp.ok) {
-        setError(data?.message || data?.error || "EORI validation failed");
+        setError(data?.message || data?.error || "GB EORI validation failed");
         return;
       }
 
-      setRows(Array.isArray(data?.results) ? data.results : []);
-      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
-    } catch {
-      setError("EORI validation failed");
-    } finally {
-      setLoading(false);
+      resultSets.push(Array.isArray(data?.results) ? data.results : []);
     }
+
+    if (euEoris.length) {
+      const resp = await fetch("/api/eu-eori-validate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eoris: euEoris }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.message || data?.error || "EU EORI validation failed");
+        return;
+      }
+
+      resultSets.push(Array.isArray(data?.results) ? data.results : []);
+    }
+
+    setRows(resultSets.flat());
+    setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+  } catch {
+    setError("EORI validation failed");
+  } finally {
+    setLoading(false);
   }
+}
 
   async function onValidateEoriBatch() {
     await runEoriValidation(validInputEoris);
