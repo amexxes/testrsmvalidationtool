@@ -205,12 +205,8 @@ export default async function handler(req, res) {
 
     const token = await getHmrcAccessToken();
 
-for (let i = 0; i < validVrns.length; i++) {
-  if (i > 0) {
-    await sleep(500);
-  }
-
-  const row = await checkUkVat(validVrns[i], token);
+for (const vrn of validVrns) {
+  const row = await checkUkVat(vrn, token);
   results.push(row);
 }
 
