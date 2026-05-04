@@ -589,6 +589,59 @@ function humanError(code?: string, fallback?: string, language: PortalLanguage =
   return fallback || c || "";
 }
 
+function translateSwissVatMessage(raw: string, language: PortalLanguage): string {
+  const message = String(raw || "").trim();
+  if (!message) return "";
+
+  const resolvedMatch = message.match(
+    /^Resolved\s+(.+?)\s+to\s+(CHE-\d{3}\.\d{3}\.\d{3})\.?\s*(.*)$/i
+  );
+
+  if (resolvedMatch) {
+    const from = resolvedMatch[1];
+    const uid = resolvedMatch[2];
+    const rest = translateSwissVatMessage(resolvedMatch[3], language);
+
+    if (language === "nl") return `Omgezet van ${from} naar ${uid}. ${rest}`;
+    if (language === "de") return `Umgewandelt von ${from} in ${uid}. ${rest}`;
+    if (language === "fr") return `Converti de ${from} vers ${uid}. ${rest}`;
+
+    return `Resolved ${from} to ${uid}. ${rest}`;
+  }
+
+  const noUidMatch = message.match(/^No UID found for HR reference\s+(.+)$/i);
+
+  if (noUidMatch) {
+    const ref = noUidMatch[1];
+
+    if (language === "nl") return `Geen UID gevonden voor HR-referentie ${ref}.`;
+    if (language === "de") return `Keine UID fuer HR-Referenz ${ref} gefunden.`;
+    if (language === "fr") return `Aucun UID trouve pour la reference RC ${ref}.`;
+
+    return `No UID found for HR reference ${ref}.`;
+  }
+
+  const normalized = message.replace(/\s+/g, " ").toLowerCase();
+
+  if (normalized === "vat/mwst active.") {
+    if (language === "nl") return "VAT/MWST is actief.";
+    if (language === "de") return "VAT/MWST ist aktiv.";
+    if (language === "fr") return "VAT/MWST est actif.";
+
+    return "VAT/MWST active.";
+  }
+
+  if (normalized === "uid found, but vat/mwst is not active.") {
+    if (language === "nl") return "UID gevonden, maar VAT/MWST is niet actief.";
+    if (language === "de") return "UID gefunden, aber VAT/MWST ist nicht aktiv.";
+    if (language === "fr") return "UID trouve, mais VAT/MWST n'est pas actif.";
+
+    return "UID found, but VAT/MWST is not active.";
+  }
+
+  return message;
+}
+
 function localText(language: PortalLanguage, key: string): string {
   const copy: Record<string, Record<string, string>> = {
     en: {
@@ -2829,7 +2882,7 @@ if (ratio >= 0.85) {
                   const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
 
                   const isDone = ds === "valid" || ds === "invalid";
-                  const resultMessage = String((r as any).message || "").trim();
+                  const resultMessage = translateSwissVatMessage(String((r as any).message || ""), language);
 
                   const errShown = isDone
                     ? resultMessage
