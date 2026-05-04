@@ -2027,7 +2027,7 @@ function EoriPage({
 
     onRunCompleted({
       id: currentRunIdRef.current,
-      type: "eori" as any,
+      type: "eori",
       createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       label: "EORI validation run",
