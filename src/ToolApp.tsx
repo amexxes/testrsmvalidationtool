@@ -1194,6 +1194,49 @@ function vatCcToIso2ForFlag(ccRaw: string): string {
   return cc;
 }
 
+function geoFeatureCountryCode(properties: any): string {
+  const candidates = [
+    properties?.ISO_A2,
+    properties?.iso_a2,
+    properties?.ISO2,
+    properties?.iso2,
+    properties?.["alpha-2"],
+    properties?.["Alpha-2"],
+    properties?.["ISO3166-1-Alpha-2"],
+    properties?.ISO_A3,
+    properties?.iso_a3,
+    properties?.ISO3,
+    properties?.iso3,
+    properties?.ADM0_A3,
+    properties?.adm0_a3,
+    properties?.ADMIN,
+    properties?.name,
+    properties?.NAME,
+    properties?.Name,
+  ];
+
+  for (const value of candidates) {
+    let cc = String(value || "").toUpperCase().trim();
+    if (!cc || cc === "-99") continue;
+
+    if (cc === "FRA" || cc === "FRANCE") return "FR";
+    if (cc === "GBR" || cc === "UNITED KINGDOM") return "GB";
+    if (cc === "DEU" || cc === "GERMANY") return "DE";
+    if (cc === "NLD" || cc === "NETHERLANDS") return "NL";
+    if (cc === "BEL" || cc === "BELGIUM") return "BE";
+    if (cc === "LUX" || cc === "LUXEMBOURG") return "LU";
+    if (cc === "ESP" || cc === "SPAIN") return "ES";
+    if (cc === "PRT" || cc === "PORTUGAL") return "PT";
+    if (cc === "ITA" || cc === "ITALY") return "IT";
+    if (cc === "IRL" || cc === "IRELAND") return "IE";
+    if (cc === "GRC" || cc === "GREECE" || cc === "GR") return "EL";
+
+    if (/^[A-Z]{2}$/.test(cc)) return cc;
+  }
+
+  return "";
+}
+
 function localeForLanguage(language: PortalLanguage): string {
   if (language === "nl") return "nl-NL";
   if (language === "de") return "de-DE";
@@ -2425,41 +2468,7 @@ function VatPage({
       L.geoJSON(geoJsonRef.current as any, {
         style: (feature: any) => {
           const p = feature?.properties || {};
-
-          const raw =
-            p.ISO_A2 ??
-            p.iso_a2 ??
-            p.ISO2 ??
-            p.iso2 ??
-            p["alpha-2"] ??
-            p["Alpha-2"] ??
-            p["ISO3166-1-Alpha-2"] ??
-            p.ISO_A3 ??
-            p.iso_a3 ??
-            p.ISO3 ??
-            p.iso3 ??
-            p.ADMIN ??
-            p.name ??
-            p.NAME ??
-            p.Name;
-
-          let cc = String(raw || "").toUpperCase().trim();
-
-          if (cc === "FRA") cc = "FR";
-          if (cc === "DEU") cc = "DE";
-          if (cc === "NLD") cc = "NL";
-          if (cc === "BEL") cc = "BE";
-          if (cc === "LUX") cc = "LU";
-          if (cc === "ESP") cc = "ES";
-          if (cc === "PRT") cc = "PT";
-          if (cc === "ITA") cc = "IT";
-          if (cc === "IRL") cc = "IE";
-          if (cc === "GRC") cc = "EL";
-          if (cc === "GBR") cc = "GB";
-          if (cc === "FRANCE") cc = "FR";
-          if (cc === "UNITED KINGDOM") cc = "GB";
-
-          if (cc === "GR") cc = "EL";
+          const cc = geoFeatureCountryCode(p);
 
           if (cc && !loggedIsoRef.current.has(cc)) {
             loggedIsoRef.current.add(cc);
@@ -2505,17 +2514,7 @@ if (ratio >= 0.85) {
         },
         onEachFeature: (feature: any, lyr: any) => {
           const p = feature?.properties || {};
-          const raw = p.ISO_A2 ?? p.iso_a2 ?? p.ISO2 ?? p.iso2 ?? p.ISO_A3 ?? p.iso_a3 ?? p.ISO3 ?? p.iso3;
-          let cc = String(raw || "").toUpperCase().trim();
-
-          if (cc === "FRA") cc = "FR";
-          if (cc === "DEU") cc = "DE";
-          if (cc === "NLD") cc = "NL";
-          if (cc === "GRC") cc = "EL";
-          if (cc === "GBR") cc = "GB";
-          if (cc === "FRANCE") cc = "FR";
-          if (cc === "UNITED KINGDOM") cc = "GB";
-          if (cc === "GR") cc = "EL";
+          const cc = geoFeatureCountryCode(p);
 
           if (!cc) return;
 
