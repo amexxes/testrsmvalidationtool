@@ -197,14 +197,13 @@ export default function LoginPage({ onLoggedIn }: Props) {
             <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.08 }}>
               Secure access to the
               <br />
-              Validation Tool
+              RSM Validation Tool
               <br />
                
             </h1>
 
             <p style={{ marginTop: 16, color: "#4b607c", fontSize: 16, lineHeight: 1.6 }}>
-              One login for official VAT VIES validation, official EC TIN validation,
-              bulk uploads, filtering and exports.
+              One login for official the VAT VIES and EC TIN validation.
             </p>
 
             <div
