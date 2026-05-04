@@ -1949,10 +1949,17 @@ function VatPage({
     setViesStatus([]);
     setActiveFrJobId(null);
 
-    if (!lines.length) {
+    const normalizedLines = lines
+      .map((line) => normalizeVatCandidate(line))
+      .filter(Boolean);
+
+    if (!normalizedLines.length) {
       setLoading(false);
       return;
     }
+
+    const ukVatLines = normalizedLines.filter(isUkVatCandidate);
+    const viesVatLines = normalizedLines.filter((line) => !isUkVatCandidate(line));
 
     currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     currentRunStartedAtRef.current = new Date().toISOString();
@@ -1962,30 +1969,69 @@ function VatPage({
     validateAbortRef.current = controller;
 
     try {
-      const resp = await fetch("/api/validate-batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vat_numbers: lines, case_ref: caseRef }),
-        signal: controller.signal,
-      });
+      let duplicatesTotal = 0;
+      let frJobId = "";
+      const combinedResults: VatRow[] = [];
 
-      const data = (await resp.json()) as ValidateBatchResponse & any;
+      if (ukVatLines.length) {
+        const ukResp = await fetch("/api/uk-vat-validate-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vat_numbers: ukVatLines, case_ref: caseRef }),
+          signal: controller.signal,
+        });
 
-      setDuplicatesIgnored(data.duplicates_ignored || 0);
-      setViesStatus(Array.isArray(data.vies_status) ? data.vies_status : []);
+        const ukData = await ukResp.json();
 
-      const enriched = (data.results || []).map((r: VatRow) =>
+        if (!ukResp.ok) {
+          throw new Error(ukData?.message || ukData?.error || "UK VAT validation failed");
+        }
+
+        duplicatesTotal += Number(ukData.duplicates_ignored || 0);
+
+        if (Array.isArray(ukData.results)) {
+          combinedResults.push(...ukData.results);
+        }
+      }
+
+      if (viesVatLines.length) {
+        const viesResp = await fetch("/api/validate-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vat_numbers: viesVatLines, case_ref: caseRef }),
+          signal: controller.signal,
+        });
+
+        const viesData = (await viesResp.json()) as ValidateBatchResponse & any;
+
+        if (!viesResp.ok) {
+          throw new Error(viesData?.message || viesData?.error || "VAT validation failed");
+        }
+
+        duplicatesTotal += Number(viesData.duplicates_ignored || 0);
+        setViesStatus(Array.isArray(viesData.vies_status) ? viesData.vies_status : []);
+
+        if (Array.isArray(viesData.results)) {
+          combinedResults.push(...viesData.results);
+        }
+
+        frJobId = viesData.fr_job_id || "";
+      }
+
+      setDuplicatesIgnored(duplicatesTotal);
+
+      const enriched = combinedResults.map((r: VatRow) =>
         enrichRow({ ...(r as any), case_ref: caseRef } as any)
       );
 
       setRows(enriched);
       setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
 
-      if (data.fr_job_id) {
-        currentFrJobIdRef.current = data.fr_job_id;
-        setActiveFrJobId(data.fr_job_id);
+      if (frJobId) {
+        currentFrJobIdRef.current = frJobId;
+        setActiveFrJobId(frJobId);
 
-        await pollFrJob(data.fr_job_id);
+        await pollFrJob(frJobId);
 
         pollTimerRef.current = window.setInterval(() => {
           const id = currentFrJobIdRef.current;
@@ -1996,6 +2042,7 @@ function VatPage({
       }
     } catch (e: any) {
       if (e?.name === "AbortError") return;
+      setRows([]);
     } finally {
       validateAbortRef.current = null;
       setLoading(false);
@@ -2395,10 +2442,6 @@ function VatPage({
           <Card style={{ height: "100%" }}>
 <CardHeader className="pb-4">
   <SectionTitle>{t(language, "input")}</SectionTitle>
-
-  <SectionSubtitle maxWidth={760}>
-    {t(language, "vatInputHelp")}
-  </SectionSubtitle>
 
   <div className="callout" style={{ marginTop: 10 }}>
     UK VAT checks via HMRC are currently being prepared and will go live soon.
