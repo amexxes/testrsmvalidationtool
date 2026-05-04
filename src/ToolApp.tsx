@@ -3430,9 +3430,22 @@ function TinPage({
 <CardHeader className="pb-4">
   <SectionTitle>{t(language, "input")}</SectionTitle>
 
-  <div className="callout" style={{ marginTop: 10 }}>
-    {t(language, "tinInputHelp")}
-  </div>
+<div
+  className="callout"
+  style={{
+    marginTop: 10,
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "1px solid rgba(11,46,95,0.10)",
+    background: "rgba(248,251,255,0.82)",
+    color: "#0B2E5F",
+    fontSize: 14,
+    lineHeight: 1.55,
+    fontWeight: 500,
+  }}
+>
+  {t(language, "tinInputHelp")}
+</div>
 </CardHeader>
 
             <CardContent className="pt-0">
@@ -4098,9 +4111,22 @@ async function runEoriValidation(eoris: string[]) {
 <CardHeader className="pb-4">
   <SectionTitle>{t(language, "input")}</SectionTitle>
 
-  <div className="callout" style={{ marginTop: 10 }}>
-    {t(language, "eoriInputHelp")}
-  </div>
+<div
+  className="callout"
+  style={{
+    marginTop: 10,
+    padding: "12px 14px",
+    borderRadius: 14,
+    border: "1px solid rgba(11,46,95,0.10)",
+    background: "rgba(248,251,255,0.82)",
+    color: "#0B2E5F",
+    fontSize: 14,
+    lineHeight: 1.55,
+    fontWeight: 500,
+  }}
+>
+  {t(language, "eoriInputHelp")}
+</div>
 </CardHeader>
 
             <CardContent className="pt-0">
