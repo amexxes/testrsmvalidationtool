@@ -2671,6 +2671,36 @@ if (ratio >= 0.85) {
                 </div>
               </div>
 
+              <div
+                className="progress"
+                aria-label={`${t(language, "progress")}: ${progressPct}%`}
+                style={{
+                  marginTop: 10,
+                  position: "relative",
+                  height: 22,
+                  overflow: "hidden",
+                }}
+              >
+                <div className="bar" style={{ width: `${progressPct}%` }} />
+
+                <div
+                  className="mono"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#0B2E5F",
+                    pointerEvents: "none",
+                  }}
+                >
+                  {progressPct}%
+                </div>
+              </div>
+
 <div style={{ marginTop: 14 }}>
   <UserDraftsPanel
     activePage="vat"
@@ -2695,10 +2725,6 @@ if (ratio >= 0.85) {
     }}
   />
 </div>
-
-              <div className="progress" aria-hidden="true">
-                <div className="bar" style={{ width: `${progressPct}%` }} />
-              </div>
 
               <MetricGrid
                 items={[
