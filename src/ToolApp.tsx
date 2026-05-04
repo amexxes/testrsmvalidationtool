@@ -2133,6 +2133,16 @@ function EoriPage({
     );
   }
 
+  function restoreDraft(draft: UserDraft) {
+    setEoriInput(draft.inputValue || "");
+    setRows([]);
+    setFilter("");
+    setError("");
+    setLastUpdate("—");
+    currentRunIdRef.current = null;
+    currentRunStartedAtRef.current = "";
+  }
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
       <div style={cardStyle()}>
@@ -2316,6 +2326,14 @@ function EoriPage({
           </table>
         </div>
       </div>
+
+      <UserDraftsPanel
+        activePage="eori"
+        referenceValue="GB"
+        inputValue={eoriInput}
+        language={language}
+        onRestoreDraft={restoreDraft}
+      />
     </div>
   );
 }
