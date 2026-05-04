@@ -2115,7 +2115,7 @@ function VatPage({
       (r as any).vat_number ?? "",
       (r as any).name ?? "",
       (r as any).address ?? "",
-      (r as any).error_code ?? (r as any).error ?? "",
+      (r as any).message || (r as any).error_code || (r as any).error || "",
     ];
 
     return cols[colIndex] ?? "";
@@ -2807,8 +2807,11 @@ if (ratio >= 0.85) {
                     {t(language, "address")}
                   </th>
 
-                  <th style={{ ...TH_STYLE, width: 240 }} onClick={() => sortByColumn(4, t(language, "error"))}>
-                    {t(language, "error")}
+                  <th
+                    style={{ ...TH_STYLE, width: 240 }}
+                    onClick={() => sortByColumn(4, `${t(language, "message")} / ${t(language, "error")}`)}
+                  >
+                    {t(language, "message")} / {t(language, "error")}
                   </th>
                 </tr>
               </thead>
@@ -2826,7 +2829,11 @@ if (ratio >= 0.85) {
                   const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
 
                   const isDone = ds === "valid" || ds === "invalid";
-                  const errShown = isDone ? "" : humanError((r as any).error_code, (r as any).error, language);
+                  const resultMessage = String((r as any).message || "").trim();
+
+                  const errShown = isDone
+                    ? resultMessage
+                    : resultMessage || humanError((r as any).error_code, (r as any).error, language);
 
                   return (
                     <React.Fragment key={`${key}-${idx}`}>
