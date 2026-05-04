@@ -291,38 +291,38 @@ const ERROR_MAP: Record<string, Partial<Record<PortalLanguage, string>> & { en: 
   MS_MAX_CONCURRENT_REQ: {
     en: "Member State has too many concurrent checks; we will try again later.",
     nl: "De lidstaat heeft te veel gelijktijdige controles; we proberen het later opnieuw.",
-    de: "Der Mitgliedstaat hat zu viele gleichzeitige Prüfungen; wir versuchen es später erneut.",
-    fr: "L’État membre a trop de contrôles simultanés ; nous réessaierons plus tard.",
+    de: "Der Mitgliedstaat hat zu viele gleichzeitige Pruefungen; wir versuchen es spaeter erneut.",
+    fr: "L'Etat membre a trop de controles simultanes; nous reessaierons plus tard.",
   },
   MS_UNAVAILABLE: {
     en: "Member State is temporarily unavailable; we will try again later.",
     nl: "De lidstaat is tijdelijk niet beschikbaar; we proberen het later opnieuw.",
-    de: "Der Mitgliedstaat ist vorübergehend nicht verfügbar; wir versuchen es später erneut.",
-    fr: "L’État membre est temporairement indisponible ; nous réessaierons plus tard.",
+    de: "Der Mitgliedstaat ist voruebergehend nicht verfuegbar; wir versuchen es spaeter erneut.",
+    fr: "L'Etat membre est temporairement indisponible; nous reessaierons plus tard.",
   },
   TIMEOUT: {
     en: "Timeout when calling VIES; we will try again later.",
     nl: "Timeout bij het aanroepen van VIES; we proberen het later opnieuw.",
-    de: "Zeitüberschreitung beim Aufruf von VIES; wir versuchen es später erneut.",
-    fr: "Délai dépassé lors de l’appel à VIES ; nous réessaierons plus tard.",
+    de: "Zeitueberschreitung beim Aufruf von VIES; wir versuchen es spaeter erneut.",
+    fr: "Delai depasse lors de l'appel a VIES; nous reessaierons plus tard.",
   },
   GLOBAL_MAX_CONCURRENT_REQ: {
     en: "VIES is busy; we will try again later.",
     nl: "VIES is druk; we proberen het later opnieuw.",
-    de: "VIES ist ausgelastet; wir versuchen es später erneut.",
-    fr: "VIES est occupé ; nous réessaierons plus tard.",
+    de: "VIES ist ausgelastet; wir versuchen es spaeter erneut.",
+    fr: "VIES est occupe; nous reessaierons plus tard.",
   },
   SERVICE_UNAVAILABLE: {
     en: "VIES service is unavailable; we will try again later.",
     nl: "De VIES-service is niet beschikbaar; we proberen het later opnieuw.",
-    de: "Der VIES-Dienst ist nicht verfügbar; wir versuchen es später erneut.",
-    fr: "Le service VIES est indisponible ; nous réessaierons plus tard.",
+    de: "Der VIES-Dienst ist nicht verfuegbar; wir versuchen es spaeter erneut.",
+    fr: "Le service VIES est indisponible; nous reessaierons plus tard.",
   },
   NETWORK_ERROR: {
     en: "Network error when calling VIES; we will try again later.",
     nl: "Netwerkfout bij het aanroepen van VIES; we proberen het later opnieuw.",
-    de: "Netzwerkfehler beim Aufruf von VIES; wir versuchen es später erneut.",
-    fr: "Erreur réseau lors de l’appel à VIES ; nous réessaierons plus tard.",
+    de: "Netzwerkfehler beim Aufruf von VIES; wir versuchen es spaeter erneut.",
+    fr: "Erreur reseau lors de l'appel a VIES; nous reessaierons plus tard.",
   },
 };
 
@@ -359,7 +359,16 @@ const VAT_PATTERNS: Record<string, RegExp> = {
 
 type RowState = "valid" | "invalid" | "retry" | "queued" | "processing" | "error";
 
+type ImportColumnOption = {
+  key: string;
+  label: string;
+  values: string[];
+  totalFound: number;
+};
+
 type ImportPreviewData = {
+  columns: ImportColumnOption[];
+  selectedColumnKey: string;
   totalFound: number;
   readyCount: number;
   duplicatesRemoved: number;
@@ -368,12 +377,6 @@ type ImportPreviewData = {
   columnLabel: string;
   examples: string[];
   payloadText: string;
-};
-
-type ParsedImportFileValues = {
-  values: string[];
-  totalFound: number;
-  columnLabel: string;
 };
 
 function normalizeLine(s: string): string {
@@ -427,7 +430,7 @@ function stateLabel(state: string | undefined, language: PortalLanguage): string
   if (s === "retry") {
     if (language === "nl") return "Opnieuw";
     if (language === "de") return "Erneut";
-    if (language === "fr") return "Réessai";
+    if (language === "fr") return "Reessai";
     return "Retry";
   }
 
@@ -460,7 +463,7 @@ function localText(language: PortalLanguage, key: string): string {
       asc: "asc",
       desc: "desc",
       tinValidationFailed: "TIN validation failed",
-      vatInfographic: "VAT validation — infographic",
+      vatInfographic: "VAT validation - infographic",
       retryUnresolved: "Retry unresolved",
     },
     nl: {
@@ -476,7 +479,7 @@ function localText(language: PortalLanguage, key: string): string {
       asc: "oplopend",
       desc: "aflopend",
       tinValidationFailed: "TIN-validatie mislukt",
-      vatInfographic: "VAT-validatie — infographic",
+      vatInfographic: "VAT-validatie - infographic",
       retryUnresolved: "Opnieuw proberen",
     },
     de: {
@@ -484,32 +487,32 @@ function localText(language: PortalLanguage, key: string): string {
       lines: "Zeilen",
       duplicates: "Duplikate",
       formatIssues: "Formatprobleme",
-      countries: "Länder",
-      mapUnavailable: "Karte nicht verfügbar",
+      countries: "Laender",
+      mapUnavailable: "Karte nicht verfuegbar",
       eta: "ETA",
       bad: "Fehlerhaft",
       ok: "OK",
       asc: "aufsteigend",
       desc: "absteigend",
-      tinValidationFailed: "TIN-Prüfung fehlgeschlagen",
-      vatInfographic: "VAT-Prüfung — Infografik",
+      tinValidationFailed: "TIN-Pruefung fehlgeschlagen",
+      vatInfographic: "VAT-Pruefung - Infografik",
       retryUnresolved: "Offene erneut versuchen",
     },
     fr: {
       unique: "uniques",
       lines: "lignes",
       duplicates: "doublons",
-      formatIssues: "problèmes de format",
+      formatIssues: "problemes de format",
       countries: "pays",
       mapUnavailable: "Carte indisponible",
       eta: "ETA",
       bad: "Incorrect",
       ok: "OK",
       asc: "croissant",
-      desc: "décroissant",
-      tinValidationFailed: "Échec de la validation TIN",
-      vatInfographic: "Validation VAT — infographie",
-      retryUnresolved: "Réessayer les non résolus",
+      desc: "decroissant",
+      tinValidationFailed: "Echec de la validation TIN",
+      vatInfographic: "Validation VAT - infographie",
+      retryUnresolved: "Reessayer les non resolus",
     },
   };
 
@@ -566,6 +569,56 @@ function excelColumnName(index: number): string {
   return out;
 }
 
+function splitDelimitedLine(line: string, delimiter: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (const char of line) {
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current.trim());
+  return result;
+}
+
+function detectDelimiter(text: string): string | null {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+
+  const candidates = [";", ",", "\t"];
+  let best: string | null = null;
+  let bestScore = 0;
+
+  for (const delimiter of candidates) {
+    const score = lines.reduce(
+      (sum, line) => sum + Math.max(0, splitDelimitedLine(line, delimiter).length - 1),
+      0
+    );
+
+    if (score > bestScore) {
+      best = delimiter;
+      bestScore = score;
+    }
+  }
+
+  return bestScore > 0 ? best : null;
+}
+
 function isLikelyImportHeader(value: string): boolean {
   const v = String(value || "")
     .trim()
@@ -587,73 +640,186 @@ function isLikelyImportHeader(value: string): boolean {
   ].includes(v);
 }
 
-async function readImportFileValues(
-  file: File,
-  isUsefulValue: (value: string) => boolean
-): Promise<ParsedImportFileValues> {
-  const name = (file.name || "").toLowerCase();
-  const isCsvLike = name.endsWith(".csv") || name.endsWith(".txt");
+function buildColumnOptionsFromRows(rows: string[][], sourceLabel: string): ImportColumnOption[] {
+  const maxCols = rows.reduce((max, row) => Math.max(max, row.length), 0);
+  const columns: ImportColumnOption[] = [];
 
-  if (isCsvLike) {
-    const text = await file.text();
-
-    const values = text
-      .split(/\r?\n|,|;|\t/)
-      .map((x) => String(x || "").trim())
+  for (let colIndex = 0; colIndex < maxCols; colIndex++) {
+    const values = rows
+      .map((row) => String(row[colIndex] ?? "").trim())
       .filter(Boolean);
 
-    return {
+    if (!values.length) continue;
+
+    const firstValue = values[0] || "";
+    const shortHeader = firstValue.length > 34 ? `${firstValue.slice(0, 34)}...` : firstValue;
+    const headerSuffix = isLikelyImportHeader(firstValue) ? ` - ${shortHeader}` : "";
+
+    columns.push({
+      key: `col-${colIndex}`,
+      label: `${sourceLabel}, kolom ${excelColumnName(colIndex)}${headerSuffix}`,
       values,
       totalFound: values.length,
-      columnLabel: "CSV/TXT",
-    };
+    });
   }
 
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
-  const firstSheetName = wb.SheetNames?.[0];
-  const ws = firstSheetName ? wb.Sheets[firstSheetName] : null;
+  return columns.length
+    ? columns
+    : [
+        {
+          key: "col-0",
+          label: `${sourceLabel}, kolom A`,
+          values: [],
+          totalFound: 0,
+        },
+      ];
+}
 
-  if (!ws) {
-    return {
-      values: [],
-      totalFound: 0,
-      columnLabel: "—",
-    };
+async function readImportFileColumns(file: File): Promise<ImportColumnOption[]> {
+  const name = String(file.name || "").toLowerCase();
+
+  if (name.endsWith(".csv") || name.endsWith(".txt")) {
+    const text = await file.text();
+    const delimiter = detectDelimiter(text);
+
+    const rows = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => (delimiter ? splitDelimitedLine(line, delimiter) : [line]));
+
+    return buildColumnOptionsFromRows(rows, name.endsWith(".txt") ? "TXT" : "CSV");
   }
 
-  const aoa = XLSX.utils.sheet_to_json(ws, {
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const firstSheetName = workbook.SheetNames?.[0];
+  const sheet = firstSheetName ? workbook.Sheets[firstSheetName] : null;
+
+  if (!sheet) return buildColumnOptionsFromRows([], "Sheet 1");
+
+  const rows = XLSX.utils.sheet_to_json(sheet, {
     header: 1,
     raw: false,
     defval: "",
-  }) as any[][];
+  }) as unknown[][];
 
-  const maxCols = aoa.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+  return buildColumnOptionsFromRows(
+    rows.map((row) => row.map((cell) => String(cell ?? "").trim())),
+    "Sheet 1"
+  );
+}
 
-  let bestCol = 0;
-  let bestScore = -1;
-  let bestFilled = -1;
-  let bestValues: string[] = [];
+function selectBestImportColumn(
+  columns: ImportColumnOption[],
+  scoreValue: (value: string) => boolean
+): ImportColumnOption {
+  if (!columns.length) {
+    return { key: "col-0", label: "Kolom A", values: [], totalFound: 0 };
+  }
 
-  for (let col = 0; col < maxCols; col++) {
-    const values = aoa
-      .map((row) => String(row?.[col] ?? "").trim())
-      .filter(Boolean);
+  return [...columns].sort((a, b) => {
+    const scoreA = a.values.reduce((sum, value) => sum + (scoreValue(value) ? 1 : 0), 0);
+    const scoreB = b.values.reduce((sum, value) => sum + (scoreValue(value) ? 1 : 0), 0);
 
-    const score = values.reduce((sum, value) => sum + (isUsefulValue(value) ? 1 : 0), 0);
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return b.values.length - a.values.length;
+  })[0];
+}
 
-    if (score > bestScore || (score === bestScore && values.length > bestFilled)) {
-      bestCol = col;
-      bestScore = score;
-      bestFilled = values.length;
-      bestValues = values;
+function buildVatImportPreview(columns: ImportColumnOption[], selectedColumnKey: string): ImportPreviewData {
+  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let duplicatesRemoved = 0;
+  let skippedCount = 0;
+
+  for (const value of selected?.values || []) {
+    if (isLikelyImportHeader(value)) {
+      skippedCount++;
+      continue;
     }
+
+    const n = normalizeVatCandidate(value);
+    if (!n || !validateFormat(n).ok) {
+      skippedCount++;
+      continue;
+    }
+
+    if (seen.has(n)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(n);
+    out.push(n);
   }
 
   return {
-    values: bestValues,
-    totalFound: bestValues.length,
-    columnLabel: `Sheet 1, kolom ${excelColumnName(bestCol)}`,
+    columns,
+    selectedColumnKey: selected?.key || "col-0",
+    totalFound: selected?.totalFound || 0,
+    readyCount: out.length,
+    duplicatesRemoved,
+    skippedCount,
+    columnLabel: selected?.label || "Kolom A",
+    examples: out.slice(0, 10),
+    payloadText: out.join("\n"),
+  };
+}
+
+function buildTinImportPreview(
+  columns: ImportColumnOption[],
+  selectedColumnKey: string,
+  countryCode: string
+): ImportPreviewData {
+  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let duplicatesRemoved = 0;
+  let skippedCount = 0;
+  let prefixRemoved = 0;
+
+  for (const value of selected?.values || []) {
+    if (isLikelyImportHeader(value)) {
+      skippedCount++;
+      continue;
+    }
+
+    const cleaned = stripSelectedCountryPrefix(value, countryCode);
+    const key = normalizeTinDuplicateKey(value, countryCode);
+
+    if (!key) {
+      skippedCount++;
+      continue;
+    }
+
+    if (cleaned !== value) {
+      prefixRemoved++;
+    }
+
+    if (seen.has(key)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(key);
+    out.push(cleaned);
+  }
+
+  return {
+    columns,
+    selectedColumnKey: selected?.key || "col-0",
+    totalFound: selected?.totalFound || 0,
+    readyCount: out.length,
+    duplicatesRemoved,
+    skippedCount,
+    prefixRemoved,
+    columnLabel: selected?.label || "Kolom A",
+    examples: out.slice(0, 10),
+    payloadText: out.join("\n"),
   };
 }
 
@@ -970,7 +1136,6 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
 }
 
 function PortalBanner({
-  title,
   modeValue,
   meta = [],
   activePage,
@@ -1037,7 +1202,7 @@ function PortalBanner({
           <div style={BANNER_STATUS_BAR_STYLE}>
             {statusItems.map((item, index) => (
               <React.Fragment key={`${item.label}-${index}`}>
-                {index > 0 && <span style={BANNER_DOT_STYLE}>•</span>}
+                {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
                 <span style={BANNER_STATUS_ITEM_STYLE}>
                   <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
@@ -1107,11 +1272,13 @@ function SectionSubtitle({
 function ImportPreviewPanel({
   preview,
   language,
+  onColumnChange,
   onCancel,
   onConfirm,
 }: {
   preview: ImportPreviewData;
   language: PortalLanguage;
+  onColumnChange: (columnKey: string) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -1123,7 +1290,7 @@ function ImportPreviewPanel({
       duplicates: "duplicates removed",
       skipped: "rows skipped",
       prefixes: "country codes removed",
-      column: "Column used",
+      column: "Column",
       example: "Example",
       confirm: "Confirm import",
     },
@@ -1134,31 +1301,31 @@ function ImportPreviewPanel({
       duplicates: "duplicaten verwijderd",
       skipped: "regels overgeslagen",
       prefixes: "landcodes verwijderd",
-      column: "Gebruikte kolom",
+      column: "Kolom",
       example: "Voorbeeld",
       confirm: "Import bevestigen",
     },
     de: {
       title: "Importvorschau",
-      ready: "bereit für Import",
+      ready: "bereit fuer Import",
       found: "gefunden",
       duplicates: "Duplikate entfernt",
-      skipped: "Zeilen übersprungen",
-      prefixes: "Ländercodes entfernt",
-      column: "Verwendete Spalte",
+      skipped: "Zeilen uebersprungen",
+      prefixes: "Laendercodes entfernt",
+      column: "Spalte",
       example: "Beispiel",
-      confirm: "Import bestätigen",
+      confirm: "Import bestaetigen",
     },
     fr: {
-      title: "Aperçu de l’import",
-      ready: "prêt pour l’import",
-      found: "trouvé",
-      duplicates: "doublons supprimés",
-      skipped: "lignes ignorées",
-      prefixes: "codes pays supprimés",
-      column: "Colonne utilisée",
+      title: "Apercu de l'import",
+      ready: "pret pour l'import",
+      found: "trouve",
+      duplicates: "doublons supprimes",
+      skipped: "lignes ignorees",
+      prefixes: "codes pays supprimes",
+      column: "Colonne",
       example: "Exemple",
-      confirm: "Confirmer l’import",
+      confirm: "Confirmer l'import",
     },
   };
 
@@ -1168,22 +1335,46 @@ function ImportPreviewPanel({
     <div className="callout" style={{ marginTop: 12 }}>
       <div style={SMALL_HEADER_STYLE}>{copy.title}</div>
 
-      <div style={{ marginTop: 8, fontSize: 14, lineHeight: 1.55 }}>
-        <b>{preview.readyCount}</b> {copy.ready} · <b>{preview.totalFound}</b> {copy.found} ·{" "}
-        <b>{preview.duplicatesRemoved}</b> {copy.duplicates} · <b>{preview.skippedCount}</b> {copy.skipped}
-        {typeof preview.prefixRemoved === "number" && preview.prefixRemoved > 0
-          ? ` · ${preview.prefixRemoved} ${copy.prefixes}`
-          : ""}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "90px minmax(0, 1fr)",
+          gap: 10,
+          alignItems: "center",
+          marginTop: 10,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 800 }}>{copy.column}</div>
+
+        <select
+          value={preview.selectedColumnKey}
+          onChange={(e) => onColumnChange(e.target.value)}
+          style={{
+            ...ACTION_FIRST_FIELD_STYLE,
+            lineHeight: "20px",
+            padding: "0 10px",
+          }}
+        >
+          {preview.columns.map((column) => (
+            <option key={column.key} value={column.key}>
+              {column.label}
+            </option>
+          ))}
+        </select>
       </div>
 
-      <div className="mono" style={{ marginTop: 8, fontSize: 12 }}>
-        {copy.column}: {preview.columnLabel}
+      <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.55 }}>
+        <b>{preview.readyCount}</b> {copy.ready} | <b>{preview.totalFound}</b> {copy.found} |{" "}
+        <b>{preview.duplicatesRemoved}</b> {copy.duplicates} | <b>{preview.skippedCount}</b> {copy.skipped}
+        {typeof preview.prefixRemoved === "number" && preview.prefixRemoved > 0
+          ? ` | ${preview.prefixRemoved} ${copy.prefixes}`
+          : ""}
       </div>
 
       <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700 }}>{copy.example}</div>
 
       <div className="mono" style={{ marginTop: 4, fontSize: 12, whiteSpace: "pre-wrap" }}>
-        {preview.examples.length ? preview.examples.join("\n") : "—"}
+        {preview.examples.length ? preview.examples.join("\n") : "-"}
       </div>
 
       <div className="row" style={{ marginTop: 10 }}>
@@ -1225,7 +1416,7 @@ function VatPage({
   const [sortState, setSortState] = useState<SortState>({ colIndex: null, asc: true });
   const [sortLabel, setSortLabel] = useState<string>("");
 
-  const [mapLegend, setMapLegend] = useState("—");
+  const [mapLegend, setMapLegend] = useState("-");
   const [mapCount, setMapCount] = useState(`0 ${localText(language, "countries")}`);
   const [mapGeoVersion, setMapGeoVersion] = useState(0);
 
@@ -1371,7 +1562,7 @@ function VatPage({
       const fmt = validateFormatStrict(n);
       if (!fmt.ok) {
         badFormat++;
-        if (badExamples.length < 5) badExamples.push(`${line} — ${fmt.reason}`);
+        if (badExamples.length < 5) badExamples.push(`${line} - ${fmt.reason}`);
       }
     }
 
@@ -1645,6 +1836,11 @@ function VatPage({
     importFileRef.current?.click();
   }
 
+  function changeVatImportColumn(columnKey: string) {
+    if (!importPreview) return;
+    setImportPreview(buildVatImportPreview(importPreview.columns, columnKey));
+  }
+
   function confirmVatImport() {
     if (!importPreview) return;
 
@@ -1658,52 +1854,14 @@ function VatPage({
   }
 
   async function importVatFile(file: File) {
-    const parsed = await readImportFileValues(file, (value) => {
+    const columns = await readImportFileColumns(file);
+
+    const bestColumn = selectBestImportColumn(columns, (value) => {
       const n = normalizeVatCandidate(value);
-      return Boolean(n) && validateFormat(n).ok && !isLikelyImportHeader(value);
+      return !isLikelyImportHeader(value) && Boolean(n) && validateFormat(n).ok;
     });
 
-    const seen = new Set<string>();
-    const out: string[] = [];
-    let duplicatesRemoved = 0;
-    let skippedCount = 0;
-
-    for (const value of parsed.values) {
-      if (isLikelyImportHeader(value)) {
-        skippedCount++;
-        continue;
-      }
-
-      const n = normalizeVatCandidate(value);
-      if (!n) {
-        skippedCount++;
-        continue;
-      }
-
-      const fmt = validateFormat(n);
-      if (!fmt.ok) {
-        skippedCount++;
-        continue;
-      }
-
-      if (seen.has(n)) {
-        duplicatesRemoved++;
-        continue;
-      }
-
-      seen.add(n);
-      out.push(n);
-    }
-
-    setImportPreview({
-      totalFound: parsed.totalFound,
-      readyCount: out.length,
-      duplicatesRemoved,
-      skippedCount,
-      columnLabel: parsed.columnLabel,
-      examples: out.slice(0, 10),
-      payloadText: out.join("\n"),
-    });
+    setImportPreview(buildVatImportPreview(columns, bestColumn.key));
   }
 
   function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1851,12 +2009,12 @@ function VatPage({
     setMapCount(`${entries.length} ${localText(language, "countries")}`);
 
     if (!entries.length) {
-      setMapLegend("—");
+      setMapLegend("-");
     } else {
       const top = entries
         .slice(0, 6)
         .map(([cc, n]) => `${cc}(${n})`)
-        .join(" · ");
+        .join(" | ");
 
       const more = entries.length > 6 ? ` +${entries.length - 6}` : "";
       setMapLegend(top + more);
@@ -1959,7 +2117,7 @@ function VatPage({
           if (!cc) return;
 
           const n = countryCounts[cc] || 0;
-          lyr.bindTooltip(`${cc} • ${n}`, { direction: "top", opacity: 0.9 });
+          lyr.bindTooltip(`${cc} - ${n}`, { direction: "top", opacity: 0.9 });
         },
       }).addTo(layer);
     }
@@ -1998,9 +2156,9 @@ function VatPage({
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
-<CardHeader className="pb-4">
-  <SectionTitle>{t(language, "input")}</SectionTitle>
-</CardHeader>
+            <CardHeader className="pb-4">
+              <SectionTitle>{t(language, "input")}</SectionTitle>
+            </CardHeader>
 
             <CardContent className="pt-0">
               <div style={ACTION_ROW_STYLE}>
@@ -2045,6 +2203,7 @@ function VatPage({
                 <ImportPreviewPanel
                   preview={importPreview}
                   language={language}
+                  onColumnChange={changeVatImportColumn}
                   onCancel={() => setImportPreview(null)}
                   onConfirm={confirmVatImport}
                 />
@@ -2077,8 +2236,8 @@ function VatPage({
                 }}
               >
                 <b>{t(language, "preCheck")}</b>: {precheck.unique} {localText(language, "unique")} /{" "}
-                {precheck.totalLines} {localText(language, "lines")} · {precheck.duplicates}{" "}
-                {localText(language, "duplicates")} · {precheck.badFormat} {localText(language, "formatIssues")}
+                {precheck.totalLines} {localText(language, "lines")} | {precheck.duplicates}{" "}
+                {localText(language, "duplicates")} | {precheck.badFormat} {localText(language, "formatIssues")}
 
                 {precheck.badExamples.length > 0 && (
                   <details style={{ marginTop: 8 }}>
@@ -2116,7 +2275,7 @@ function VatPage({
 
                 <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
                   <span>{t(language, "progress")}: </span>
-                  <b style={{ color: "var(--text)" }}>{progressText}</b> ·{" "}
+                  <b style={{ color: "var(--text)" }}>{progressText}</b> |{" "}
                   <b style={{ color: "var(--text)" }}>{progressPct}%</b>
                 </div>
               </div>
@@ -2180,7 +2339,7 @@ function VatPage({
                   />
 
                   <div className="callout">
-                    {t(language, "sorting")}: <span className="mono">{sortLabel || "—"}</span>
+                    {t(language, "sorting")}: <span className="mono">{sortLabel || "-"}</span>
                   </div>
                 </div>
 
@@ -2204,7 +2363,7 @@ function VatPage({
 
                     <div className="map-attrib">
                       <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-                        © OpenStreetMap
+                        OpenStreetMap
                       </a>
                     </div>
                   </div>
@@ -2248,7 +2407,7 @@ function VatPage({
                           return (
                             <div
                               key={c.countryCode}
-                              title={`${c.countryCode} — ${c.availability}`}
+                              title={`${c.countryCode} - ${c.availability}`}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -2278,7 +2437,7 @@ function VatPage({
                                   lineHeight: "14px",
                                 }}
                               >
-                                {ok ? "✓" : "✕"}
+                                {ok ? "OK" : "X"}
                               </span>
                             </div>
                           );
@@ -2367,26 +2526,26 @@ function VatPage({
                           <td colSpan={5} className="rowDetails">
                             <div className="kv">
                               <span>{t(language, "case")}</span>
-                              <b>{(r as any).case_ref || "—"}</b>
+                              <b>{(r as any).case_ref || "-"}</b>
 
                               <span>{t(language, "checkedAt")}</span>
                               <b>
                                 {(r as any).checked_at
                                   ? new Date((r as any).checked_at).toLocaleString(localeForLanguage(language))
-                                  : "—"}
+                                  : "-"}
                               </b>
 
                               <span>{t(language, "errorCode")}</span>
-                              <b>{isDone ? "—" : (r as any).error_code || "—"}</b>
+                              <b>{isDone ? "-" : (r as any).error_code || "-"}</b>
 
                               <span>{t(language, "details")}</span>
-                              <b>{isDone ? "—" : (r as any).details || "—"}</b>
+                              <b>{isDone ? "-" : (r as any).details || "-"}</b>
 
                               <span>{t(language, "attempt")}</span>
-                              <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "—"}</b>
+                              <b>{typeof (r as any).attempt === "number" ? String((r as any).attempt) : "-"}</b>
 
                               <span>{t(language, "nextRetry")}</span>
-                              <b>{nra ? new Date(nra).toLocaleString(localeForLanguage(language)) : "—"}</b>
+                              <b>{nra ? new Date(nra).toLocaleString(localeForLanguage(language)) : "-"}</b>
 
                               <span>{t(language, "format")}</span>
                               <b>
@@ -2542,19 +2701,19 @@ function formatTinCleanupMessage(
   if (language === "nl") {
     if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} dubbele regel(s) verwijderd`);
     if (prefixRemoved > 0) parts.push(`landcode verwijderd uit ${prefixRemoved} regel(s)`);
-    return `${parts.join(" en ")} ${phase === "beforeValidation" ? "vóór validatie" : "tijdens import"}.`;
+    return `${parts.join(" en ")} ${phase === "beforeValidation" ? "voor validatie" : "tijdens import"}.`;
   }
 
   if (language === "de") {
     if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} doppelte Zeile(n) entfernt`);
-    if (prefixRemoved > 0) parts.push(`Ländercode aus ${prefixRemoved} Zeile(n) entfernt`);
-    return `${parts.join(" und ")} ${phase === "beforeValidation" ? "vor der Prüfung" : "beim Import"}.`;
+    if (prefixRemoved > 0) parts.push(`Laendercode aus ${prefixRemoved} Zeile(n) entfernt`);
+    return `${parts.join(" und ")} ${phase === "beforeValidation" ? "vor der Pruefung" : "beim Import"}.`;
   }
 
   if (language === "fr") {
-    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} ligne(s) en double supprimée(s)`);
-    if (prefixRemoved > 0) parts.push(`code pays supprimé de ${prefixRemoved} ligne(s)`);
-    return `${parts.join(" et ")} ${phase === "beforeValidation" ? "avant validation" : "pendant l’import"}.`;
+    if (duplicatesRemoved > 0) parts.push(`${duplicatesRemoved} ligne(s) en double supprimee(s)`);
+    if (prefixRemoved > 0) parts.push(`code pays supprime de ${prefixRemoved} ligne(s)`);
+    return `${parts.join(" et ")} ${phase === "beforeValidation" ? "avant validation" : "pendant l'import"}.`;
   }
 
   if (duplicatesRemoved > 0) parts.push(`Removed ${duplicatesRemoved} duplicate line(s)`);
@@ -2688,7 +2847,7 @@ function TinPage({
 
   function sortIndicator(key: TinSortKey) {
     if (sortKey !== key) return "";
-    return sortAsc ? " ↑" : " ↓";
+    return sortAsc ? " up" : " down";
   }
 
   const stats = useMemo(() => {
@@ -2845,7 +3004,6 @@ function TinPage({
     await runTinValidationFromText(retryTinLines.join("\n"));
   }
 
-
   function onClearTin() {
     setTinInput("");
     setRows([]);
@@ -2860,6 +3018,11 @@ function TinPage({
 
   function openImportDialog() {
     importFileRef.current?.click();
+  }
+
+  function changeTinImportColumn(columnKey: string) {
+    if (!importPreview) return;
+    setImportPreview(buildTinImportPreview(importPreview.columns, columnKey, country));
   }
 
   function confirmTinImport() {
@@ -2888,33 +3051,17 @@ function TinPage({
   }
 
   async function importTinFile(file: File) {
-    const parsed = await readImportFileValues(file, (value) => {
-      if (isLikelyImportHeader(value)) return false;
-      return normalizeTinDuplicateKey(value, country).length >= 3;
-    });
+    const columns = await readImportFileColumns(file);
 
-    const candidates = parsed.values.filter((value) => {
-      if (isLikelyImportHeader(value)) return false;
-      return normalizeTinDuplicateKey(value, country).length >= 3;
+    const bestColumn = selectBestImportColumn(columns, (value) => {
+      return !isLikelyImportHeader(value) && normalizeTinDuplicateKey(value, country).length >= 3;
     });
-
-    const prepared = dedupeTinText(candidates.join("\n"), country);
 
     setRows([]);
     setError("");
     setSearch("");
     setStatusFilter("all");
-
-    setImportPreview({
-      totalFound: parsed.totalFound,
-      readyCount: prepared.uniqueLines.length,
-      duplicatesRemoved: prepared.duplicatesRemoved,
-      skippedCount: parsed.totalFound - candidates.length,
-      prefixRemoved: prepared.prefixRemoved,
-      columnLabel: parsed.columnLabel,
-      examples: prepared.uniqueLines.slice(0, 10),
-      payloadText: prepared.cleanedText,
-    });
+    setImportPreview(buildTinImportPreview(columns, bestColumn.key, country));
   }
 
   function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -2973,7 +3120,7 @@ function TinPage({
   return (
     <>
       <PortalBanner
-        title={branding.portalTitle || "RSM Validation Portal"}
+        title={branding.portalTitle || "Validation Portal"}
         modeValue="TIN"
         meta={[
           { label: t(language, "credits"), value: t(language, "unlimited") },
@@ -3013,7 +3160,7 @@ function TinPage({
                 >
                   {countryOptions.map((c) => (
                     <option key={c.code} value={c.code}>
-                      {c.code} — {c.label}
+                      {c.code} - {c.label}
                     </option>
                   ))}
                 </select>
@@ -3051,6 +3198,7 @@ function TinPage({
                 <ImportPreviewPanel
                   preview={importPreview}
                   language={language}
+                  onColumnChange={changeTinImportColumn}
                   onCancel={() => setImportPreview(null)}
                   onConfirm={confirmTinImport}
                 />
@@ -3177,7 +3325,7 @@ function TinPage({
                       </select>
 
                       <div className="callout" style={{ margin: 0, padding: "10px 12px" }}>
-                        {t(language, "sort")}:{" "}
+                        {t(language, "sort")}: {" "}
                         <span className="mono">
                           {tinSortLabel(sortKey)} {sortAsc ? localText(language, "asc") : localText(language, "desc")}
                         </span>
@@ -3255,7 +3403,7 @@ function TinPage({
                     <td className="mono nowrap">{r.tin_number || ""}</td>
                     <td>{boolLabel(r.structure_valid)}</td>
                     <td>{boolLabel(r.syntax_valid)}</td>
-                    <td>{r.request_date ? String(r.request_date).slice(0, 10) : "—"}</td>
+                    <td>{r.request_date ? String(r.request_date).slice(0, 10) : "-"}</td>
                     <td title={r.message || ""}>{r.message || ""}</td>
                   </tr>
                 ))}
