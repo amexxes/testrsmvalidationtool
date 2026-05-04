@@ -2416,19 +2416,15 @@ function VatPage({
       return d;
     };
 
-    const aoa = [
+        const aoa = [
       headers,
       ...rows.map((r) =>
         headers.map((h) => {
           const v = (r as any)[h];
 
-     const aoa = [
-      headers,
-      ...rows.map((r) =>
-        headers.map((h) => {
-          const v = (r as any)[h];
-
-          if (dateFields.has(h)) return toExcelDate(v);
+          if (dateFields.has(h)) {
+            return toExcelDate(v);
+          }
 
           const state = displayState(r);
           const countryCode = String((r as any).country_code || "").toUpperCase();
