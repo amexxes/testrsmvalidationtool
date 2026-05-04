@@ -277,6 +277,7 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   AT: { lat: 48.2082, lon: 16.3738 },
   BE: { lat: 50.8503, lon: 4.3517 },
   BG: { lat: 42.6977, lon: 23.3219 },
+    CH: { lat: 46.948, lon: 7.4474 },
   CY: { lat: 35.1856, lon: 33.3823 },
   CZ: { lat: 50.0755, lon: 14.4378 },
   DE: { lat: 52.52, lon: 13.405 },
@@ -344,7 +345,8 @@ const ERROR_MAP: Record<string, Partial<Record<PortalLanguage, string>> & { en: 
 };
 
 const VAT_PATTERNS: Record<string, RegExp> = {
-    GB: /^\d{9}(?:\d{3})?$/,
+  GB: /^\d{9}(?:\d{3})?$/,
+  CH: /^E?\d{9}(?:MWST|TVA|IVA)?$/,
   AT: /^U\d{8}$/,
   BE: /^\d{10}$/,
   BG: /^\d{9,10}$/,
@@ -443,6 +445,13 @@ function normalizeVatCandidate(v: string): string {
 function isUkVatCandidate(value: string): boolean {
   return normalizeVatCandidate(value).startsWith("GB");
 }
+
+function isSwissVatCandidate(value: string): boolean {
+  const normalized = normalizeVatCandidate(value);
+  return normalized.startsWith("CH") || normalized.startsWith("CHE");
+}
+
+function normalizeEoriCandidate(v: string): string {
 
 function normalizeEoriCandidate(v: string): string {
   return String(v || "")
@@ -1959,7 +1968,10 @@ function VatPage({
     }
 
     const ukVatLines = normalizedLines.filter(isUkVatCandidate);
-    const viesVatLines = normalizedLines.filter((line) => !isUkVatCandidate(line));
+    const chVatLines = normalizedLines.filter(isSwissVatCandidate);
+    const viesVatLines = normalizedLines.filter(
+      (line) => !isUkVatCandidate(line) && !isSwissVatCandidate(line)
+    );
 
     currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     currentRunStartedAtRef.current = new Date().toISOString();
@@ -1991,6 +2003,27 @@ function VatPage({
 
         if (Array.isArray(ukData.results)) {
           combinedResults.push(...ukData.results);
+        }
+      }
+
+      if (chVatLines.length) {
+        const chResp = await fetch("/api/ch-vat-validate-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vat_numbers: chVatLines, case_ref: caseRef }),
+          signal: controller.signal,
+        });
+
+        const chData = await chResp.json();
+
+        if (!chResp.ok) {
+          throw new Error(chData?.message || chData?.error || "Swiss VAT validation failed");
+        }
+
+        duplicatesTotal += Number(chData.duplicates_ignored || 0);
+
+        if (Array.isArray(chData.results)) {
+          combinedResults.push(...chData.results);
         }
       }
 
