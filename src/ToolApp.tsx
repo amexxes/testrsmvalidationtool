@@ -648,7 +648,53 @@ function translateSwissVatMessage(raw: string, language: PortalLanguage): string
 
   return message;
 }
+function translateNorwayVatMessage(raw: string, language: PortalLanguage): string {
+  const message = String(raw || "").trim();
+  if (!message) return "";
 
+  const normalized = message.replace(/\s+/g, " ").toLowerCase();
+
+  if (normalized === "registered in the norwegian vat/mva register.") {
+    if (language === "nl") return "Geregistreerd in het Noorse VAT/MVA-register.";
+    if (language === "de") return "Im norwegischen VAT/MVA-Register registriert.";
+    if (language === "fr") return "Enregistre dans le registre VAT/MVA norvegien.";
+
+    return "Registered in the Norwegian VAT/MVA register.";
+  }
+
+  if (normalized === "organisation found, but not registered in the norwegian vat/mva register.") {
+    if (language === "nl") return "Organisatie gevonden, maar niet geregistreerd in het Noorse VAT/MVA-register.";
+    if (language === "de") return "Organisation gefunden, aber nicht im norwegischen VAT/MVA-Register registriert.";
+    if (language === "fr") return "Organisation trouvee, mais non enregistree dans le registre VAT/MVA norvegien.";
+
+    return "Organisation found, but not registered in the Norwegian VAT/MVA register.";
+  }
+
+  if (normalized === "organisation number not found.") {
+    if (language === "nl") return "Organisatienummer niet gevonden.";
+    if (language === "de") return "Organisationsnummer nicht gefunden.";
+    if (language === "fr") return "Numero d'organisation introuvable.";
+
+    return "Organisation number not found.";
+  }
+
+  return message;
+}
+
+function translateVatResultMessage(row: any, language: PortalLanguage): string {
+  const source = String(row?.source || "");
+  const rawMessage = String(row?.message || "");
+
+  if (source === "ch_uid") {
+    return translateSwissVatMessage(rawMessage, language);
+  }
+
+  if (source === "brreg") {
+    return translateNorwayVatMessage(rawMessage, language);
+  }
+
+  return rawMessage;
+}
 function localText(language: PortalLanguage, key: string): string {
   const copy: Record<string, Record<string, string>> = {
     en: {
@@ -2375,30 +2421,46 @@ function VatPage({
         headers.map((h) => {
           const v = (r as any)[h];
 
+     const aoa = [
+      headers,
+      ...rows.map((r) =>
+        headers.map((h) => {
+          const v = (r as any)[h];
+
           if (dateFields.has(h)) return toExcelDate(v);
 
           const state = displayState(r);
           const countryCode = String((r as any).country_code || "").toUpperCase();
           const source = String((r as any).source || "");
-          const swissMessage = translateSwissVatMessage(String((r as any).message || ""), language);
+          const resultMessage = translateVatResultMessage(r as any, language);
           const errorText = humanError((r as any).error_code, (r as any).error, language);
 
           const isSwissVatIssue =
             countryCode === "CH" &&
             source === "ch_uid" &&
             state !== "valid" &&
-            Boolean(swissMessage);
+            Boolean(resultMessage);
+
+          const isNorwayVatIssue =
+            countryCode === "NO" &&
+            source === "brreg" &&
+            state !== "valid" &&
+            Boolean(resultMessage);
 
           if (h === "error_code" && isSwissVatIssue) {
             return state === "invalid" ? "CH_VAT_INACTIVE" : "CH_UID_ERROR";
           }
 
-          if (h === "error" && isSwissVatIssue) {
-            return swissMessage;
+          if (h === "error_code" && isNorwayVatIssue) {
+            return state === "invalid" ? "NO_VAT_NOT_REGISTERED" : "NO_BRREG_ERROR";
+          }
+
+          if (h === "error" && (isSwissVatIssue || isNorwayVatIssue)) {
+            return resultMessage;
           }
 
           if (h === "error") {
-            return errorText || "";
+            return resultMessage || errorText || "";
           }
 
           return v === null || v === undefined ? "" : String(v);
@@ -2968,7 +3030,7 @@ if (ratio >= 0.85) {
                   const eta = ds === "retry" && nra && nra > Date.now() ? formatEta(nra) : "";
 
                   const isDone = ds === "valid" || ds === "invalid";
-                  const resultMessage = translateSwissVatMessage(String((r as any).message || ""), language);
+                  const resultMessage = translateVatResultMessage(r as any, language);
 
                   const errShown = isDone
                     ? resultMessage
