@@ -4139,7 +4139,7 @@ async function runEoriValidation(eoris: string[]) {
               </div>
 
 <UserDraftsPanel
-  activePage={"eori" as any}
+  activePage="eori"
                 referenceValue="GB"
                 inputValue={eoriInput}
                 language={language}
