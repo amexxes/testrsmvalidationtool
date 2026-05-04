@@ -2301,14 +2301,27 @@ function VatPage({
 
           if (dateFields.has(h)) return toExcelDate(v);
 
+          const state = displayState(r);
+          const countryCode = String((r as any).country_code || "").toUpperCase();
+          const source = String((r as any).source || "");
+          const swissMessage = translateSwissVatMessage(String((r as any).message || ""), language);
+          const errorText = humanError((r as any).error_code, (r as any).error, language);
+
+          const isSwissVatIssue =
+            countryCode === "CH" &&
+            source === "ch_uid" &&
+            state !== "valid" &&
+            Boolean(swissMessage);
+
+          if (h === "error_code" && isSwissVatIssue) {
+            return state === "invalid" ? "CH_VAT_INACTIVE" : "CH_UID_ERROR";
+          }
+
+          if (h === "error" && isSwissVatIssue) {
+            return swissMessage;
+          }
+
           if (h === "error") {
-            const state = displayState(r);
-            const swissMessage = translateSwissVatMessage(String((r as any).message || ""), language);
-            const errorText = humanError((r as any).error_code, (r as any).error, language);
-
-            if (state === "invalid" && swissMessage) return swissMessage;
-            if (state !== "valid") return swissMessage || errorText || "";
-
             return errorText || "";
           }
 
@@ -2666,8 +2679,7 @@ if (ratio >= 0.85) {
 
                 <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
                   <span>{t(language, "progress")}: </span>
-                  <b style={{ color: "var(--text)" }}>{progressText}</b> |{" "}
-                  <b style={{ color: "var(--text)" }}>{progressPct}%</b>
+                  <b style={{ color: "var(--text)" }}>{progressText}</b>
                 </div>
               </div>
 
@@ -2693,7 +2705,8 @@ if (ratio >= 0.85) {
                     justifyContent: "center",
                     fontSize: 12,
                     fontWeight: 800,
-                    color: "#0B2E5F",
+                    color: "rgba(255,255,255,0.96)",
+                    textShadow: "0 1px 2px rgba(11,46,95,0.45)",
                     pointerEvents: "none",
                   }}
                 >
