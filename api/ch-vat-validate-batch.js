@@ -64,7 +64,7 @@ function buildSoapEnvelope(vatNumber) {
   return `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
   <s:Body>
-    <ValidateVatNumber xmlns="http://www.uid.admin.ch/xmlns/uid-wse/5">
+    <ValidateVatNumber xmlns="http://www.uid.admin.ch/xmlns/uid-wse">
       <vatNumber>${escapeXml(vatNumber)}</vatNumber>
     </ValidateVatNumber>
   </s:Body>
@@ -126,7 +126,7 @@ async function checkSwissVatOnce(item) {
     headers: {
       "Content-Type": "text/xml; charset=utf-8",
       Accept: "text/xml, application/xml, */*",
-      SOAPAction: '"http://www.uid.admin.ch/xmlns/uid-wse/5/IPublicServices/ValidateVatNumber"',
+            SOAPAction: '"http://www.uid.admin.ch/xmlns/uid-wse/IPublicServices/ValidateVatNumber"',
     },
     body: envelope,
   });
