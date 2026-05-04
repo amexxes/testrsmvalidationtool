@@ -3723,9 +3723,9 @@ function EoriPage({
     return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
   }, [eoriInput]);
 
-const validEoriItems = useMemo(() => {
-  return preparedEoris.values
-    .map((value) => {
+const validEoriItems = useMemo<Array<{ eori: string; service: EoriValidationService }>>(() => {
+  return preparedEoris
+    .map((value: string) => {
       const result = validateEoriFormat(value);
 
       if (!result.ok || !result.service) {
@@ -3737,8 +3737,12 @@ const validEoriItems = useMemo(() => {
         service: result.service,
       };
     })
-    .filter((item): item is { eori: string; service: EoriValidationService } => item !== null);
-}, [preparedEoris.values]);
+    .filter(
+      (
+        item: { eori: string; service: EoriValidationService } | null
+      ): item is { eori: string; service: EoriValidationService } => item !== null
+    );
+}, [preparedEoris]);
 
 const validInputEoris = useMemo(() => {
   return validEoriItems.map((item) => item.eori);
