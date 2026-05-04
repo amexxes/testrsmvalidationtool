@@ -2298,7 +2298,20 @@ function VatPage({
       ...rows.map((r) =>
         headers.map((h) => {
           const v = (r as any)[h];
+
           if (dateFields.has(h)) return toExcelDate(v);
+
+          if (h === "error") {
+            const state = displayState(r);
+            const swissMessage = translateSwissVatMessage(String((r as any).message || ""), language);
+            const errorText = humanError((r as any).error_code, (r as any).error, language);
+
+            if (state === "invalid" && swissMessage) return swissMessage;
+            if (state !== "valid") return swissMessage || errorText || "";
+
+            return errorText || "";
+          }
+
           return v === null || v === undefined ? "" : String(v);
         })
       ),
