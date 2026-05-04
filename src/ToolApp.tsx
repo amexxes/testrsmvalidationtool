@@ -3864,14 +3864,28 @@ const validInputEoris = useMemo(() => {
   }
 
 async function runEoriValidation(eoris: string[]) {
-  const validEoris = eoris
+  const prepared = eoris
     .map((value: string) => normalizeEoriCandidate(value))
-    .filter((value: string) => validateEoriFormat(value).ok);
+    .filter(Boolean)
+    .map((value: string) => ({
+      value,
+      format: validateEoriFormat(value),
+    }))
+    .filter((item) => item.format.ok);
 
-  if (!validEoris.length) return;
+  const uniquePrepared = Array.from(
+    new Map(prepared.map((item) => [item.value, item])).values()
+  );
 
-  const hmrcEoris = validEoris.filter((value: string) => validateEoriFormat(value).service === "hmrc");
-  const euEoris = validEoris.filter((value: string) => validateEoriFormat(value).service === "eu");
+  if (!uniquePrepared.length) return;
+
+  const hmrcEoris = uniquePrepared
+    .filter((item) => item.format.service === "hmrc")
+    .map((item) => item.value);
+
+  const euEoris = uniquePrepared
+    .filter((item) => item.format.service === "eu")
+    .map((item) => item.value);
 
   setLoading(true);
   setError("");
@@ -3882,7 +3896,7 @@ async function runEoriValidation(eoris: string[]) {
   currentRunStartedAtRef.current = new Date().toISOString();
 
   try {
-    const resultSets: any[][] = [];
+    const nextRows: any[] = [];
 
     if (hmrcEoris.length) {
       const hmrcResp = await fetch("/api/eori-validate-batch", {
@@ -3897,7 +3911,9 @@ async function runEoriValidation(eoris: string[]) {
         throw new Error(hmrcData?.message || hmrcData?.error || "HMRC EORI validation failed");
       }
 
-      resultSets.push(Array.isArray(hmrcData?.results) ? hmrcData.results : []);
+      if (Array.isArray(hmrcData?.results)) {
+        nextRows.push(...hmrcData.results);
+      }
     }
 
     if (euEoris.length) {
@@ -3913,13 +3929,15 @@ async function runEoriValidation(eoris: string[]) {
         throw new Error(euData?.message || euData?.error || "EU EORI validation failed");
       }
 
-      resultSets.push(Array.isArray(euData?.results) ? euData.results : []);
+      if (Array.isArray(euData?.results)) {
+        nextRows.push(...euData.results);
+      }
     }
 
-    setRows(resultSets.flat());
+    setRows(nextRows);
     setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
-  } catch (error: any) {
-    setError(error?.message || "EORI validation failed");
+  } catch (error: unknown) {
+    setError(error instanceof Error ? error.message : "EORI validation failed");
   } finally {
     setLoading(false);
   }
