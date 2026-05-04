@@ -151,11 +151,10 @@ const ACTION_BUTTON_STYLE: React.CSSProperties = {
 const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
-  display: "flex",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
   alignItems: "center",
-  justifyContent: "space-between",
   gap: 18,
-  flexWrap: "nowrap",
   padding: "18px 22px",
 };
 
@@ -167,15 +166,22 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
   flex: "0 1 360px",
   maxWidth: 360,
 };
-
+const BANNER_CENTER_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+  minWidth: 0,
+  justifySelf: "center",
+  whiteSpace: "nowrap",
+};
 const BANNER_RIGHT_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
   gap: 8,
   minWidth: 0,
-  flex: "1 1 auto",
-  flexWrap: "nowrap",
+  justifySelf: "end",
   whiteSpace: "nowrap",
   overflowX: "auto",
   overflowY: "hidden",
@@ -1423,28 +1429,30 @@ function PortalBanner({
           </div>
         </div>
 
-        <div style={BANNER_RIGHT_STYLE}>
-          <div style={BANNER_STATUS_BAR_STYLE}>
-            {statusItems.map((item, index) => (
-              <React.Fragment key={`${item.label}-${index}`}>
-                {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
+<div style={BANNER_CENTER_STYLE}>
+  <div style={BANNER_STATUS_BAR_STYLE}>
+    {statusItems.map((item, index) => (
+      <React.Fragment key={`${item.label}-${index}`}>
+        {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
-                <span style={BANNER_STATUS_ITEM_STYLE}>
-                  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-                  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
+        <span style={BANNER_STATUS_ITEM_STYLE}>
+          <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+          <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
+        </span>
+      </React.Fragment>
+    ))}
+  </div>
 
-          <div style={BANNER_CONTROL_STYLE}>
-            <LanguageSwitcher language={language} setLanguage={setLanguage} />
-          </div>
+  <div style={BANNER_CONTROL_STYLE}>
+    <LanguageSwitcher language={language} setLanguage={setLanguage} />
+  </div>
+</div>
 
-          <div style={BANNER_CONTROL_STYLE}>
-            <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
-          </div>
-        </div>
+<div style={BANNER_RIGHT_STYLE}>
+  <div style={BANNER_CONTROL_STYLE}>
+    <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+  </div>
+</div>
       </div>
     </div>
   );
