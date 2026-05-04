@@ -197,9 +197,9 @@ export default function LoginPage({ onLoggedIn }: Props) {
             <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.08 }}>
               Secure access to the
               <br />
-              VAT VIES checker and
+              Validation Tool
               <br />
-              TIN checker
+               
             </h1>
 
             <p style={{ marginTop: 16, color: "#4b607c", fontSize: 16, lineHeight: 1.6 }}>
@@ -260,7 +260,7 @@ export default function LoginPage({ onLoggedIn }: Props) {
         >
           <h2 style={{ margin: 0, fontSize: 26, color: "#0B2E5F" }}>Sign in</h2>
           <p style={{ marginTop: 8, color: "#5f6f86", fontSize: 14 }}>
-            Your session expires automatically after 1 hour.
+            Your session expires automatically after 24 hours.
           </p>
 
           <form onSubmit={handleLogin} style={{ display: "grid", gap: 12, marginTop: 18 }}>
