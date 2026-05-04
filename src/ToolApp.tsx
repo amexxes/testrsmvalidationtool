@@ -3863,7 +3863,7 @@ const validInputEoris = useMemo(() => {
     void importEoriFile(f);
   }
 
-async function async function runEoriValidation(eoris: string[]) {
+async function runEoriValidation(eoris: string[]) {
   const validEoris = eoris
     .map((value: string) => normalizeEoriCandidate(value))
     .filter((value: string) => validateEoriFormat(value).ok);
