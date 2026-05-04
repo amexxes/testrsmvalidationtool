@@ -1,10 +1,13 @@
+// /src/UserDraftsPanel.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { t, type PortalLanguage } from "./i18n";
+
+export type DraftPage = "vat" | "tin" | "eori";
 
 export type UserDraft = {
   id: string;
   title: string;
-  activePage: "vat" | "tin";
+  activePage: DraftPage;
   referenceValue: string;
   inputValue: string;
   createdAt: string;
@@ -12,7 +15,7 @@ export type UserDraft = {
 };
 
 type Props = {
-  activePage: "vat" | "tin";
+  activePage: DraftPage;
   referenceValue?: string;
   inputValue: string;
   language: PortalLanguage;
@@ -24,6 +27,12 @@ function localeForLanguage(language: PortalLanguage): string {
   if (language === "de") return "de-DE";
   if (language === "fr") return "fr-FR";
   return "en-GB";
+}
+
+function pageLabel(page: DraftPage): string {
+  if (page === "vat") return "VAT";
+  if (page === "tin") return "TIN";
+  return "EORI";
 }
 
 function draftText(language: PortalLanguage, key: string): string {
@@ -96,12 +105,13 @@ export default function UserDraftsPanel({
   const [error, setError] = useState("");
 
   const visibleDrafts = useMemo(
-    () => drafts.filter((d) => d.activePage === activePage),
+    () => drafts.filter((draft) => draft.activePage === activePage),
     [drafts, activePage]
   );
 
   useEffect(() => {
     void loadDrafts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePage]);
 
   async function loadDrafts() {
@@ -130,13 +140,15 @@ export default function UserDraftsPanel({
   }
 
   async function handleSaveDraft() {
+    if (!String(inputValue || "").trim()) return;
+
     setSaving(true);
     setError("");
 
     try {
       const title =
         String(referenceValue || "").trim() ||
-        `${activePage.toUpperCase()} ${draftText(language, "fallbackTitle")}`;
+        `${pageLabel(activePage)} ${draftText(language, "fallbackTitle")}`;
 
       const resp = await fetch("/api/user/drafts/save", {
         method: "POST",
@@ -196,22 +208,27 @@ export default function UserDraftsPanel({
   return (
     <div
       style={{
-        marginTop: 14,
-        padding: 14,
-        borderRadius: 18,
-        border: "1px solid rgba(11,46,95,0.10)",
-        background: "rgba(255,255,255,0.72)",
+        borderRadius: 22,
+        border: "1px solid rgba(11,46,95,0.08)",
+        background: "rgba(255,255,255,0.92)",
+        boxShadow: "0 14px 42px rgba(15,23,42,0.05)",
+        padding: 18,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 14,
+          alignItems: "flex-start",
+        }}
+      >
         <div>
           <div
             style={{
-              fontSize: 20,
-              lineHeight: 1.2,
-              fontWeight: 700,
               color: "#0B2E5F",
-              margin: 0,
+              fontSize: 18,
+              fontWeight: 900,
             }}
           >
             {t(language, "drafts")}
@@ -219,12 +236,10 @@ export default function UserDraftsPanel({
 
           <div
             style={{
-              maxWidth: 760,
-              fontSize: 14,
-              lineHeight: 1.55,
-              fontWeight: 500,
-              color: "#0B2E5F",
-              marginTop: 6,
+              marginTop: 5,
+              color: "#607089",
+              fontSize: 13,
+              fontWeight: 700,
             }}
           >
             {draftText(language, "help")}
@@ -233,17 +248,19 @@ export default function UserDraftsPanel({
 
         <button
           type="button"
-          onClick={handleSaveDraft}
-          disabled={saving || !inputValue.trim()}
+          onClick={() => void handleSaveDraft()}
+          disabled={saving || !String(inputValue || "").trim()}
           style={{
-            padding: "9px 12px",
+            minWidth: 150,
+            height: 38,
             borderRadius: 12,
             border: "1px solid rgba(11,46,95,0.12)",
-            background: "#fff",
+            background: "#FFFFFF",
             color: "#0B2E5F",
-            fontWeight: 800,
-            cursor: saving || !inputValue.trim() ? "not-allowed" : "pointer",
-            opacity: saving || !inputValue.trim() ? 0.55 : 1,
+            fontSize: 13,
+            fontWeight: 850,
+            cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
+            opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
           }}
         >
           {saving ? draftText(language, "saving") : t(language, "saveDraft")}
@@ -251,52 +268,71 @@ export default function UserDraftsPanel({
       </div>
 
       {error ? (
-        <div className="callout" style={{ marginTop: 10 }}>
-          <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
+        <div
+          style={{
+            marginTop: 12,
+            borderRadius: 14,
+            border: "1px solid rgba(185,28,28,0.14)",
+            background: "rgba(185,28,28,0.07)",
+            color: "#8F1D1D",
+            padding: "10px 12px",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          <b>{t(language, "error")}</b>: {error}
         </div>
       ) : null}
 
-      <div style={{ marginTop: 12 }}>
+      <div style={{ marginTop: 14 }}>
         {loading ? (
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>{draftText(language, "loading")}</div>
+          <div style={emptyStyle}>{draftText(language, "loading")}</div>
         ) : visibleDrafts.length === 0 ? (
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>{draftText(language, "empty")}</div>
+          <div style={emptyStyle}>{draftText(language, "empty")}</div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             {visibleDrafts.map((draft) => (
               <div
                 key={draft.id}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
+                  display: "grid",
+                  gridTemplateColumns: "minmax(220px, 1fr) auto",
                   gap: 12,
                   alignItems: "center",
-                  padding: 10,
-                  borderRadius: 14,
-                  border: "1px solid rgba(11,46,95,0.10)",
-                  background: "#fff",
+                  padding: 12,
+                  borderRadius: 16,
+                  border: "1px solid rgba(11,46,95,0.08)",
+                  background: "#FFFFFF",
                 }}
               >
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
                       color: "#0B2E5F",
-                      fontSize: 14,
-                      fontWeight: 800,
+                      fontSize: 13,
+                      fontWeight: 900,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                     }}
+                    title={draft.title}
                   >
                     {draft.title}
                   </div>
 
-                  <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 3 }}>
+                  <div
+                    style={{
+                      marginTop: 4,
+                      color: "#607089",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
                     {new Date(draft.updatedAt).toLocaleString(localeForLanguage(language))}
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8 }}>
                   <button
                     type="button"
                     onClick={() => onRestoreDraft(draft)}
@@ -337,3 +373,13 @@ export default function UserDraftsPanel({
     </div>
   );
 }
+
+const emptyStyle: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 16,
+  border: "1px dashed rgba(11,46,95,0.14)",
+  background: "rgba(248,251,255,0.72)",
+  color: "#607089",
+  fontSize: 13,
+  fontWeight: 700,
+};
