@@ -590,14 +590,14 @@ function localText(language: PortalLanguage, key: string): string {
       vatInfographic: "VAT validation - infographic",
       retryUnresolved: "Retry unresolved",
       eoriTab: "EORI Validation",
-      eoriInputHelp: "Check UK-issued GB EORI numbers in batch via HMRC.",
+      eoriInputHelp: "Check GB EORI numbers via HMRC and EU EORI numbers via the EU database.",
       eoriImportant:
-        "Only GB EORI numbers are supported by the HMRC API. XI EORI numbers must be checked via the EU EORI service.",
+  "GB EORI numbers are checked via HMRC. EU EORI numbers are checked via the EU EORI database.",
       eori: "EORI",
       inputEori: "Input EORI",
       traderName: "Trader name",
       processingDate: "Processing date",
-      eoriPlaceholder: "GB123456789000",
+      eoriPlaceholder: "NL123456789 / GB123456789000",
     },
     nl: {
       unique: "uniek",
