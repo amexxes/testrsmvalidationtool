@@ -1528,6 +1528,7 @@ style={{
     : "0 6px 14px rgba(15,23,42,0.07)",
   cursor: "pointer",
   fontFamily: PORTAL_FONT,
+  animation: active ? "menuButtonDropIn 260ms ease-out" : "none",
 }}
           >
             <span
