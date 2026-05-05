@@ -1741,7 +1741,11 @@ function statusIcon(label: string): React.ReactNode {
             }}
           >
             <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-            <AnimatedBannerValue value={item.value} />
+            {item.label === t(language, "mode") ? (
+  <AnimatedBannerValue value={item.value} />
+) : (
+  <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
+)}
           </span>
         </span>
       </React.Fragment>
