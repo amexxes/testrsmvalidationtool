@@ -54,6 +54,17 @@ const LOGO_PRESETS = [
     backgroundColor: "#F4F7FB",
     textColor: "#1E293B",
   },
+    {
+    key: "taylormadegolf",
+    label: "TaylorMade Golf",
+    clientName: "TaylorMade Golf",
+    portalTitle: "TaylorMade Golf Validation Portal",
+    logoUrl: "/taylormadegolf.png",
+    primaryColor: "#111827",
+    accentColor: "#E31B23",
+    backgroundColor: "#F7F7F7",
+    textColor: "#1E293B",
+  },
 ];
 
 const EMPTY_FORM = {
