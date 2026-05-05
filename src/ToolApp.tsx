@@ -5007,43 +5007,46 @@ export default function App({
     storeLanguage(language);
   }, [language]);
 
-  return activePage === "vat" ? (
-    <VatPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
-  ) : activePage === "tin" ? (
-    <TinPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
-  ) : (
-    <EoriPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
-  ) : activePage === "eori" ? (
-    <EoriPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
-  ) : (
+  if (activePage === "vat") {
+    return (
+      <VatPage
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+        onRunCompleted={onRunCompleted}
+      />
+    );
+  }
+
+  if (activePage === "tin") {
+    return (
+      <TinPage
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+        onRunCompleted={onRunCompleted}
+      />
+    );
+  }
+
+  if (activePage === "eori") {
+    return (
+      <EoriPage
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+        onRunCompleted={onRunCompleted}
+      />
+    );
+  }
+
+  return (
     <IbanPage
       activePage={activePage}
       setActivePage={setActivePage}
