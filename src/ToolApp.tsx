@@ -227,9 +227,10 @@ const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 999,
-  background: "var(--cyan)",
-  color: "#fff",
-  fontSize: 11,
+  background: "#fff",
+  color: "#94A3B8",
+  border: "1px solid rgba(148,163,184,0.28)",
+  fontSize: 10,
   fontWeight: 900,
   flex: "0 0 auto",
 };
@@ -1503,7 +1504,8 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                   background: active ? "rgba(11,46,95,0.06)" : "#fff",
                   color: "#0B2E5F",
                   cursor: "pointer",
-                  fontWeight: active ? 900 : 700,
+fontSize: 13,
+fontWeight: active ? 800 : 650,
                   textAlign: "left",
                 }}
               >
@@ -1512,12 +1514,12 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                     width: 30,
                     height: 22,
                     borderRadius: 999,
-                    background: active ? "var(--cyan)" : "rgba(11,46,95,0.08)",
-                    color: active ? "#fff" : "#0B2E5F",
+background: "rgba(11,46,95,0.06)",
+color: "#64748B",
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 900,
                   }}
                 >
@@ -1606,15 +1608,7 @@ function PortalBanner({
     if (label === t(language, "country")) return "🌍";
     return "•";
   }
-
- function statusIconStyle(label: string): React.CSSProperties {
-  if (label === t(language, "country")) {
-    return {
-      background: "rgba(10,122,61,0.12)",
-      color: "#0A6A38",
-    };
-  }
-
+function statusIconStyle(label: string): React.CSSProperties {
   return {};
 }
 
