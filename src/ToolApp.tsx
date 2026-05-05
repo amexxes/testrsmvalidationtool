@@ -5001,7 +5001,7 @@ function IbanPage({
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
-              <SectionTitle>IBAN input</SectionTitle>
+              <InputSectionTitle language={language} />
 
               <div
                 className="callout"
@@ -5085,7 +5085,7 @@ function IbanPage({
 
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
-              <InputSectionTitle language={language} />
+             <SectionTitle>{t(language, "dashboard")}</SectionTitle>
               <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
             </CardHeader>
 
