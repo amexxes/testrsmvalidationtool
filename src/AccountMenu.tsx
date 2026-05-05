@@ -17,14 +17,12 @@ type Props = {
   onOpenChangePassword: () => void;
   onLogout: () => void;
 };
-
 const LANGUAGE_FLAGS: Record<PortalLanguage, string> = {
   en: "GB",
   nl: "NL",
   de: "DE",
   fr: "FR",
 };
-
 export default function AccountMenu({
   user,
   language,
@@ -43,7 +41,10 @@ export default function AccountMenu({
   useEffect(() => {
     function onDocumentClick(e: MouseEvent) {
       if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+
+      if (!rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     }
 
     function onEscape(e: KeyboardEvent) {
@@ -60,50 +61,18 @@ export default function AccountMenu({
   }, []);
 
   const initials = String(user.email || "?").slice(0, 1).toUpperCase();
-  const isAdmin = user.role === "admin";
 
   return (
     <div ref={rootRef} style={rootStyle}>
-      <style>
-        {`
-          @keyframes accountMenuDropIn {
-            from {
-              opacity: 0;
-              transform: translateY(-8px) scale(0.98);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          @keyframes accountMenuItemDropIn {
-            from {
-              opacity: 0;
-              transform: translateY(-6px);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
-
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        style={{
-          ...triggerStyle,
-          animation: open ? "accountMenuItemDropIn 220ms ease-out" : "none",
-        }}
+        style={triggerStyle}
       >
         <span style={avatarStyle}>{initials}</span>
 
         <span style={{ minWidth: 0, flex: 1 }}>
-          <span style={accountLabelStyle}>{isAdmin ? "Admin" : "Client"}</span>
+          <span style={accountLabelStyle}>Account</span>
           <span style={emailStyle}>{user.email}</span>
         </span>
 
@@ -113,13 +82,9 @@ export default function AccountMenu({
       {open && (
         <div style={menuStyle}>
           <div style={menuHeaderStyle}>
-            <span style={largeAvatarStyle}>{initials}</span>
-
-            <div style={{ minWidth: 0 }}>
-              <div style={menuEmailStyle}>{user.email}</div>
-              <div style={menuRoleStyle}>
-                {isAdmin ? "Administrator" : "Client user"}
-              </div>
+            <div style={menuEmailStyle}>{user.email}</div>
+            <div style={menuRoleStyle}>
+              {user.role === "admin" ? "Administrator" : "User"}
             </div>
           </div>
 
@@ -131,49 +96,107 @@ export default function AccountMenu({
                 const active = item.code === language;
 
                 return (
-                  <button
-                    key={item.code}
-                    type="button"
-                    aria-label={item.label}
-                    onClick={() => setLanguage(item.code)}
-                    style={{
-                      ...languageButtonStyle,
-                      ...(active ? languageButtonActiveStyle : {}),
-                    }}
-                  >
-                    <ReactCountryFlag
-                      countryCode={LANGUAGE_FLAGS[item.code]}
-                      svg
-                      title={item.label}
-                      style={{
-                        width: "20px",
-                        height: "15px",
-                        borderRadius: 3,
-                      }}
-                    />
-                  </button>
+   <button
+  key={item.code}
+  type="button"
+  aria-label={item.label}
+onClick={() => {
+  setLanguage(item.code);
+}}
+  style={{
+    ...languageButtonStyle,
+    ...(active ? languageButtonActiveStyle : {}),
+  }}
+>
+  <ReactCountryFlag
+    countryCode={LANGUAGE_FLAGS[item.code]}
+    svg
+    title={item.label}
+    style={{
+      width: "20px",
+      height: "15px",
+      borderRadius: 3,
+    }}
+  />
+</button>
                 );
               })}
             </div>
           </div>
 
-          {isAdmin && (
+          {user.role === "admin" && (
             <>
-              <MenuItem label="Manage users" onClick={onOpenUsers} close={() => setOpen(false)} />
-              <MenuItem label="Usage dashboard" onClick={onOpenUsage} close={() => setOpen(false)} />
-              <MenuItem label="Client branding" onClick={onOpenBranding} close={() => setOpen(false)} />
+              <button
+                type="button"
+                style={menuItemStyle}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenUsers();
+                }}
+              >
+                Manage users
+              </button>
+
+              <button
+                type="button"
+                style={menuItemStyle}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenUsage();
+                }}
+              >
+                Usage dashboard
+              </button>
+
+              <button
+                type="button"
+                style={menuItemStyle}
+                onClick={() => {
+                  setOpen(false);
+                  onOpenBranding();
+                }}
+              >
+                Client branding
+              </button>
 
               {onOpenViewAsUser && (
-                <MenuItem label="View as user" onClick={onOpenViewAsUser} close={() => setOpen(false)} />
+                <button
+                  type="button"
+                  style={menuItemStyle}
+                  onClick={() => {
+                    setOpen(false);
+                    onOpenViewAsUser();
+                  }}
+                >
+                  View as user
+                </button>
               )}
             </>
           )}
 
-          {!isAdmin && onOpenTaskHistory && (
-            <MenuItem label="Portal task list" onClick={onOpenTaskHistory} close={() => setOpen(false)} />
+          {user.role !== "admin" && onOpenTaskHistory && (
+            <button
+              type="button"
+              style={menuItemStyle}
+              onClick={() => {
+                setOpen(false);
+                onOpenTaskHistory();
+              }}
+            >
+              Portal task list
+            </button>
           )}
 
-          <MenuItem label="Change password" onClick={onOpenChangePassword} close={() => setOpen(false)} />
+          <button
+            type="button"
+            style={menuItemStyle}
+            onClick={() => {
+              setOpen(false);
+              onOpenChangePassword();
+            }}
+          >
+            Change password
+          </button>
 
           <button
             type="button"
@@ -191,29 +214,6 @@ export default function AccountMenu({
   );
 }
 
-function MenuItem({
-  label,
-  onClick,
-  close,
-}: {
-  label: string;
-  onClick: () => void;
-  close: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      style={menuItemStyle}
-      onClick={() => {
-        close();
-        onClick();
-      }}
-    >
-      {label}
-    </button>
-  );
-}
-
 const rootStyle: React.CSSProperties = {
   position: "relative",
 };
@@ -221,59 +221,44 @@ const rootStyle: React.CSSProperties = {
 const triggerStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: 10,
-  minWidth: 260,
-  maxWidth: 340,
-  height: 58,
-  padding: "8px 10px",
+  gap: 12,
+  minWidth: 280,
+  maxWidth: 360,
+  padding: "10px 12px",
   borderRadius: 16,
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "rgba(255,255,255,0.92)",
+  border: "1px solid rgba(11,46,95,0.10)",
+  background: "rgba(255,255,255,0.94)",
   color: "#0B2E5F",
   cursor: "pointer",
-  boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
+  boxShadow: "0 10px 24px rgba(11,46,95,0.08)",
 };
 
 const avatarStyle: React.CSSProperties = {
-  width: 34,
-  height: 34,
-  borderRadius: 12,
+  width: 38,
+  height: 38,
+  borderRadius: 999,
   display: "grid",
   placeItems: "center",
-  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
-  color: "#FFFFFF",
-  fontSize: 13,
-  fontWeight: 900,
-  flex: "0 0 auto",
-};
-
-const largeAvatarStyle: React.CSSProperties = {
-  width: 42,
-  height: 42,
-  borderRadius: 14,
-  display: "grid",
-  placeItems: "center",
-  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
-  color: "#FFFFFF",
-  fontSize: 15,
-  fontWeight: 900,
+  background: "linear-gradient(135deg, #0B2E5F, #2BB3E6)",
+  color: "#fff",
+  fontWeight: 800,
   flex: "0 0 auto",
 };
 
 const accountLabelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: 10,
-  lineHeight: 1,
-  color: "#64748B",
+  fontSize: 11,
+  lineHeight: 1.2,
+  color: "#64748b",
   fontWeight: 800,
   textTransform: "uppercase",
-  letterSpacing: "0.06em",
+  letterSpacing: "0.08em",
 };
 
 const emailStyle: React.CSSProperties = {
   display: "block",
-  marginTop: 5,
-  fontSize: 12,
+  marginTop: 2,
+  fontSize: 13,
   color: "#0B2E5F",
   fontWeight: 800,
   whiteSpace: "nowrap",
@@ -282,32 +267,28 @@ const emailStyle: React.CSSProperties = {
 };
 
 const chevronStyle: React.CSSProperties = {
-  fontSize: 9,
-  color: "#64748B",
+  fontSize: 10,
+  color: "#64748b",
   flex: "0 0 auto",
 };
 
 const menuStyle: React.CSSProperties = {
   position: "absolute",
   right: 0,
-  top: "calc(100% + 10px)",
-  width: 286,
+  bottom: "calc(100% + 10px)",
+  width: 280,
   borderRadius: 18,
   overflow: "hidden",
   background: "rgba(255,255,255,0.98)",
-  border: "1px solid rgba(148,163,184,0.22)",
+  border: "1px solid rgba(0,0,0,0.08)",
   boxShadow: "0 24px 60px rgba(11,46,95,0.18)",
   zIndex: 20000,
-  animation: "accountMenuDropIn 240ms ease-out",
 };
 
 const menuHeaderStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 12,
   padding: "14px 16px",
   borderBottom: "1px solid rgba(11,46,95,0.08)",
-  background: "linear-gradient(135deg, rgba(248,251,255,0.96), rgba(255,255,255,0.98))",
+  background: "rgba(11,46,95,0.03)",
 };
 
 const menuEmailStyle: React.CSSProperties = {
@@ -321,24 +302,22 @@ const menuEmailStyle: React.CSSProperties = {
 
 const menuRoleStyle: React.CSSProperties = {
   marginTop: 4,
-  fontSize: 11,
-  color: "#64748B",
+  fontSize: 12,
+  color: "#64748b",
   fontWeight: 700,
 };
 
 const languageBlockStyle: React.CSSProperties = {
   padding: "12px 16px",
   borderBottom: "1px solid rgba(11,46,95,0.06)",
-  background: "#FFFFFF",
+  background: "#fff",
 };
 
 const languageTitleStyle: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 12,
   fontWeight: 800,
-  color: "#64748B",
+  color: "#64748b",
   marginBottom: 8,
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
 };
 
 const languageButtonsStyle: React.CSSProperties = {
@@ -348,47 +327,42 @@ const languageButtonsStyle: React.CSSProperties = {
 };
 
 const languageButtonStyle: React.CSSProperties = {
-  width: 38,
-  height: 32,
+  width: 36,
+  height: 30,
   padding: 0,
-  borderRadius: 10,
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "rgba(255,255,255,0.92)",
+  borderRadius: 999,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "#fff",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
-  boxShadow: "0 6px 14px rgba(15,23,42,0.06)",
 };
 
 const languageButtonActiveStyle: React.CSSProperties = {
-  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
-  border: "1px solid rgba(11,46,95,0.92)",
+  background: "#0B2E5F",
+  color: "#fff",
 };
 
 const menuItemStyle: React.CSSProperties = {
   width: "100%",
   textAlign: "left",
-  padding: "13px 16px",
+  padding: "14px 16px",
   border: 0,
-  background: "#FFFFFF",
+  background: "#fff",
   color: "#0B2E5F",
-  fontSize: 13,
-  fontWeight: 750,
+  fontWeight: 700,
   cursor: "pointer",
   borderBottom: "1px solid rgba(11,46,95,0.06)",
-  animation: "accountMenuItemDropIn 220ms ease-out",
 };
 
 const dangerItemStyle: React.CSSProperties = {
   width: "100%",
   textAlign: "left",
-  padding: "13px 16px",
+  padding: "14px 16px",
   border: 0,
   background: "rgba(185,28,28,0.05)",
-  color: "#8F1D1D",
-  fontSize: 13,
-  fontWeight: 750,
+  color: "#8f1d1d",
+  fontWeight: 700,
   cursor: "pointer",
-  animation: "accountMenuItemDropIn 220ms ease-out",
 };
