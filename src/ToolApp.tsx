@@ -2797,9 +2797,11 @@ if (ratio >= 0.85) {
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 14,
-background: "linear-gradient(135deg, rgba(99,199,242,0.22), rgba(99,199,242,0.10))",
+background:
+  "radial-gradient(circle at 28% 22%, rgba(255,255,255,0.85), rgba(226,232,240,0.62) 36%, transparent 37%), linear-gradient(135deg, rgba(226,232,240,0.78) 0%, rgba(203,213,225,0.54) 42%, rgba(99,199,242,0.22) 76%, rgba(11,46,95,0.14) 100%)",
 color: "#0B2E5F",
-boxShadow: "0 8px 18px rgba(99, 199, 242, 0)",
+border: "1px solid rgba(148,163,184,0.24)",
+boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
         flex: "0 0 auto",
       }}
     >
