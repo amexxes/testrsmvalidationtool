@@ -115,13 +115,13 @@ export default function App() {
   const [branding, setBranding] = useState<ClientBranding>(DEFAULT_BRANDING);
   const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
 
-  const [adminOpen, setAdminOpen] = useState(false);f
+  const [adminOpen, setAdminOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
-  const [portalRuns, setPortalRuns] = useState<PortalfRunSummary[]>([]);
+  const [portalRuns, setPortalRuns] = useState<PortalRunSummary[]>([]);
 
   const [viewAsOpen, setViewAsOpen] = useState(false);
   const [viewAsLoading, setViewAsLoading] = useState(false);
@@ -244,15 +244,15 @@ const effectiveClientModules = useMemo(() => {
     }
   }
 
-  const handleRunCompleted = useCallback(
-    (summary: PortalRunSummary) => {
-      if (!user || user.role === "admin") return;
+const handleRunCompleted = useCallback(
+  (summary: PortalRunSummary) => {
+    if (!user || user.role === "admin") return;
 
-      const next = upsertPortalRunHistory(user.email, summary);
-      setPortalRuns(next);
-    },
-    [user]
-  );
+    const next = upsertPortalRunHistory(user.email, summary);
+    setPortalRuns(next);
+  },
+  [user]
+);
 
   function handleClearPortalRuns() {
     if (!user) return;
