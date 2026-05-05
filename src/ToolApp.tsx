@@ -341,28 +341,28 @@ const ERROR_MAP: Record<string, Partial<Record<PortalLanguage, string>> & { en: 
     fr: "L'Etat membre est temporairement indisponible; nous reessaierons plus tard.",
   },
   TIMEOUT: {
-    en: "Timeout when calling VIES; we will try again later.",
-    nl: "Timeout bij het aanroepen van VIES; we proberen het later opnieuw.",
-    de: "Zeitueberschreitung beim Aufruf von VIES; wir versuchen es spaeter erneut.",
-    fr: "Delai depasse lors de l'appel a VIES; nous reessaierons plus tard.",
+    en: "Timeout when calling the VAT service; we will try again later.",
+    nl: "Timeout bij het aanroepen van VAT; we proberen het later opnieuw.",
+    de: "Zeitueberschreitung beim Aufruf von VAT; wir versuchen es spaeter erneut.",
+    fr: "Delai depasse lors de l'appel a VAT; nous reessaierons plus tard.",
   },
   GLOBAL_MAX_CONCURRENT_REQ: {
-    en: "VIES is busy; we will try again later.",
-    nl: "VIES is druk; we proberen het later opnieuw.",
-    de: "VIES ist ausgelastet; wir versuchen es spaeter erneut.",
-    fr: "VIES est occupe; nous reessaierons plus tard.",
+    en: "VAT is busy; we will try again later.",
+    nl: "VAT is druk; we proberen het later opnieuw.",
+    de: "VAT ist ausgelastet; wir versuchen es spaeter erneut.",
+    fr: "VAT est occupe; nous reessaierons plus tard.",
   },
   SERVICE_UNAVAILABLE: {
-    en: "VIES service is unavailable; we will try again later.",
-    nl: "De VIES-service is niet beschikbaar; we proberen het later opnieuw.",
-    de: "Der VIES-Dienst ist nicht verfuegbar; wir versuchen es spaeter erneut.",
-    fr: "Le service VIES est indisponible; nous reessaierons plus tard.",
+    en: "VAT service is unavailable; we will try again later.",
+    nl: "De VAT-service is niet beschikbaar; we proberen het later opnieuw.",
+    de: "Der VAT-Dienst ist nicht verfuegbar; wir versuchen es spaeter erneut.",
+    fr: "Le service VAT est indisponible; nous reessaierons plus tard.",
   },
   NETWORK_ERROR: {
-    en: "Network error when calling VIES; we will try again later.",
-    nl: "Netwerkfout bij het aanroepen van VIES; we proberen het later opnieuw.",
-    de: "Netzwerkfehler beim Aufruf von VIES; wir versuchen es spaeter erneut.",
-    fr: "Erreur reseau lors de l'appel a VIES; nous reessaierons plus tard.",
+    en: "Network error when calling VAT; we will try again later.",
+    nl: "Netwerkfout bij het aanroepen van VAT; we proberen het later opnieuw.",
+    de: "Netzwerkfehler beim Aufruf von VAT; wir versuchen es spaeter erneut.",
+    fr: "Erreur reseau lors de l'appel a VAT; nous reessaierons plus tard.",
   },
 };
 
@@ -1440,7 +1440,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
         onClick={() => setOpen((prev) => !prev)}
     style={{
   height: 36,
-  minWidth: 210,
+  minWidth: 175,
   padding: "0 12px",
   display: "inline-flex",
   alignItems: "center",
@@ -1474,7 +1474,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
             position: "absolute",
             right: 0,
             top: "calc(100% + 8px)",
-            width: 230,
+            width: 200,
             borderRadius: 16,
             overflow: "hidden",
             background: "rgba(255,255,255,0.98)",
@@ -1515,8 +1515,8 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                     width: 10,
                     height: 10,
                     borderRadius: 999,
-                    background: active ? "rgba(11,46,95,0.22)" : "transparent",
-                    border: active ? "1px solid rgba(11,46,95,0.18)" : "1px solid transparent",
+background: active ? "var(--client-bg)" : "transparent",
+border: active ? "1px solid rgba(148,163,184,0.35)" : "1px solid transparent",
                     flex: "0 0 auto",
                   }}
                 />
@@ -2039,7 +2039,7 @@ function VatPage({
       type: "vat",
       createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      label: "VAT / VIES validation run",
+      label: "VAT validation run",
       total: stats.total,
       done: stats.done,
       valid: stats.vOk,
@@ -2700,7 +2700,7 @@ if (ratio >= 0.85) {
     <>
       <PortalBanner
         title={branding.portalTitle || "Validation Portal"}
-        modeValue="VAT / VIES"
+        modeValue="VAT"
         meta={[
           { label: t(language, "credits"), value: t(language, "unlimited") },
           { label: t(language, "lastUpdate"), value: lastUpdate },
