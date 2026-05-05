@@ -1,5 +1,5 @@
 // /api/ch-vat-validate-batch.js
-
+import { requireModuleAccess } from "../lib/auth.js";
 const CH_UID_ENDPOINT =
   process.env.CH_UID_ENDPOINT || "https://www.uid-wse.admin.ch/V5.0/PublicServices.svc";
 
