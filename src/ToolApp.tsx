@@ -18,7 +18,32 @@ import {
 
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin" | "eori" | "iban";
+type UserRole = "admin" | "user";
 
+type ClientModules = Record<ActivePage, boolean>;
+
+const DEFAULT_CLIENT_MODULES: ClientModules = {
+  vat: true,
+  tin: false,
+  eori: false,
+  iban: false,
+};
+
+function normalizeClientModules(modules?: Partial<ClientModules>): ClientModules {
+  return {
+    ...DEFAULT_CLIENT_MODULES,
+    ...modules,
+    vat: true,
+  };
+}
+
+function canAccessPage(
+  page: ActivePage,
+  clientModules: ClientModules,
+  userRole: UserRole
+): boolean {
+  return userRole === "admin" || clientModules[page];
+}
 type ClientBranding = {
   id?: string;
   clientName?: string;
@@ -33,9 +58,12 @@ type ClientBranding = {
 type ToolAppProps = {
   branding?: ClientBranding;
   viewAsEmail?: string;
+  userRole?: UserRole;
+  clientModules?: Partial<ClientModules>;
   language?: PortalLanguage;
   setLanguage?: React.Dispatch<React.SetStateAction<PortalLanguage>>;
   onRunCompleted?: (summary: PortalRunSummary) => void;
+  onRequestModuleUpgrade?: (module: ActivePage) => void;
 };
 
 type EoriRow = {
@@ -279,6 +307,9 @@ type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
   language: PortalLanguage;
+  userRole: UserRole;
+  clientModules: ClientModules;
+  onRequestModuleUpgrade?: (module: ActivePage) => void;
 };
 
 type BrandedPageProps = {
@@ -287,8 +318,12 @@ type BrandedPageProps = {
   branding: ClientBranding;
   language: PortalLanguage;
   setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
+  userRole: UserRole;
+  clientModules: ClientModules;
   onRunCompleted?: (summary: PortalRunSummary) => void;
+  onRequestModuleUpgrade?: (module: ActivePage) => void;
 };
+
 
 type LanguageSwitcherProps = {
   language: PortalLanguage;
@@ -304,6 +339,9 @@ type PortalBannerProps = {
   branding: ClientBranding;
   language: PortalLanguage;
   setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
+  userRole: UserRole;
+  clientModules: ClientModules;
+  onRequestModuleUpgrade?: (module: ActivePage) => void;
 };
 
 const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
@@ -1432,7 +1470,14 @@ function InputCountryBarChart({
   );
 }
 
-function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
+function PageSwitcher({
+  activePage,
+  setActivePage,
+  language,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
+}: PageSwitcherProps) {
   const options: Array<{
     key: ActivePage;
     label: string;
@@ -1498,39 +1543,80 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
       }}
     >
       {options.map((item) => {
-        const active = item.key === activePage;
+        const enabled = canAccessPage(item.key, clientModules, userRole);
+        const active = enabled && item.key === activePage;
 
         return (
           <button
             key={item.key}
             type="button"
-            aria-label={item.title}
-            title={item.title}
-            onClick={() => setActivePage(item.key)}
-style={{
-  width: 48,
-  height: 40,
-  display: "inline-flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 3,
-  borderRadius: 10,
-  border: active
-    ? "1px solid rgba(11,46,95,0.92)"
-    : "1px solid rgba(148,163,184,0.22)",
-  background: active
-    ? "linear-gradient(135deg, #0B2E5F, #16457F)"
-    : "rgba(255,255,255,0.92)",
-  color: active ? "#FFFFFF" : "#64748B",
-  boxShadow: active
-    ? "0 8px 18px rgba(11,46,95,0.20)"
-    : "0 6px 14px rgba(15,23,42,0.07)",
-  cursor: "pointer",
-  fontFamily: PORTAL_FONT,
-  animation: active ? "menuButtonDropIn 260ms ease-out" : "none",
-}}
+            aria-label={enabled ? item.title : `${item.title} add-on`}
+            title={enabled ? item.title : `${item.label} add-on module`}
+            onClick={() => {
+              if (!enabled) {
+                if (onRequestModuleUpgrade) {
+                  onRequestModuleUpgrade(item.key);
+                } else {
+                  window.alert(`${item.label} is an add-on module.`);
+                }
+
+                return;
+              }
+
+              setActivePage(item.key);
+            }}
+            style={{
+              position: "relative",
+              width: 48,
+              height: 40,
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              borderRadius: 10,
+              border: active
+                ? "1px solid rgba(11,46,95,0.92)"
+                : "1px solid rgba(148,163,184,0.22)",
+              background: active
+                ? "linear-gradient(135deg, #0B2E5F, #16457F)"
+                : enabled
+                  ? "rgba(255,255,255,0.92)"
+                  : "rgba(241,245,249,0.72)",
+              color: active ? "#FFFFFF" : "#64748B",
+              boxShadow: active
+                ? "0 8px 18px rgba(11,46,95,0.20)"
+                : "0 6px 14px rgba(15,23,42,0.07)",
+              cursor: enabled ? "pointer" : "not-allowed",
+              fontFamily: PORTAL_FONT,
+              opacity: enabled ? 1 : 0.52,
+              filter: enabled ? "none" : "grayscale(0.35)",
+              animation: active ? "menuButtonDropIn 260ms ease-out" : "none",
+            }}
           >
+            {!enabled && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  width: 15,
+                  height: 15,
+                  borderRadius: 999,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "#0B2E5F",
+                  color: "#FFFFFF",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  boxShadow: "0 4px 10px rgba(11,46,95,0.20)",
+                }}
+              >
+                +
+              </span>
+            )}
+
             <span
               style={{
                 width: 16,
@@ -1539,22 +1625,23 @@ style={{
                 alignItems: "center",
                 justifyContent: "center",
                 lineHeight: 1,
+                color: active ? "#FFFFFF" : "#64748B",
               }}
             >
               {item.icon}
             </span>
 
-<span
-  style={{
-    fontSize: 9,
-    lineHeight: 1,
-    fontWeight: 700,
-    letterSpacing: "0.02em",
-    color: active ? "#FFFFFF" : "#64748B",
-  }}
->
-  {item.label}
-</span>
+            <span
+              style={{
+                fontSize: 9,
+                lineHeight: 1,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                color: active ? "#FFFFFF" : "#64748B",
+              }}
+            >
+              {item.label}
+            </span>
           </button>
         );
       })}
@@ -1640,6 +1727,9 @@ function PortalBanner({
   branding = DEFAULT_BRANDING,
   language,
   setLanguage,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
 }: PortalBannerProps) {
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
@@ -1755,7 +1845,14 @@ function statusIcon(label: string): React.ReactNode {
 </div>
 <div style={BANNER_RIGHT_STYLE}>
   <div style={BANNER_CONTROL_STYLE}>
-    <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+    <PageSwitcher
+  activePage={activePage}
+  setActivePage={setActivePage}
+  language={language}
+  userRole={userRole}
+  clientModules={clientModules}
+  onRequestModuleUpgrade={onRequestModuleUpgrade}
+/>
   </div>
 </div>
       </div>
@@ -2843,6 +2940,9 @@ if (ratio >= 0.85) {
         branding={branding}
         language={language}
         setLanguage={setLanguage}
+        userRole={userRole}
+clientModules={clientModules}
+onRequestModuleUpgrade={onRequestModuleUpgrade}
       />
 
       <div className="wrap">
@@ -3889,6 +3989,9 @@ function TinPage({
         branding={branding}
         language={language}
         setLanguage={setLanguage}
+        userRole={userRole}
+clientModules={clientModules}
+onRequestModuleUpgrade={onRequestModuleUpgrade}
       />
 
       <div className="wrap">
@@ -4570,6 +4673,9 @@ async function runEoriValidation(eoris: string[]) {
         branding={branding}
         language={language}
         setLanguage={setLanguage}
+        userRole={userRole}
+clientModules={clientModules}
+onRequestModuleUpgrade={onRequestModuleUpgrade}
       />
 
       <div className="wrap">
@@ -4996,6 +5102,9 @@ function IbanPage({
         branding={branding}
         language={language}
         setLanguage={setLanguage}
+        userRole={userRole}
+clientModules={clientModules}
+onRequestModuleUpgrade={onRequestModuleUpgrade}
       />
 
       <div className="wrap">
@@ -5207,6 +5316,9 @@ export default function App({
   onRunCompleted,
   language: externalLanguage,
   setLanguage: externalSetLanguage,
+  userRole = "user",
+  clientModules: clientModulesProp,
+  onRequestModuleUpgrade,
 }: ToolAppProps) {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
   const [internalLanguage, setInternalLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
@@ -5214,57 +5326,44 @@ export default function App({
   const language = externalLanguage || internalLanguage;
   const setLanguage = externalSetLanguage || setInternalLanguage;
 
+  const clientModules = useMemo(
+    () => normalizeClientModules(clientModulesProp),
+    [clientModulesProp]
+  );
+
+  useEffect(() => {
+    if (!canAccessPage(activePage, clientModules, userRole)) {
+      setActivePage("vat");
+    }
+  }, [activePage, clientModules, userRole]);
+
   useEffect(() => {
     storeLanguage(language);
   }, [language]);
 
+  const sharedProps = {
+    activePage,
+    setActivePage,
+    branding,
+    language,
+    setLanguage,
+    userRole,
+    clientModules,
+    onRunCompleted,
+    onRequestModuleUpgrade,
+  };
+
   if (activePage === "vat") {
-    return (
-      <VatPage
-        activePage={activePage}
-        setActivePage={setActivePage}
-        branding={branding}
-        language={language}
-        setLanguage={setLanguage}
-        onRunCompleted={onRunCompleted}
-      />
-    );
+    return <VatPage {...sharedProps} />;
   }
 
   if (activePage === "tin") {
-    return (
-      <TinPage
-        activePage={activePage}
-        setActivePage={setActivePage}
-        branding={branding}
-        language={language}
-        setLanguage={setLanguage}
-        onRunCompleted={onRunCompleted}
-      />
-    );
+    return <TinPage {...sharedProps} />;
   }
 
   if (activePage === "eori") {
-    return (
-      <EoriPage
-        activePage={activePage}
-        setActivePage={setActivePage}
-        branding={branding}
-        language={language}
-        setLanguage={setLanguage}
-        onRunCompleted={onRunCompleted}
-      />
-    );
+    return <EoriPage {...sharedProps} />;
   }
 
-  return (
-    <IbanPage
-      activePage={activePage}
-      setActivePage={setActivePage}
-      branding={branding}
-      language={language}
-      setLanguage={setLanguage}
-      onRunCompleted={onRunCompleted}
-    />
-  );
+  return <IbanPage {...sharedProps} />;
 }
