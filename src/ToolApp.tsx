@@ -1510,16 +1510,15 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                   textAlign: "left",
                 }}
               >
-                <span
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 999,
-background: active ? "var(--client-bg)" : "transparent",
-border: active ? "1px solid rgba(148,163,184,0.35)" : "1px solid transparent",
-                    flex: "0 0 auto",
-                  }}
-                />
+<span
+  style={{
+    width: 4,
+    height: 22,
+    borderRadius: 999,
+    background: active ? "rgba(100,116,139,0.55)" : "transparent",
+    flex: "0 0 auto",
+  }}
+/>
 
                 <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
               </button>
