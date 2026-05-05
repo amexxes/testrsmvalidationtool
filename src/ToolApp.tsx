@@ -3032,80 +3032,76 @@ if (ratio >= 0.85) {
                 className="pt-0"
                 style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
               >
-                <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
-{!viesStatus.length ? (
-  <>
-    <div style={{ padding: 12, color: "var(--muted)" }}>{t(language, "noData")}</div>
+<div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
+  {!viesStatus.length ? (
+    <div style={{ padding: 12, color: "var(--muted)" }}>
+      {t(language, "noData")}
+    </div>
+  ) : (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+        gap: 10,
+        padding: 6,
+      }}
+    >
+      {[...viesStatus]
+        .sort((a, b) => {
+          const ca = countryCounts[a.countryCode] || 0;
+          const cb = countryCounts[b.countryCode] || 0;
+          if (cb !== ca) return cb - ca;
+          return a.countryCode.localeCompare(b.countryCode, "en");
+        })
+        .map((c) => {
+          const ok = String(c.availability || "").toLowerCase() === "available";
+          const iso2 = vatCcToIso2ForFlag(c.countryCode);
 
-    <ValidationFlow language={language} />
-  </>
-) : (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                        gap: 10,
-                        padding: 6,
-                      }}
-                    >
-                      {[...viesStatus]
-                        .sort((a, b) => {
-                          const ca = countryCounts[a.countryCode] || 0;
-                          const cb = countryCounts[b.countryCode] || 0;
-                          if (cb !== ca) return cb - ca;
-                          return a.countryCode.localeCompare(b.countryCode, "en");
-                        })
-                        .map((c) => {
-                          const ok = String(c.availability || "").toLowerCase() === "available";
-                          const iso2 = vatCcToIso2ForFlag(c.countryCode);
+          return (
+            <div
+              key={c.countryCode}
+              title={`${c.countryCode} - ${c.availability}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                padding: "6px 8px",
+                borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.08)",
+                background: "rgba(255,255,255,0.18)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+              }}
+            >
+              <ReactCountryFlag
+                countryCode={iso2}
+                svg
+                style={{ width: "18px", height: "14px", borderRadius: 3 }}
+                title={c.countryCode}
+              />
 
-                          return (
-                            <div
-                              key={c.countryCode}
-                              title={`${c.countryCode} - ${c.availability}`}
-style={{
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 6,
-  padding: "6px 8px",
-                                borderRadius: 12,
-                                border: "1px solid rgba(0,0,0,0.08)",
-                                background: "rgba(255,255,255,0.18)",
-                                backdropFilter: "blur(6px)",
-                                WebkitBackdropFilter: "blur(6px)",
-                              }}
-                            >
-                              <ReactCountryFlag
-                                countryCode={iso2}
-                                svg
-                                style={{ width: "18px", height: "14px", borderRadius: 3 }}
-                                title={c.countryCode}
-                              />
+              <span
+                className="mono"
+                style={{
+                  fontWeight: 800,
+                  color: ok ? "var(--ok)" : "var(--bad)",
+                  fontSize: 14,
+                  lineHeight: "14px",
+                  width: 18,
+                  textAlign: "center",
+                }}
+              >
+                {ok ? "✓" : "×"}
+              </span>
+            </div>
+          );
+        })}
+    </div>
+  )}
 
-                              <span
-                                className="mono"
-                                style={{
-                                  fontWeight: 800,
-                                  color: ok ? "var(--ok)" : "var(--bad)",
-fontSize: 14,
-lineHeight: "14px",
-width: 18,
-textAlign: "center",
-                                }}
-                              >
-                                {ok ? "✓" : "×"}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+  <ValidationFlow language={language} />
+</div>
 
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
@@ -3963,13 +3959,9 @@ function TinPage({
               )}
 
 {!error && !rows.length && (
-  <>
-    <div className="callout" style={{ marginTop: 10 }}>
-      {t(language, "noResultsYet")}
-    </div>
-
-    <ValidationFlow language={language} />
-  </>
+  <div className="callout" style={{ marginTop: 10 }}>
+    {t(language, "noResultsYet")}
+  </div>
 )}
 
               {!!rows.length && (
@@ -4656,13 +4648,9 @@ async function runEoriValidation(eoris: string[]) {
               )}
 
 {!error && !rows.length && (
-  <>
-    <div className="callout" style={{ marginTop: 10 }}>
-      {t(language, "noResultsYet")}
-    </div>
-
-    <ValidationFlow language={language} />
-  </>
+  <div className="callout" style={{ marginTop: 10 }}>
+    {t(language, "noResultsYet")}
+  </div>
 )}
 
               {!!rows.length && (
@@ -5014,13 +5002,9 @@ function IbanPage({
                 </div>
               )}
 {!error && !rows.length && (
-  <>
-    <div className="callout" style={{ marginTop: 10 }}>
-      {t(language, "noResultsYet")}
-    </div>
-
-    <ValidationFlow language={language} />
-  </>
+  <div className="callout" style={{ marginTop: 10 }}>
+    {t(language, "noResultsYet")}
+  </div>
 )}
 
               {!!rows.length && (
