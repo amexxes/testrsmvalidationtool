@@ -255,7 +255,8 @@ async function callSoap(operation, envelope) {
       },
       body: envelope,
     });
-
+const auth = await requireModuleAccess(req, res, "vatCh");
+if (!auth) return;
     const xml = await response.text();
     const fault = parseSoapFault(xml);
 
