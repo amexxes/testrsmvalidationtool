@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
+import { LANGUAGES, type PortalLanguage } from "./i18n";
 
 type Props = {
   user: {
     email: string;
     role: "admin" | "user";
   };
+  language: PortalLanguage;
+  setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
   onOpenUsers: () => void;
   onOpenUsage: () => void;
   onOpenBranding: () => void;
@@ -16,6 +19,8 @@ type Props = {
 
 export default function AccountMenu({
   user,
+  language,
+  setLanguage,
   onOpenUsers,
   onOpenUsage,
   onOpenBranding,
@@ -74,6 +79,33 @@ export default function AccountMenu({
             <div style={menuEmailStyle}>{user.email}</div>
             <div style={menuRoleStyle}>
               {user.role === "admin" ? "Administrator" : "User"}
+            </div>
+          </div>
+
+          <div style={languageBlockStyle}>
+            <div style={languageTitleStyle}>Language</div>
+
+            <div style={languageButtonsStyle}>
+              {LANGUAGES.map((item) => {
+                const active = item.code === language;
+
+                return (
+                  <button
+                    key={item.code}
+                    type="button"
+                    onClick={() => {
+                      setLanguage(item.code);
+                      setOpen(false);
+                    }}
+                    style={{
+                      ...languageButtonStyle,
+                      ...(active ? languageButtonActiveStyle : {}),
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -258,6 +290,42 @@ const menuRoleStyle: React.CSSProperties = {
   fontSize: 12,
   color: "#64748b",
   fontWeight: 700,
+};
+
+const languageBlockStyle: React.CSSProperties = {
+  padding: "12px 16px",
+  borderBottom: "1px solid rgba(11,46,95,0.06)",
+  background: "#fff",
+};
+
+const languageTitleStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  color: "#64748b",
+  marginBottom: 8,
+};
+
+const languageButtonsStyle: React.CSSProperties = {
+  display: "flex",
+  gap: 6,
+  flexWrap: "wrap",
+};
+
+const languageButtonStyle: React.CSSProperties = {
+  height: 28,
+  padding: "0 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "#fff",
+  color: "#0B2E5F",
+  fontSize: 11,
+  fontWeight: 800,
+  cursor: "pointer",
+};
+
+const languageButtonActiveStyle: React.CSSProperties = {
+  background: "#0B2E5F",
+  color: "#fff",
 };
 
 const menuItemStyle: React.CSSProperties = {
