@@ -1419,11 +1419,11 @@ function InputCountryBarChart({
 function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
   const [open, setOpen] = useState(false);
 
-  const options: Array<{ key: ActivePage; label: string; icon: string }> = [
-    { key: "vat", label: t(language, "vatTab"), icon: "VAT" },
-    { key: "tin", label: t(language, "tinTab"), icon: "TIN" },
-    { key: "eori", label: t(language, "eoriTab"), icon: "EO" },
-    { key: "iban", label: "IBAN", icon: "IB" },
+  const options: Array<{ key: ActivePage; label: string }> = [
+    { key: "vat", label: t(language, "vatTab") },
+    { key: "tin", label: t(language, "tinTab") },
+    { key: "eori", label: t(language, "eoriTab") },
+    { key: "iban", label: "IBAN" },
   ];
 
   const current = options.find((item) => item.key === activePage) || options[0];
@@ -1444,27 +1444,12 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
           justifyContent: "space-between",
           gap: 10,
           whiteSpace: "nowrap",
+          color: "#475569",
+          fontWeight: 700,
         }}
       >
-        <span
-          style={{
-            width: 28,
-            height: 22,
-            borderRadius: 999,
-            background: "var(--cyan)",
-            color: "#fff",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 10,
-            fontWeight: 900,
-          }}
-        >
-          {current.icon}
-        </span>
-
         <span style={{ flex: 1, textAlign: "left" }}>{current.label}</span>
-        <span style={{ fontSize: 10 }}>{open ? "▲" : "▼"}</span>
+        <span style={{ fontSize: 10, color: "#64748B" }}>{open ? "▲" : "▼"}</span>
       </Button>
 
       {open && (
@@ -1501,30 +1486,24 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                   padding: "12px 14px",
                   border: 0,
                   borderBottom: "1px solid rgba(11,46,95,0.06)",
-                  background: active ? "rgba(11,46,95,0.06)" : "#fff",
-                  color: "#0B2E5F",
+                  background: active ? "rgba(11,46,95,0.04)" : "#fff",
+                  color: "#475569",
                   cursor: "pointer",
-fontSize: 13,
-fontWeight: active ? 800 : 650,
+                  fontSize: 13,
+                  fontWeight: active ? 800 : 650,
                   textAlign: "left",
                 }}
               >
                 <span
                   style={{
-                    width: 30,
-                    height: 22,
+                    width: 10,
+                    height: 10,
                     borderRadius: 999,
-background: "rgba(11,46,95,0.06)",
-color: "#64748B",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 9,
-                    fontWeight: 900,
+                    background: active ? "rgba(11,46,95,0.22)" : "transparent",
+                    border: active ? "1px solid rgba(11,46,95,0.18)" : "1px solid transparent",
+                    flex: "0 0 auto",
                   }}
-                >
-                  {item.icon}
-                </span>
+                />
 
                 <span>{item.label}</span>
               </button>
