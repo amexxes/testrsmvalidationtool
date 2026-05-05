@@ -310,7 +310,11 @@ export default function App() {
         setLanguage={setLanguage}
         onRunCompleted={user.role !== "admin" ? handleRunCompleted : undefined}
       />
-
+<img
+  src="/rsmlogo.png"
+  alt="Made by RSM"
+  style={rsmBottomLogoStyle}
+/>
       <div style={accountMenuWrapStyle}>
         <AccountMenu
           user={user}
@@ -437,4 +441,16 @@ const viewAsStopButtonStyle: React.CSSProperties = {
   fontWeight: 800,
   cursor: "pointer",
   fontSize: 12,
+};
+const rsmBottomLogoStyle: React.CSSProperties = {
+  position: "fixed",
+  left: 24,
+  bottom: 18,
+  width: 82,
+  height: "auto",
+  objectFit: "contain",
+  opacity: 0.42,
+  mixBlendMode: "multiply",
+  pointerEvents: "none",
+  zIndex: 12000,
 };
