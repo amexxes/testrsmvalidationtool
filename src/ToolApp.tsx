@@ -33,6 +33,8 @@ type ClientBranding = {
 type ToolAppProps = {
   branding?: ClientBranding;
   viewAsEmail?: string;
+  language?: PortalLanguage;
+  setLanguage?: React.Dispatch<React.SetStateAction<PortalLanguage>>;
   onRunCompleted?: (summary: PortalRunSummary) => void;
 };
 
@@ -1626,9 +1628,6 @@ function PortalBanner({
     ))}
   </div>
 
-  <div style={BANNER_CONTROL_STYLE}>
-    <LanguageSwitcher language={language} setLanguage={setLanguage} />
-  </div>
 </div>
 
 <div style={BANNER_RIGHT_STYLE}>
@@ -5002,9 +5001,14 @@ function IbanPage({
 export default function App({
   branding = DEFAULT_BRANDING,
   onRunCompleted,
+  language: externalLanguage,
+  setLanguage: externalSetLanguage,
 }: ToolAppProps) {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
-  const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
+  const [internalLanguage, setInternalLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
+
+  const language = externalLanguage || internalLanguage;
+  const setLanguage = externalSetLanguage || setInternalLanguage;
 
   useEffect(() => {
     storeLanguage(language);
