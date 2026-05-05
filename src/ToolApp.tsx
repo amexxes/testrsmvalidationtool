@@ -1415,96 +1415,120 @@ function InputCountryBarChart({
 }
 
 function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
+  const [open, setOpen] = useState(false);
+
+  const options: Array<{ key: ActivePage; label: string; icon: string }> = [
+    { key: "vat", label: t(language, "vatTab"), icon: "VAT" },
+    { key: "tin", label: t(language, "tinTab"), icon: "TIN" },
+    { key: "eori", label: t(language, "eoriTab"), icon: "EO" },
+    { key: "iban", label: "IBAN", icon: "IB" },
+  ];
+
+  const current = options.find((item) => item.key === activePage) || options[0];
+
   return (
-    <div
-      style={{
-        height: 36,
-        display: "inline-grid",
-        gridTemplateColumns: "max-content max-content max-content max-content",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        padding: 3,
-        borderRadius: 999,
-        background: "rgba(255,255,255,0.82)",
-        border: "1px solid rgba(226,232,240,0.95)",
-        boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
-        backdropFilter: "blur(10px)",
-        WebkitBackdropFilter: "blur(10px)",
-        whiteSpace: "nowrap",
-        flex: "0 0 auto",
-      }}
-    >
+    <div style={{ position: "relative", height: 36, flex: "0 0 auto" }}>
       <Button
         type="button"
-        variant={activePage === "vat" ? "primary" : "secondary"}
+        variant="secondary"
         size="sm"
-        onClick={() => setActivePage("vat")}
+        onClick={() => setOpen((prev) => !prev)}
         style={{
-          height: 28,
-          minWidth: 148,
+          height: 36,
+          minWidth: 210,
           padding: "0 12px",
-          whiteSpace: "nowrap",
           display: "inline-flex",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          whiteSpace: "nowrap",
         }}
       >
-        {t(language, "vatTab")}
+        <span
+          style={{
+            width: 28,
+            height: 22,
+            borderRadius: 999,
+            background: "var(--cyan)",
+            color: "#fff",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 10,
+            fontWeight: 900,
+          }}
+        >
+          {current.icon}
+        </span>
+
+        <span style={{ flex: 1, textAlign: "left" }}>{current.label}</span>
+        <span style={{ fontSize: 10 }}>{open ? "▲" : "▼"}</span>
       </Button>
 
-      <Button
-        type="button"
-        variant={activePage === "tin" ? "primary" : "secondary"}
-        size="sm"
-        onClick={() => setActivePage("tin")}
-        style={{
-          height: 28,
-          minWidth: 112,
-          padding: "0 12px",
-          whiteSpace: "nowrap",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {t(language, "tinTab")}
-      </Button>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "calc(100% + 8px)",
+            width: 230,
+            borderRadius: 16,
+            overflow: "hidden",
+            background: "rgba(255,255,255,0.98)",
+            border: "1px solid rgba(11,46,95,0.10)",
+            boxShadow: "0 18px 44px rgba(11,46,95,0.16)",
+            zIndex: 30000,
+          }}
+        >
+          {options.map((item) => {
+            const active = item.key === activePage;
 
-      <Button
-        type="button"
-        variant={activePage === "eori" ? "primary" : "secondary"}
-        size="sm"
-        onClick={() => setActivePage("eori")}
-        style={{
-          height: 28,
-          minWidth: 128,
-          padding: "0 12px",
-          whiteSpace: "nowrap",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {t(language, "eoriTab")}
-      </Button>
-      <Button
-  type="button"
-  variant={activePage === "iban" ? "primary" : "secondary"}
-  size="sm"
-  onClick={() => setActivePage("iban")}
-  style={{
-    height: 28,
-    minWidth: 112,
-    padding: "0 12px",
-    whiteSpace: "nowrap",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-  }}
->
-  IBAN
-</Button>
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  setActivePage(item.key);
+                  setOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "12px 14px",
+                  border: 0,
+                  borderBottom: "1px solid rgba(11,46,95,0.06)",
+                  background: active ? "rgba(11,46,95,0.06)" : "#fff",
+                  color: "#0B2E5F",
+                  cursor: "pointer",
+                  fontWeight: active ? 900 : 700,
+                  textAlign: "left",
+                }}
+              >
+                <span
+                  style={{
+                    width: 30,
+                    height: 22,
+                    borderRadius: 999,
+                    background: active ? "var(--cyan)" : "rgba(11,46,95,0.08)",
+                    color: active ? "#fff" : "#0B2E5F",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 10,
+                    fontWeight: 900,
+                  }}
+                >
+                  {item.icon}
+                </span>
+
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1576,10 +1600,29 @@ function PortalBanner({
   const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
   function statusIcon(label: string) {
     if (label === t(language, "mode")) return "M";
-    if (label === t(language, "credits")) return "∞";
+    if (label === t(language, "credits")) return "💳";
     if (label === t(language, "lastUpdate")) return "↻";
-    if (label === t(language, "country")) return "🌐";
+    if (label === t(language, "country")) return "🌍";
     return "•";
+  }
+
+  function statusIconStyle(label: string): React.CSSProperties {
+    if (label === t(language, "credits")) {
+      return {
+        background: "rgba(245,158,11,0.16)",
+        color: "#92400E",
+      };
+    }
+
+    if (label === t(language, "country")) {
+      return {
+        background: "rgba(10,122,61,0.12)",
+        color: "#0A6A38",
+      };
+    }
+
+    return {};
+  }"•";
   }
   return (
     <div className="banner">
@@ -1639,7 +1682,9 @@ function PortalBanner({
         {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
 <span style={BANNER_STATUS_ITEM_STYLE}>
-  <span style={BANNER_STATUS_ICON_STYLE}>{statusIcon(item.label)}</span>
+  <span style={{ ...BANNER_STATUS_ICON_STYLE, ...statusIconStyle(item.label) }}>
+  {statusIcon(item.label)}
+</span>
   <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
   <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
 </span>
