@@ -186,8 +186,9 @@ const BANNER_RIGHT_STYLE: React.CSSProperties = {
   minWidth: 0,
   justifySelf: "end",
   whiteSpace: "nowrap",
-  overflowX: "auto",
-  overflowY: "hidden",
+  overflow: "visible",
+  position: "relative",
+  zIndex: 40000,
 };
 
 const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
@@ -1600,29 +1601,22 @@ function PortalBanner({
   const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
   function statusIcon(label: string) {
     if (label === t(language, "mode")) return "M";
-    if (label === t(language, "credits")) return "💳";
+    if (label === t(language, "credits")) return "€";
     if (label === t(language, "lastUpdate")) return "↻";
     if (label === t(language, "country")) return "🌍";
     return "•";
   }
 
-  function statusIconStyle(label: string): React.CSSProperties {
-    if (label === t(language, "credits")) {
-      return {
-        background: "rgba(245,158,11,0.16)",
-        color: "#92400E",
-      };
-    }
-
-    if (label === t(language, "country")) {
-      return {
-        background: "rgba(10,122,61,0.12)",
-        color: "#0A6A38",
-      };
-    }
-
-       return {};
+ function statusIconStyle(label: string): React.CSSProperties {
+  if (label === t(language, "country")) {
+    return {
+      background: "rgba(10,122,61,0.12)",
+      color: "#0A6A38",
+    };
   }
+
+  return {};
+}
 
   return (
     <div className="banner">
