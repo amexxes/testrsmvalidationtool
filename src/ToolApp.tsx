@@ -261,28 +261,19 @@ const BANNER_CONTROL_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
-const MADE_BY_RSM_STYLE: React.CSSProperties = {
-  height: 36,
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 7,
-  padding: "0 10px",
-  borderRadius: 999,
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "rgba(255,255,255,0.78)",
-  color: "#64748B",
-  fontFamily: PORTAL_FONT,
-  fontSize: 11,
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-  flex: "0 0 auto",
+const RSM_BOTTOM_LOGO_STYLE: React.CSSProperties = {
+  position: "fixed",
+  left: 24,
+  bottom: 18,
+  width: 82,
+  height: "auto",
+  objectFit: "contain",
+  opacity: 0.42,
+  mixBlendMode: "multiply",
+  pointerEvents: "none",
+  zIndex: 12000,
 };
 
-const MADE_BY_RSM_LOGO_STYLE: React.CSSProperties = {
-  width: 34,
-  height: 18,
-  objectFit: "contain",
-};
 type PageSwitcherProps = {
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
@@ -1698,16 +1689,17 @@ function statusIconStyle(label: string): React.CSSProperties {
 </div>
 
 <div style={BANNER_RIGHT_STYLE}>
-  <div style={MADE_BY_RSM_STYLE}>
-    <span>Made by</span>
-    <img src="/rsmlogo.png" alt="RSM" style={MADE_BY_RSM_LOGO_STYLE} />
-  </div>
-
   <div style={BANNER_CONTROL_STYLE}>
     <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
   </div>
 </div>
       </div>
+
+      <img
+        src="/rsmlogo.png"
+        alt="Made by RSM"
+        style={RSM_BOTTOM_LOGO_STYLE}
+      />
     </div>
   );
 }
