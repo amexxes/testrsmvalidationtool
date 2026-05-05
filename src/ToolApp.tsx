@@ -1712,7 +1712,18 @@ function statusIcon(label: string): React.ReactNode {
 
           <span>
 <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-<span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
+<span
+  style={{
+    ...BANNER_STATUS_VALUE_STYLE,
+    fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
+    fontWeight: 800,
+    letterSpacing: "0.055em",
+    textTransform: "uppercase",
+    color: "#0B2E5F",
+  }}
+>
+  {item.value}
+</span>
           </span>
         </span>
       </React.Fragment>
@@ -2782,7 +2793,6 @@ if (ratio >= 0.85) {
         borderRadius: 14,
 background: "linear-gradient(135deg, rgba(99,199,242,0.22), rgba(99,199,242,0.10))",
 color: "#0B2E5F",
-border: "1px solid rgba(99,199,242,0.22)",
 boxShadow: "0 8px 18px rgba(99,199,242,0.10)",
         flex: "0 0 auto",
       }}
