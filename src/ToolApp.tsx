@@ -2786,23 +2786,27 @@ if (ratio >= 0.85) {
         flex: "0 0 auto",
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <rect
-          x="4"
-          y="4"
-          width="16"
-          height="16"
-          rx="3"
-          stroke="currentColor"
-          strokeWidth="2.2"
-        />
-        <path
-          d="M8 9h8M8 13h8M8 17h5"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-      </svg>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+  <path
+    d="M7 4h8.5L20 8.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+    stroke="currentColor"
+    strokeWidth="2.1"
+    strokeLinejoin="round"
+  />
+  <path
+    d="M15 4v5h5"
+    stroke="currentColor"
+    strokeWidth="2.1"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  />
+  <path
+    d="M8.5 13h7M8.5 16.5h5"
+    stroke="currentColor"
+    strokeWidth="2.1"
+    strokeLinecap="round"
+  />
+</svg>
     </span>
 
     <span>{t(language, "input")}</span>
