@@ -4814,7 +4814,7 @@ function IbanPage({
                   fontWeight: 500,
                 }}
               >
-                {t(language, "ibanInputHelp")}
+                {t(language, "ibanInputHelp")}.
               </div>
             </CardHeader>
 
