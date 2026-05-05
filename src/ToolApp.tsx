@@ -200,7 +200,7 @@ const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   padding: "6px 16px",
   borderRadius: 999,
   border: "1px solid rgba(11,46,95,0.10)",
-  background: "linear-gradient(135deg, rgba(11,46,95,0.16), rgba(22,69,127,0.10))",
+  background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,251,255,0.92))",
   boxShadow: "0 10px 24px rgba(11,46,95,0.10)",
   color: "#0B2E5F",
   fontFamily: PORTAL_FONT,
@@ -246,8 +246,7 @@ const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
-  marginLeft: 8,
-  fontSize: 12,
+  fontSize: 10,
   lineHeight: 1.15,
   fontWeight: 700,
   color: "#0B2E5F",
