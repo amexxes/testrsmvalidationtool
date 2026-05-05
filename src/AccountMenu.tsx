@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import ReactCountryFlag from "react-country-flag";
 import { LANGUAGES, type PortalLanguage } from "./i18n";
 
 type Props = {
@@ -16,7 +17,12 @@ type Props = {
   onOpenChangePassword: () => void;
   onLogout: () => void;
 };
-
+const LANGUAGE_FLAGS: Record<PortalLanguage, string> = {
+  en: "GB",
+  nl: "NL",
+  de: "DE",
+  fr: "FR",
+};
 export default function AccountMenu({
   user,
   language,
@@ -90,20 +96,30 @@ export default function AccountMenu({
                 const active = item.code === language;
 
                 return (
-                  <button
-                    key={item.code}
-                    type="button"
-                    onClick={() => {
-                      setLanguage(item.code);
-                      setOpen(false);
-                    }}
-                    style={{
-                      ...languageButtonStyle,
-                      ...(active ? languageButtonActiveStyle : {}),
-                    }}
-                  >
-                    {item.label}
-                  </button>
+   <button
+  key={item.code}
+  type="button"
+  aria-label={item.label}
+  onClick={() => {
+    setLanguage(item.code);
+    setOpen(false);
+  }}
+  style={{
+    ...languageButtonStyle,
+    ...(active ? languageButtonActiveStyle : {}),
+  }}
+>
+  <ReactCountryFlag
+    countryCode={LANGUAGE_FLAGS[item.code]}
+    svg
+    title={item.label}
+    style={{
+      width: "20px",
+      height: "15px",
+      borderRadius: 3,
+    }}
+  />
+</button>
                 );
               })}
             </div>
@@ -312,14 +328,15 @@ const languageButtonsStyle: React.CSSProperties = {
 };
 
 const languageButtonStyle: React.CSSProperties = {
-  height: 28,
-  padding: "0 10px",
+  width: 36,
+  height: 30,
+  padding: 0,
   borderRadius: 999,
   border: "1px solid rgba(11,46,95,0.12)",
   background: "#fff",
-  color: "#0B2E5F",
-  fontSize: 11,
-  fontWeight: 800,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
   cursor: "pointer",
 };
 
