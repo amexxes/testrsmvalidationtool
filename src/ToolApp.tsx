@@ -247,9 +247,15 @@ const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
   marginLeft: 8,
+  height: 24,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
   fontSize: 12,
-  lineHeight: 1.15,
-  fontWeight: 700,
+  lineHeight: 1,
+  fontWeight: 800,
+  letterSpacing: "0.055em",
+  textTransform: "uppercase",
   color: "#0B2E5F",
   whiteSpace: "nowrap",
 };
@@ -1716,7 +1722,7 @@ function statusIcon(label: string): React.ReactNode {
   style={{
     ...BANNER_STATUS_VALUE_STYLE,
     fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
-    fontWeight: 800,
+    fontWeight: 600,
     letterSpacing: "0.055em",
     textTransform: "uppercase",
     color: "#0B2E5F",
