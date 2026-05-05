@@ -1913,7 +1913,62 @@ function ImportPreviewPanel({
     </div>
   );
 }
+const INPUT_CARD_ICON_STYLE: React.CSSProperties = {
+  width: 42,
+  height: 42,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 14,
+  background:
+    "radial-gradient(circle at 28% 22%, rgba(255,255,255,0.85), rgba(226,232,240,0.62) 36%, transparent 37%), linear-gradient(135deg, rgba(226,232,240,0.78) 0%, rgba(203,213,225,0.54) 42%, rgba(99,199,242,0.22) 76%, rgba(11,46,95,0.14) 100%)",
+  color: "#0B2E5F",
+  boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
+  flex: "0 0 auto",
+};
 
+function InputSectionTitle({ language }: { language: PortalLanguage }) {
+  return (
+    <SectionTitle>
+      <span
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: 12,
+          textAlign: "left",
+        }}
+      >
+        <span style={INPUT_CARD_ICON_STYLE}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M7 4h8.5L20 8.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M15 4v5h5"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M8.5 13h7M8.5 16.5h5"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
+
+        <span>{t(language, "input")}</span>
+      </span>
+    </SectionTitle>
+  );
+}
 function VatPage({
   activePage,
   setActivePage,
@@ -3824,7 +3879,7 @@ function TinPage({
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
 <CardHeader className="pb-4">
-  <SectionTitle>{t(language, "input")}</SectionTitle>
+  <InputSectionTitle language={language} />
 
 <div
   className="callout"
@@ -4505,7 +4560,7 @@ async function runEoriValidation(eoris: string[]) {
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
 <CardHeader className="pb-4">
-  <SectionTitle>{t(language, "input")}</SectionTitle>
+  <InputSectionTitle language={language} />
 
 <div
   className="callout"
