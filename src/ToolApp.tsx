@@ -2089,6 +2089,9 @@ function VatPage({
   language,
   setLanguage,
   onRunCompleted,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
 }: BrandedPageProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -3584,6 +3587,9 @@ function TinPage({
   language,
   setLanguage,
   onRunCompleted,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
 }: BrandedPageProps) {
   type TinSortKey =
     | "status"
@@ -4322,6 +4328,9 @@ function EoriPage({
   language,
   setLanguage,
   onRunCompleted,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
 }: BrandedPageProps) {
   const [eoriInput, setEoriInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -4974,6 +4983,9 @@ function IbanPage({
   branding,
   language,
   setLanguage,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
 }: BrandedPageProps) {
   const [ibanInput, setIbanInput] = useState("");
   const [loading, setLoading] = useState(false);
