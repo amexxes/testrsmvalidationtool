@@ -17,7 +17,7 @@ import {
 } from "./i18n";
 
 type SortState = { colIndex: number | null; asc: boolean };
-type ActivePage = "vat" | "tin" | "eori";
+type ActivePage = "vat" | "tin" | "eori" | "iban";
 
 type ClientBranding = {
   id?: string;
@@ -1405,7 +1405,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
       style={{
         height: 36,
         display: "inline-grid",
-        gridTemplateColumns: "max-content max-content max-content",
+        gridTemplateColumns: "max-content max-content max-content max-content",
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
@@ -1473,6 +1473,23 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
       >
         {t(language, "eoriTab")}
       </Button>
+      <Button
+  type="button"
+  variant={activePage === "iban" ? "primary" : "secondary"}
+  size="sm"
+  onClick={() => setActivePage("iban")}
+  style={{
+    height: 28,
+    minWidth: 112,
+    padding: "0 12px",
+    whiteSpace: "nowrap",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  }}
+>
+  IBAN
+</Button>
     </div>
   );
 }
@@ -4639,7 +4656,346 @@ async function runEoriValidation(eoris: string[]) {
     </>
   );
 }
+function IbanPage({
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+}: BrandedPageProps) {
+  const [ibanInput, setIbanInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<any[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [lastUpdate, setLastUpdate] = useState("-");
 
+  const stats = useMemo(() => {
+    return {
+      total: rows.length,
+      valid: rows.filter((r) => r.state === "valid").length,
+      invalid: rows.filter((r) => r.state === "invalid").length,
+      error: rows.filter((r) => r.state === "error").length,
+    };
+  }, [rows]);
+
+  const validPct = useMemo(() => {
+    if (!stats.total) return 0;
+    return Math.round((stats.valid / stats.total) * 100);
+  }, [stats.total, stats.valid]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return rows.filter((r) => {
+      const matchesStatus = statusFilter === "all" ? true : r.state === statusFilter;
+      if (!matchesStatus) return false;
+      if (!q) return true;
+
+      return JSON.stringify(r).toLowerCase().includes(q);
+    });
+  }, [rows, search, statusFilter]);
+
+  async function onValidateIbanBatch() {
+    const ibans = ibanInput
+      .split(/\r?\n/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+    if (!ibans.length) return;
+
+    setLoading(true);
+    setError("");
+    setRows([]);
+
+    try {
+      const resp = await fetch("/api/iban-validate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ibans }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.message || data?.error || "IBAN validation failed");
+        return;
+      }
+
+      setRows(Array.isArray(data?.results) ? data.results : []);
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+    } catch {
+      setError("IBAN validation failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function onClearIban() {
+    setIbanInput("");
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setLastUpdate("-");
+  }
+
+  function exportIbanExcel() {
+    const headers = [
+      "input",
+      "iban",
+      "iban_compact",
+      "country_code",
+      "valid",
+      "state",
+      "bank_identifier",
+      "message",
+      "error_code",
+      "error",
+      "checked_at",
+    ];
+
+    const aoa = [
+      headers,
+      ...filteredRows.map((r) =>
+        headers.map((h) => {
+          const v = r[h];
+          return v === null || v === undefined ? "" : String(v);
+        })
+      ),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = headers.map((h) => ({ wch: Math.max(14, h.length + 2) }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "IBAN Results");
+
+    const filename = `iban_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  return (
+    <>
+      <PortalBanner
+        title={branding.portalTitle || "Validation Portal"}
+        modeValue="IBAN"
+        meta={[
+          { label: t(language, "credits"), value: t(language, "unlimited") },
+          { label: t(language, "lastUpdate"), value: lastUpdate },
+        ]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+      />
+
+      <div className="wrap">
+        <div className="grid" style={{ alignItems: "stretch" }}>
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>IBAN input</SectionTitle>
+
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(11,46,95,0.10)",
+                  background: "rgba(248,251,255,0.82)",
+                  color: "#0B2E5F",
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                }}
+              >
+                Controleer IBAN-formaat, landlengte en MOD-97 checksum. Dit bevestigt niet of de rekening echt bestaat.
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <div style={ACTION_ROW_STYLE}>
+                <input
+                  type="text"
+                  value="IBAN"
+                  readOnly
+                  style={{
+                    ...ACTION_FIRST_FIELD_STYLE,
+                    opacity: 0.9,
+                  }}
+                />
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportIbanExcel}
+                  disabled={!filteredRows.length}
+                  style={ACTION_BUTTON_STYLE}
+                >
+                  {t(language, "exportExcel")}
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onClearIban}
+                  disabled={loading}
+                  style={ACTION_BUTTON_STYLE}
+                >
+                  {t(language, "clear")}
+                </Button>
+              </div>
+
+              <textarea
+                value={ibanInput}
+                onChange={(e) => setIbanInput(e.target.value)}
+                placeholder={`NL91 ABNA 0417 1643 00\nGB82 WEST 1234 5698 7654 32\nDE89 3704 0044 0532 0130 00`}
+                style={{ marginTop: 12 }}
+              />
+
+              <div className="row" style={{ marginTop: 12 }}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={onValidateIbanBatch}
+                  disabled={loading || !ibanInput.trim()}
+                >
+                  {loading ? t(language, "validating") : t(language, "validate")}
+                </Button>
+              </div>
+
+              <MetricGrid
+                items={[
+                  { label: t(language, "total"), value: stats.total },
+                  { label: t(language, "valid"), value: stats.valid, tone: "ok" },
+                  { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
+                  { label: t(language, "error"), value: stats.error, tone: "bad" },
+                ]}
+              />
+            </CardContent>
+          </Card>
+
+          <Card style={{ height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              {error && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
+                </div>
+              )}
+
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
+
+              {!!rows.length && (
+                <>
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    <b>{t(language, "validRate")}</b>: {validPct}%
+                  </div>
+
+                  <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
+                    <div className="bar" style={{ width: `${validPct}%` }} />
+                  </div>
+
+                  <div className="filterBox" style={{ marginTop: 14 }}>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={t(language, "searchResults")}
+                    />
+
+                    <div className="row" style={{ marginTop: 10 }}>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        style={{ minWidth: 180 }}
+                      >
+                        <option value="all">{t(language, "allStatuses")}</option>
+                        <option value="valid">{t(language, "valid")}</option>
+                        <option value="invalid">{t(language, "invalid")}</option>
+                        <option value="error">{t(language, "error")}</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="tableWrap" style={{ marginLeft: 12 }}>
+          <div className="tableHeader">
+            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+
+            <div className="muted" style={TABLE_META_STYLE}>
+              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+              {t(language, "rows")}
+            </div>
+          </div>
+
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ ...TH_STYLE, width: 140 }}>{t(language, "state")}</th>
+                  <th style={{ ...TH_STYLE, width: 280 }}>IBAN</th>
+                  <th style={{ ...TH_STYLE, width: 120 }}>{t(language, "country")}</th>
+                  <th style={{ ...TH_STYLE, width: 150 }}>Bank ID</th>
+                  <th style={{ ...TH_STYLE, width: 360 }}>{t(language, "message")} / {t(language, "error")}</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRows.map((r, idx) => {
+                  const state = String(r.state || "error");
+
+                  return (
+                    <tr key={`${r.iban || r.input}-${idx}`}>
+                      <td>
+                        <span className={`pill ${state}`}>
+                          <i aria-hidden="true" />
+                          {state === "valid"
+                            ? t(language, "valid")
+                            : state === "invalid"
+                              ? t(language, "invalid")
+                              : t(language, "error")}
+                        </span>
+                      </td>
+
+                      <td className="mono nowrap">{r.iban || r.input || ""}</td>
+                      <td>{r.country_code || "-"}</td>
+                      <td className="mono nowrap">{r.bank_identifier || "-"}</td>
+                      <td title={r.message || r.error || ""}>{r.message || r.error || ""}</td>
+                    </tr>
+                  );
+                })}
+
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: 16, color: "var(--muted)" }}>
+                      {t(language, "noResults")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 export default function App({
   branding = DEFAULT_BRANDING,
   onRunCompleted,
@@ -4671,6 +5027,24 @@ export default function App({
     />
   ) : (
     <EoriPage
+      activePage={activePage}
+      setActivePage={setActivePage}
+      branding={branding}
+      language={language}
+      setLanguage={setLanguage}
+      onRunCompleted={onRunCompleted}
+    />
+  ) : activePage === "eori" ? (
+    <EoriPage
+      activePage={activePage}
+      setActivePage={setActivePage}
+      branding={branding}
+      language={language}
+      setLanguage={setLanguage}
+      onRunCompleted={onRunCompleted}
+    />
+  ) : (
+    <IbanPage
       activePage={activePage}
       setActivePage={setActivePage}
       branding={branding}
