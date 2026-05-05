@@ -200,7 +200,8 @@ async function callEuEoriService(eoris: string[]): Promise<EoriRow[]> {
       body: buildSoapEnvelope(eoris),
       signal: controller.signal,
     });
-
+const auth = await requireModuleAccess(req, res, "eori");
+if (!auth) return;
     const xml = await resp.text();
 
     if (!resp.ok) {
