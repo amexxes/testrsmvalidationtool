@@ -458,6 +458,10 @@ function isNorwayVatCandidate(value: string): boolean {
   return normalizeVatCandidate(value).startsWith("NO");
 }
 
+function isPolishVatCandidate(value: string): boolean {
+  return normalizeVatCandidate(value).startsWith("PL");
+}
+
 function normalizeEoriCandidate(v: string): string {
   return String(v || "")
     .trim()
@@ -2119,11 +2123,13 @@ function VatPage({
     const ukVatLines = normalizedLines.filter(isUkVatCandidate);
     const chVatLines = normalizedLines.filter(isSwissVatCandidate);
     const noVatLines = normalizedLines.filter(isNorwayVatCandidate);
+    const plVatLines = normalizedLines.filter(isPolishVatCandidate);
     const viesVatLines = normalizedLines.filter(
       (line) =>
         !isUkVatCandidate(line) &&
         !isSwissVatCandidate(line) &&
-        !isNorwayVatCandidate(line)
+        !isNorwayVatCandidate(line) &&
+        !isPolishVatCandidate(line)
     );
 
     currentRunIdRef.current = `vat-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -2198,6 +2204,26 @@ function VatPage({
 
         if (Array.isArray(noData.results)) {
           combinedResults.push(...noData.results);
+        }
+      }
+      if (plVatLines.length) {
+        const plResp = await fetch("/api/pl-vat-validate-batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vat_numbers: plVatLines, case_ref: caseRef }),
+          signal: controller.signal,
+        });
+
+        const plData = await plResp.json();
+
+        if (!plResp.ok) {
+          throw new Error(plData?.message || plData?.error || "Polish VAT validation failed");
+        }
+
+        duplicatesTotal += Number(plData.duplicates_ignored || 0);
+
+        if (Array.isArray(plData.results)) {
+          combinedResults.push(...plData.results);
         }
       }
 
