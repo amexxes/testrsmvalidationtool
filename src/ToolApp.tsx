@@ -2768,52 +2768,44 @@ if (ratio >= 0.85) {
       width: "100%",
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      textAlign: "center",
+      justifyContent: "flex-start",
+      gap: 8,
+      textAlign: "left",
     }}
   >
     <span
       style={{
+        width: 24,
+        height: 24,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        borderRadius: 8,
+        background: "rgba(11,46,95,0.08)",
+        color: "#0B2E5F",
+        flex: "0 0 auto",
       }}
     >
-      <span
-        style={{
-          width: 24,
-          height: 24,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 8,
-          background: "rgba(11,46,95,0.08)",
-          color: "#0B2E5F",
-          flex: "0 0 auto",
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <rect
-            x="4"
-            y="4"
-            width="16"
-            height="16"
-            rx="3"
-            stroke="currentColor"
-            strokeWidth="2.2"
-          />
-          <path
-            d="M8 9h8M8 13h8M8 17h5"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-          />
-        </svg>
-      </span>
-
-      <span>{t(language, "input")}</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <rect
+          x="4"
+          y="4"
+          width="16"
+          height="16"
+          rx="3"
+          stroke="currentColor"
+          strokeWidth="2.2"
+        />
+        <path
+          d="M8 9h8M8 13h8M8 17h5"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </svg>
     </span>
+
+    <span>{t(language, "input")}</span>
   </span>
 </SectionTitle>
 
