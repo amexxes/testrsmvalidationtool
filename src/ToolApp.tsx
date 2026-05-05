@@ -2760,48 +2760,54 @@ if (ratio >= 0.85) {
   <span
     style={{
       width: "100%",
-      display: "inline-flex",
+      display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: 9,
       textAlign: "center",
     }}
   >
     <span
       style={{
-        width: 28,
-        height: 28,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 10,
-        background:
-          "linear-gradient(135deg, rgba(99,199,242,0.18), rgba(11,46,95,0.08))",
-        color: "#0B2E5F",
-        border: "1px solid rgba(11,46,95,0.08)",
-        flex: "0 0 auto",
+        gap: 8,
       }}
     >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-        <rect
-          x="4"
-          y="4"
-          width="16"
-          height="16"
-          rx="3"
-          stroke="currentColor"
-          strokeWidth="2.2"
-        />
-        <path
-          d="M8 9h8M8 13h8M8 17h5"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
+      <span
+        style={{
+          width: 24,
+          height: 24,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 8,
+          background: "rgba(11,46,95,0.08)",
+          color: "#0B2E5F",
+          flex: "0 0 auto",
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <rect
+            x="4"
+            y="4"
+            width="16"
+            height="16"
+            rx="3"
+            stroke="currentColor"
+            strokeWidth="2.2"
+          />
+          <path
+            d="M8 9h8M8 13h8M8 17h5"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </span>
 
-    <span>{t(language, "input")}</span>
+      <span>{t(language, "input")}</span>
+    </span>
   </span>
 </SectionTitle>
 
