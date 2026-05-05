@@ -149,11 +149,12 @@ const ACTION_BUTTON_STYLE: React.CSSProperties = {
   paddingBottom: 0,
   alignSelf: "center",
 };
+
 const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(0, 360px) auto minmax(0, 1fr)",
   alignItems: "center",
   gap: 18,
   padding: "18px 22px",
@@ -168,16 +169,14 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
   maxWidth: 360,
 };
 const BANNER_CENTER_STYLE: React.CSSProperties = {
-  position: "absolute",
-  left: "50%",
-  top: "50%",
-  transform: "translate(-50%, -50%)",
   display: "inline-flex",
-  alignItems: "center",
+  flexDirection: "column",
+  alignItems: "flex-start",
   justifyContent: "center",
+  gap: 8,
   minWidth: 0,
+  justifySelf: "center",
   whiteSpace: "nowrap",
-  zIndex: 2,
 };
 const BANNER_RIGHT_STYLE: React.CSSProperties = {
   display: "flex",
@@ -1584,7 +1583,6 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
 }
 
 function PortalBanner({
-  title,
   modeValue,
   meta = [],
   activePage,
@@ -1596,124 +1594,100 @@ function PortalBanner({
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
-  const portalTitle =
-    title ||
-    branding.portalTitle ||
-    DEFAULT_BRANDING.portalTitle ||
-    "Validation Portal";
-
-  const creditsValue =
-    meta.find(
-      (item) =>
-        item.label === t(language, "credits") ||
-        item.label === "Credits"
-    )?.value || "Unlimited";
-
-  const lastUpdateValue =
-    meta.find(
-      (item) =>
-        item.label === t(language, "lastUpdate") ||
-        item.label === "Last update"
-    )?.value || "-";
-
-  const statusItems = [
-    {
-      icon: "M",
-      label: "Mode",
-      value: modeValue || "-",
-    },
-    {
-      icon: "€",
-      label: "Credits",
-      value: creditsValue,
-    },
-    {
-      icon: "↻",
-      label: "Last update",
-      value: lastUpdateValue,
-    },
-  ];
+  const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
+  function statusIcon(label: string) {
+    if (label === t(language, "mode")) return "M";
+    if (label === t(language, "credits")) return "€";
+    if (label === t(language, "lastUpdate")) return "↻";
+    if (label === t(language, "country")) return "⌾";
+    return "•";
+  }
+function statusIconStyle(label: string): React.CSSProperties {
+  return {};
+}
 
   return (
-    <div
-      style={{
-        width: "100%",
-        background: `linear-gradient(135deg, ${
-          branding.backgroundColor || DEFAULT_BRANDING.backgroundColor
-        } 0%, #fff 100%)`,
-        borderBottom: "1px solid rgba(11,46,95,0.08)",
-        boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-        position: "relative",
-        zIndex: 30000,
-      }}
-    >
+    <div className="banner">
+      <div className="banner-accent" />
+
       <div style={BANNER_INNER_STYLE}>
         <div style={BANNER_LEFT_STYLE}>
-          <img
-            src={logoUrl}
-            alt={logoAlt}
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = "/rsmlogo.png";
-            }}
+          <div
+            className="mark"
+            aria-hidden="true"
             style={{
-              maxWidth: 150,
-              maxHeight: 58,
-              objectFit: "contain",
+              padding: "8px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 152,
+              flex: "0 0 auto",
             }}
-          />
-
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: PORTAL_FONT,
-                fontSize: 18,
-                lineHeight: 1.2,
-                fontWeight: 800,
-                color: branding.primaryColor || DEFAULT_BRANDING.primaryColor,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+          >
+            <img
+              src={logoUrl}
+              alt={logoAlt}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/rsmlogo.png";
               }}
-            >
-              {portalTitle}
-            </div>
-          </div>
-        </div>
-
-        <div style={BANNER_CENTER_STYLE}>
-          <div style={BANNER_STATUS_BAR_STYLE}>
-            {statusItems.map((item, index) => (
-              <React.Fragment key={item.label}>
-                {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
-
-                <span style={BANNER_STATUS_ITEM_STYLE}>
-                  <span style={BANNER_STATUS_ICON_STYLE}>{item.icon}</span>
-                  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-                  <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        <div style={BANNER_RIGHT_STYLE}>
-          <div style={BANNER_CONTROL_STYLE}>
-            <LanguageSwitcher language={language} setLanguage={setLanguage} />
-          </div>
-
-          <div style={BANNER_CONTROL_STYLE}>
-            <PageSwitcher
-              activePage={activePage}
-              setActivePage={setActivePage}
-              language={language}
+              style={{
+                maxWidth: 150,
+                maxHeight: 58,
+                objectFit: "contain",
+              }}
             />
           </div>
+
+          <div style={{ minWidth: 0 }}>
+ <div
+  className="title"
+  style={{
+    ...PAGE_TITLE_STYLE,
+    fontWeight: 800,
+    display: "flex",
+    flexDirection: "column",
+    lineHeight: 1.05,
+    whiteSpace: "normal",
+  }}
+>
+  <span>Validation</span>
+  <span>Portal</span>
+</div>
+          </div>
         </div>
+
+<div style={BANNER_CENTER_STYLE}>
+  <div style={BANNER_STATUS_BAR_STYLE}>
+    {statusItems.map((item, index) => (
+      <React.Fragment key={`${item.label}-${index}`}>
+        {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
+
+<span style={BANNER_STATUS_ITEM_STYLE}>
+  <span style={{ ...BANNER_STATUS_ICON_STYLE, ...statusIconStyle(item.label) }}>
+  {statusIcon(item.label)}
+</span>
+  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
+</span>
+      </React.Fragment>
+    ))}
+  </div>
+
+</div>
+
+<div style={BANNER_RIGHT_STYLE}>
+  <div style={BANNER_CONTROL_STYLE}>
+    <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+  </div>
+</div>
       </div>
+
+
     </div>
   );
 }
+
 function MetricGrid({
   items,
 }: {
