@@ -154,7 +154,8 @@ export default async function handler(req, res) {
       message: "Use POST",
     });
   }
-
+const auth = await requireModuleAccess(req, res, "iban");
+if (!auth) return;
   const input =
     Array.isArray(req.body?.ibans)
       ? req.body.ibans
