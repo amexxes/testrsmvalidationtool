@@ -1424,113 +1424,81 @@ function InputCountryBarChart({
   );
 }
 
-function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
-  const [open, setOpen] = useState(false);
-
-  const options: Array<{ key: ActivePage; label: string }> = [
-    { key: "vat", label: t(language, "vatTab") },
-    { key: "tin", label: t(language, "tinTab") },
-    { key: "eori", label: t(language, "eoriTab") },
-    { key: "iban", label: "IBAN" },
+function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
+  const options: Array<{ key: ActivePage; label: string; icon: string }> = [
+    { key: "vat", label: "VAT", icon: "✓" },
+    { key: "tin", label: "TIN", icon: "▣" },
+    { key: "eori", label: "EORI", icon: "◎" },
+    { key: "iban", label: "IBAN", icon: "▥" },
   ];
 
-  const current = options.find((item) => item.key === activePage) || options[0];
-
   return (
-    <div style={{ position: "relative", height: 36, flex: "0 0 auto" }}>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => setOpen((prev) => !prev)}
-    style={{
-  height: 36,
-  minWidth: 175,
-  padding: "0 12px",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 10,
-  whiteSpace: "nowrap",
-  background: "#fff",
-  border: "1px solid rgba(148,163,184,0.28)",
-  color: "#475569",
-  fontWeight: 700,
-  boxShadow: "0 8px 22px rgba(15,23,42,0.06)",
-}}
-      >
-        <span style={{ flex: 1, textAlign: "center" }}>{current.label}</span>
-        <span
-  style={{
-    fontSize: 16,
-    color: "#94A3B8",
-    lineHeight: 1,
-    transform: open ? "rotate(180deg)" : "rotate(0deg)",
-    transition: "transform 120ms ease",
-  }}
->
-  ˅
-</span>
-      </Button>
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        gap: 6,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {options.map((item) => {
+        const active = item.key === activePage;
 
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            right: 0,
-            top: "calc(100% + 8px)",
-            width: 200,
-            borderRadius: 16,
-            overflow: "hidden",
-            background: "rgba(255,255,255,0.98)",
-            border: "1px solid rgba(11,46,95,0.10)",
-            boxShadow: "0 18px 44px rgba(11,46,95,0.16)",
-            zIndex: 30000,
-          }}
-        >
-          {options.map((item) => {
-            const active = item.key === activePage;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-label={item.label}
+            title={item.label}
+            onClick={() => setActivePage(item.key)}
+            style={{
+              width: 48,
+              height: 40,
+              display: "inline-flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 3,
+              borderRadius: 10,
+              border: active
+                ? "1px solid rgba(11,46,95,0.92)"
+                : "1px solid rgba(148,163,184,0.22)",
+              background: active
+                ? "linear-gradient(135deg, #0B2E5F, #16457F)"
+                : "rgba(255,255,255,0.92)",
+              color: active ? "#FFFFFF" : "#0B2E5F",
+              boxShadow: active
+                ? "0 8px 18px rgba(11,46,95,0.20)"
+                : "0 6px 14px rgba(15,23,42,0.07)",
+              cursor: "pointer",
+              fontFamily: PORTAL_FONT,
+              transition: "transform 140ms ease, box-shadow 140ms ease, background 140ms ease",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 13,
+                lineHeight: 1,
+                fontWeight: 900,
+              }}
+            >
+              {item.icon}
+            </span>
 
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => {
-                  setActivePage(item.key);
-                  setOpen(false);
-                }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "12px 14px",
-                  border: 0,
-                  borderBottom: "1px solid rgba(11,46,95,0.06)",
-                  background: active ? "rgba(11,46,95,0.04)" : "#fff",
-                  color: "#475569",
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: active ? 800 : 650,
-                  textAlign: "left",
-                }}
-              >
-<span
-  style={{
-    width: 4,
-    height: 22,
-    borderRadius: 999,
-    background: active ? "rgba(100,116,139,0.55)" : "transparent",
-    flex: "0 0 auto",
-  }}
-/>
-
-                <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+            <span
+              style={{
+                fontSize: 9,
+                lineHeight: 1,
+                fontWeight: 850,
+                letterSpacing: "0.02em",
+              }}
+            >
+              {item.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
