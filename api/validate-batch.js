@@ -1,7 +1,7 @@
 // api/validate-batch.js
 import { kv } from "@vercel/kv";
 import { randomUUID } from "crypto";
-
+import { requireModuleAccess } from "../lib/auth.js";
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 const STATUS_CACHE_SEC = 30;
 
