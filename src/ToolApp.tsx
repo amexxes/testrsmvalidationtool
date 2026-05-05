@@ -165,9 +165,9 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
   alignItems: "center",
   gap: 16,
   minWidth: 0,
-  justifySelf: "start",
+  flex: "0 1 360px",
+  maxWidth: 360,
 };
-
 const BANNER_CENTER_STYLE: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -176,12 +176,11 @@ const BANNER_CENTER_STYLE: React.CSSProperties = {
   justifySelf: "center",
   whiteSpace: "nowrap",
 };
-
 const BANNER_RIGHT_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  gap: 10,
+  gap: 8,
   minWidth: 0,
   justifySelf: "end",
   whiteSpace: "nowrap",
@@ -191,18 +190,18 @@ const BANNER_RIGHT_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
-  minHeight: 58,
+  minHeight: 44,
   display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
   flexWrap: "nowrap",
-  gap: 14,
-  padding: "10px 22px",
-  borderRadius: 24,
-  border: "1px solid rgba(11,46,95,0.08)",
-  background: "linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,251,255,0.94))",
-  boxShadow: "0 14px 32px rgba(11,46,95,0.12)",
+  gap: 10,
+  padding: "6px 16px",
+  borderRadius: 999,
+  border: "1px solid rgba(11,46,95,0.10)",
+  background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,251,255,0.92))",
+  boxShadow: "0 10px 24px rgba(11,46,95,0.10)",
   color: "#0B2E5F",
   fontFamily: PORTAL_FONT,
   whiteSpace: "nowrap",
@@ -210,62 +209,57 @@ const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
-  minHeight: 38,
+  minHeight: 32,
   display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 10,
+  gap: 7,
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
 
 const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
-  width: 34,
-  height: 34,
+  width: 24,
+  height: 24,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: 12,
-  background: "linear-gradient(135deg, rgba(99,199,242,0.18), rgba(11,46,95,0.08))",
-  color: "#0B2E5F",
-  border: "1px solid rgba(11,46,95,0.08)",
-  fontSize: 16,
+  borderRadius: 999,
+  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
+  color: "#FFFFFF",
+  border: "1px solid rgba(255,255,255,0.65)",
+  boxShadow: "0 4px 10px rgba(11,46,95,0.18)",
+  fontSize: 11,
   fontWeight: 900,
   flex: "0 0 auto",
-  lineHeight: "34px",
+  lineHeight: "24px",
   textAlign: "center",
   fontFamily: "Arial, sans-serif",
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  lineHeight: 1.15,
+  fontSize: 11,
   fontWeight: 700,
+  letterSpacing: "0.03em",
   color: "#64748B",
   whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
-  display: "block",
-  marginTop: 3,
-  fontSize: 15,
-  lineHeight: 1.15,
-  fontWeight: 900,
+  fontSize: 13,
+  fontWeight: 850,
   color: "#0B2E5F",
   whiteSpace: "nowrap",
 };
 
 const BANNER_DOT_STYLE: React.CSSProperties = {
-  width: 1,
-  height: 34,
-  display: "inline-flex",
-  background: "rgba(11,46,95,0.10)",
+  color: "rgba(11,46,95,0.22)",
+  fontWeight: 700,
   whiteSpace: "nowrap",
 };
 
 const BANNER_CONTROL_STYLE: React.CSSProperties = {
-  minHeight: 58,
+  height: 36,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1431,80 +1425,112 @@ function InputCountryBarChart({
 }
 
 function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
-  const options: Array<{ key: ActivePage; label: string; icon: string }> = [
-    { key: "vat", label: "VAT", icon: "✓" },
-    { key: "tin", label: "TIN", icon: "▣" },
-    { key: "eori", label: "EORI", icon: "◎" },
-    { key: "iban", label: "IBAN", icon: "▥" },
+  const [open, setOpen] = useState(false);
+
+  const options: Array<{ key: ActivePage; label: string }> = [
+    { key: "vat", label: t(language, "vatTab") },
+    { key: "tin", label: t(language, "tinTab") },
+    { key: "eori", label: t(language, "eoriTab") },
+    { key: "iban", label: "IBAN" },
   ];
 
+  const current = options.find((item) => item.key === activePage) || options[0];
+
   return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        gap: 10,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {options.map((item) => {
-        const active = item.key === activePage;
+    <div style={{ position: "relative", height: 36, flex: "0 0 auto" }}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => setOpen((prev) => !prev)}
+    style={{
+  height: 36,
+  minWidth: 175,
+  padding: "0 12px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  whiteSpace: "nowrap",
+  background: "#fff",
+  border: "1px solid rgba(148,163,184,0.28)",
+  color: "#475569",
+  fontWeight: 700,
+  boxShadow: "0 8px 22px rgba(15,23,42,0.06)",
+}}
+      >
+        <span style={{ flex: 1, textAlign: "center" }}>{current.label}</span>
+        <span
+  style={{
+    fontSize: 16,
+    color: "#94A3B8",
+    lineHeight: 1,
+    transform: open ? "rotate(180deg)" : "rotate(0deg)",
+    transition: "transform 120ms ease",
+  }}
+>
+  ˅
+</span>
+      </Button>
 
-        return (
-          <button
-            key={item.key}
-            type="button"
-            aria-label={item.label}
-            title={item.label}
-            onClick={() => setActivePage(item.key)}
-            style={{
-              width: 78,
-              height: 58,
-              display: "inline-flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 5,
-              borderRadius: 16,
-              border: active
-                ? "1px solid rgba(11,46,95,0.92)"
-                : "1px solid rgba(148,163,184,0.22)",
-              background: active
-                ? "linear-gradient(135deg, #0B2E5F, #16457F)"
-                : "rgba(255,255,255,0.92)",
-              color: active ? "#FFFFFF" : "#0B2E5F",
-              boxShadow: active
-                ? "0 14px 28px rgba(11,46,95,0.24)"
-                : "0 10px 22px rgba(15,23,42,0.08)",
-              cursor: "pointer",
-              fontFamily: PORTAL_FONT,
-              transition: "transform 140ms ease, box-shadow 140ms ease, background 140ms ease",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 22,
-                lineHeight: 1,
-                fontWeight: 900,
-              }}
-            >
-              {item.icon}
-            </span>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "calc(100% + 8px)",
+            width: 200,
+            borderRadius: 16,
+            overflow: "hidden",
+            background: "rgba(255,255,255,0.98)",
+            border: "1px solid rgba(11,46,95,0.10)",
+            boxShadow: "0 18px 44px rgba(11,46,95,0.16)",
+            zIndex: 30000,
+          }}
+        >
+          {options.map((item) => {
+            const active = item.key === activePage;
 
-            <span
-              style={{
-                fontSize: 13,
-                lineHeight: 1,
-                fontWeight: 900,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {item.label}
-            </span>
-          </button>
-        );
-      })}
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => {
+                  setActivePage(item.key);
+                  setOpen(false);
+                }}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "12px 14px",
+                  border: 0,
+                  borderBottom: "1px solid rgba(11,46,95,0.06)",
+                  background: active ? "rgba(11,46,95,0.04)" : "#fff",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: active ? 800 : 650,
+                  textAlign: "left",
+                }}
+              >
+<span
+  style={{
+    width: 4,
+    height: 22,
+    borderRadius: 999,
+    background: active ? "rgba(100,116,139,0.55)" : "transparent",
+    flex: "0 0 auto",
+  }}
+/>
+
+                <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -1562,7 +1588,6 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
 }
 
 function PortalBanner({
-  title,
   modeValue,
   meta = [],
   activePage,
@@ -1574,133 +1599,96 @@ function PortalBanner({
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
-  const portalTitle =
-    title ||
-    branding.portalTitle ||
-    DEFAULT_BRANDING.portalTitle ||
-    "Validation Portal";
-
-  const creditsValue =
-    meta.find(
-      (item) =>
-        item.label === t(language, "credits") ||
-        item.label === "Credits"
-    )?.value || "Unlimited";
-
-  const lastUpdateValue =
-    meta.find(
-      (item) =>
-        item.label === t(language, "lastUpdate") ||
-        item.label === "Last update"
-    )?.value || "-";
-
-  const statusItems = [
-    {
-      icon: "M",
-      label: "Mode",
-      value: modeValue || "-",
-    },
-    {
-      icon: "€",
-      label: "Credits",
-      value: creditsValue,
-    },
-    {
-      icon: "↻",
-      label: "Last update",
-      value: lastUpdateValue,
-    },
-  ];
+  const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
+  function statusIcon(label: string) {
+    if (label === t(language, "mode")) return "M";
+    if (label === t(language, "credits")) return "€";
+    if (label === t(language, "lastUpdate")) return "↻";
+    if (label === t(language, "country")) return "⌾";
+    return "•";
+  }
+function statusIconStyle(label: string): React.CSSProperties {
+  return {};
+}
 
   return (
-    <div
-      style={{
-        width: "100%",
-        background: `linear-gradient(135deg, ${
-          branding.backgroundColor || DEFAULT_BRANDING.backgroundColor
-        } 0%, #fff 100%)`,
-        borderBottom: "1px solid rgba(11,46,95,0.08)",
-        boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-        position: "relative",
-        zIndex: 30000,
-      }}
-    >
+    <div className="banner">
+      <div className="banner-accent" />
+
       <div style={BANNER_INNER_STYLE}>
         <div style={BANNER_LEFT_STYLE}>
-          <img
-            src={logoUrl}
-            alt={logoAlt}
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = "/rsmlogo.png";
-            }}
-            style={{
-              maxWidth: 150,
-              maxHeight: 58,
-              objectFit: "contain",
-            }}
-          />
-
           <div
+            className="mark"
+            aria-hidden="true"
             style={{
-              width: 1,
-              height: 52,
-              background: "rgba(11,46,95,0.08)",
+              padding: "8px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 152,
               flex: "0 0 auto",
             }}
-          />
-
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: PORTAL_FONT,
-                fontSize: 18,
-                lineHeight: 1.2,
-                fontWeight: 850,
-                color: branding.primaryColor || DEFAULT_BRANDING.primaryColor,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+          >
+            <img
+              src={logoUrl}
+              alt={logoAlt}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/rsmlogo.png";
               }}
-            >
-              {portalTitle}
-            </div>
-          </div>
-        </div>
-
-        <div style={BANNER_CENTER_STYLE}>
-          <div style={BANNER_STATUS_BAR_STYLE}>
-            {statusItems.map((item, index) => (
-              <React.Fragment key={item.label}>
-                {index > 0 && <span style={BANNER_DOT_STYLE} />}
-
-                <span style={BANNER_STATUS_ITEM_STYLE}>
-                  <span style={BANNER_STATUS_ICON_STYLE}>{item.icon}</span>
-
-                  <span>
-                    <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-                    <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
-                  </span>
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
-
-        <div style={BANNER_RIGHT_STYLE}>
-          <div style={BANNER_CONTROL_STYLE}>
-            <LanguageSwitcher language={language} setLanguage={setLanguage} />
-          </div>
-
-          <div style={BANNER_CONTROL_STYLE}>
-            <PageSwitcher
-              activePage={activePage}
-              setActivePage={setActivePage}
-              language={language}
+              style={{
+                maxWidth: 150,
+                maxHeight: 58,
+                objectFit: "contain",
+              }}
             />
           </div>
+
+          <div style={{ minWidth: 0 }}>
+ <div
+  className="title"
+  style={{
+    ...PAGE_TITLE_STYLE,
+    fontWeight: 800,
+    display: "flex",
+    flexDirection: "column",
+    lineHeight: 1.05,
+    whiteSpace: "normal",
+  }}
+>
+  <span>Validation</span>
+  <span>Portal</span>
+</div>
+          </div>
         </div>
+
+<div style={BANNER_CENTER_STYLE}>
+  <div style={BANNER_STATUS_BAR_STYLE}>
+    {statusItems.map((item, index) => (
+      <React.Fragment key={`${item.label}-${index}`}>
+        {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
+
+<span style={BANNER_STATUS_ITEM_STYLE}>
+  <span style={{ ...BANNER_STATUS_ICON_STYLE, ...statusIconStyle(item.label) }}>
+  {statusIcon(item.label)}
+</span>
+  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
+</span>
+      </React.Fragment>
+    ))}
+  </div>
+
+</div>
+
+<div style={BANNER_RIGHT_STYLE}>
+  <div style={BANNER_CONTROL_STYLE}>
+    <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
+  </div>
+</div>
       </div>
+
+
     </div>
   );
 }
