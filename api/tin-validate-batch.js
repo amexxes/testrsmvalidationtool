@@ -1,3 +1,5 @@
+import { requireModuleAccess } from "../lib/auth.js";
+
 const DEFAULT_TIN_WSDL_URL =
   process.env.TIN_WSDL_URL ||
   "https://ec.europa.eu/taxation_customs/tin/checkTinService.wsdl";
