@@ -2780,9 +2780,10 @@ if (ratio >= 0.85) {
         alignItems: "center",
         justifyContent: "center",
         borderRadius: 14,
-        background: "linear-gradient(135deg, #0B2E5F, #16457F)",
-        color: "#FFFFFF",
-        boxShadow: "0 10px 22px rgba(11,46,95,0.22)",
+background: "linear-gradient(135deg, rgba(99,199,242,0.22), rgba(99,199,242,0.10))",
+color: "#0B2E5F",
+border: "1px solid rgba(99,199,242,0.22)",
+boxShadow: "0 8px 18px rgba(99,199,242,0.10)",
         flex: "0 0 auto",
       }}
     >
