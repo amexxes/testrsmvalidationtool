@@ -168,12 +168,16 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
   maxWidth: 360,
 };
 const BANNER_CENTER_STYLE: React.CSSProperties = {
+  position: "absolute",
+  left: "50%",
+  top: "50%",
+  transform: "translate(-50%, -50%)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   minWidth: 0,
-  justifySelf: "center",
   whiteSpace: "nowrap",
+  zIndex: 2,
 };
 const BANNER_RIGHT_STYLE: React.CSSProperties = {
   display: "flex",
