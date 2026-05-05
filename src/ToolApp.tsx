@@ -154,7 +154,7 @@ const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 360px) auto minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
   alignItems: "center",
   gap: 18,
   padding: "18px 22px",
@@ -170,10 +170,8 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
 };
 const BANNER_CENTER_STYLE: React.CSSProperties = {
   display: "inline-flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
+  alignItems: "center",
   justifyContent: "center",
-  gap: 8,
   minWidth: 0,
   justifySelf: "center",
   whiteSpace: "nowrap",
