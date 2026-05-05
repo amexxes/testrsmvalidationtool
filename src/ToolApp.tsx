@@ -1700,17 +1700,19 @@ function statusIcon(label: string): React.ReactNode {
       <React.Fragment key={`${item.label}-${index}`}>
         {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
-<span style={BANNER_STATUS_ITEM_STYLE}>
-  <span style={BANNER_STATUS_ICON_STYLE}>{statusIcon(item.label)}</span>
-  {statusIcon(item.label)}
-</span>
-  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
-</span>
+        <span style={BANNER_STATUS_ITEM_STYLE}>
+          <span style={BANNER_STATUS_ICON_STYLE}>
+            {statusIcon(item.label)}
+          </span>
+
+          <span>
+            <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+            <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
+          </span>
+        </span>
       </React.Fragment>
     ))}
   </div>
-
 </div>
 
 <div style={BANNER_RIGHT_STYLE}>
