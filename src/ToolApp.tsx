@@ -1386,13 +1386,13 @@ function InputCountryBarChart({
                   style={{ width: "18px", height: "14px", borderRadius: 3 }}
                   title={cc}
                 />
-                <span className="mono nowrap">{cc}</span>
+                <span className="mono nowrap" style={{ fontSize: 12 }}>{cc}</span>
               </div>
 
               <div
                 title={`${cc}: ${n}`}
                 style={{
-                  height: 10,
+                  height: 7,
                   borderRadius: 999,
                   background: "rgba(0,0,0,0.10)",
                   overflow: "hidden",
@@ -2843,36 +2843,18 @@ if (ratio >= 0.85) {
                 </div>
               </div>
 
-              <div
-                className="progress"
-                aria-label={`${t(language, "progress")}: ${progressPct}%`}
-                style={{
-                  marginTop: 10,
-                  position: "relative",
-                  height: 22,
-                  overflow: "hidden",
-                }}
-              >
-                <div className="bar" style={{ width: `${progressPct}%` }} />
-
-                <div
-                  className="mono"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: "rgba(255,255,255,0.96)",
-                    textShadow: "0 1px 2px rgba(11,46,95,0.45)",
-                    pointerEvents: "none",
-                  }}
-                >
-                  {progressPct}%
-                </div>
-              </div>
+<div
+  className="progress"
+  aria-label={`${t(language, "progress")}: ${progressPct}%`}
+  style={{
+    marginTop: 10,
+    position: "relative",
+    height: 8,
+    overflow: "hidden",
+  }}
+>
+  <div className="bar" style={{ width: `${progressPct}%`, height: "100%" }} />
+</div>
 
 <div style={{ marginTop: 14 }}>
   <UserDraftsPanel
@@ -3025,11 +3007,11 @@ if (ratio >= 0.85) {
                                 style={{
                                   fontWeight: 800,
                                   color: ok ? "var(--ok)" : "var(--bad)",
-                                  fontSize: 14,
-                                  lineHeight: "14px",
+                                  fontSize: 16,
+                                  lineHeight: "16px",
                                 }}
                               >
-                                {ok ? "OK" : "X"}
+                                {ok ? "✓" : "×"}
                               </span>
                             </div>
                           );
