@@ -1424,12 +1424,59 @@ function InputCountryBarChart({
   );
 }
 
-function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
-  const options: Array<{ key: ActivePage; label: string; icon: string }> = [
-    { key: "vat", label: "VAT", icon: "✓" },
-    { key: "tin", label: "TIN", icon: "▣" },
-    { key: "eori", label: "EORI", icon: "◎" },
-    { key: "iban", label: "IBAN", icon: "▥" },
+function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps) {
+  const options: Array<{
+    key: ActivePage;
+    label: string;
+    title: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      key: "vat",
+      label: "VAT",
+      title: t(language, "vatTab"),
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" />
+          <path d="M8 12.2l2.6 2.6L16.5 9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    },
+    {
+      key: "tin",
+      label: "TIN",
+      title: t(language, "tinTab"),
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" strokeWidth="2.2" />
+          <circle cx="9" cy="11" r="2.2" stroke="currentColor" strokeWidth="2.1" />
+          <path d="M6.7 16c.7-1.5 3.9-1.5 4.6 0" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+          <path d="M14 10h3.8M14 14h3.8" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
+        </svg>
+      ),
+    },
+    {
+      key: "eori",
+      label: "EORI",
+      title: t(language, "eoriTab"),
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.2" />
+          <path d="M3.5 12h17M12 3c2.2 2.4 3.2 5.4 3.2 9s-1 6.6-3.2 9M12 3C9.8 5.4 8.8 8.4 8.8 12s1 6.6 3.2 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      ),
+    },
+    {
+      key: "iban",
+      label: "IBAN",
+      title: "IBAN",
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M4 10h16L12 5 4 10z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+          <path d="M6.5 10v7M10.2 10v7M13.8 10v7M17.5 10v7M4.5 18.5h15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      ),
+    },
   ];
 
   return (
@@ -1449,8 +1496,8 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
           <button
             key={item.key}
             type="button"
-            aria-label={item.label}
-            title={item.label}
+            aria-label={item.title}
+            title={item.title}
             onClick={() => setActivePage(item.key)}
             style={{
               width: 48,
@@ -1473,14 +1520,16 @@ function PageSwitcher({ activePage, setActivePage }: PageSwitcherProps) {
                 : "0 6px 14px rgba(15,23,42,0.07)",
               cursor: "pointer",
               fontFamily: PORTAL_FONT,
-              transition: "transform 140ms ease, box-shadow 140ms ease, background 140ms ease",
             }}
           >
             <span
               style={{
-                fontSize: 13,
+                width: 16,
+                height: 16,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
                 lineHeight: 1,
-                fontWeight: 900,
               }}
             >
               {item.icon}
