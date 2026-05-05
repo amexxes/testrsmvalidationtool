@@ -238,18 +238,16 @@ const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
-  fontSize: 11,
+  fontSize: 12,
+  lineHeight: 1.15,
   fontWeight: 700,
-  letterSpacing: "0.03em",
   color: "#64748B",
   whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
-  display: "block",
-  marginTop: 0,
   fontSize: 10,
-  lineHeight: 1.1,
+  lineHeight: 1.15,
   fontWeight: 700,
   color: "#0B2E5F",
   whiteSpace: "nowrap",
@@ -1712,8 +1710,8 @@ function statusIcon(label: string): React.ReactNode {
           </span>
 
           <span>
-            <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-            <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
+<span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+<span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
           </span>
         </span>
       </React.Fragment>
@@ -2769,44 +2767,45 @@ if (ratio >= 0.85) {
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start",
-      gap: 8,
+      gap: 12,
       textAlign: "left",
     }}
   >
     <span
       style={{
-        width: 24,
-        height: 24,
+        width: 42,
+        height: 42,
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: 8,
-        background: "rgba(11,46,95,0.08)",
-        color: "#0B2E5F",
+        borderRadius: 14,
+        background: "linear-gradient(135deg, #0B2E5F, #16457F)",
+        color: "#FFFFFF",
+        boxShadow: "0 10px 22px rgba(11,46,95,0.22)",
         flex: "0 0 auto",
       }}
     >
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-  <path
-    d="M7 4h8.5L20 8.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
-    stroke="currentColor"
-    strokeWidth="2.1"
-    strokeLinejoin="round"
-  />
-  <path
-    d="M15 4v5h5"
-    stroke="currentColor"
-    strokeWidth="2.1"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  />
-  <path
-    d="M8.5 13h7M8.5 16.5h5"
-    stroke="currentColor"
-    strokeWidth="2.1"
-    strokeLinecap="round"
-  />
-</svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M7 4h8.5L20 8.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M15 4v5h5"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8.5 13h7M8.5 16.5h5"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+        />
+      </svg>
     </span>
 
     <span>{t(language, "input")}</span>
