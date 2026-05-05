@@ -1612,7 +1612,25 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
     </div>
   );
 }
+function AnimatedBannerValue({ value }: { value: React.ReactNode }) {
+  const [animateKey, setAnimateKey] = React.useState(0);
 
+  React.useEffect(() => {
+    setAnimateKey((current) => current + 1);
+  }, [value]);
+
+  return (
+    <span
+      key={animateKey}
+      style={{
+        ...BANNER_STATUS_VALUE_STYLE,
+        animation: "bannerValueDropIn 260ms ease-out",
+      }}
+    >
+      {value}
+    </span>
+  );
+}
 function PortalBanner({
   modeValue,
   meta = [],
@@ -1716,22 +1734,15 @@ function statusIcon(label: string): React.ReactNode {
             {statusIcon(item.label)}
           </span>
 
-          <span>
-<span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
 <span
   style={{
-    ...BANNER_STATUS_VALUE_STYLE,
-    fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
-    fontWeight: 600,
-    letterSpacing: "0.055em",
-    textTransform: "uppercase",
-    color: "#0B2E5F",
+    display: "inline-flex",
+    alignItems: "center",
   }}
 >
-  {item.value}
+  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+  <AnimatedBannerValue value={item.value} />
 </span>
-          </span>
-        </span>
       </React.Fragment>
     ))}
   </div>
