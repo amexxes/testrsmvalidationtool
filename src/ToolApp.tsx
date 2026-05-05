@@ -1435,21 +1435,34 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
         variant="secondary"
         size="sm"
         onClick={() => setOpen((prev) => !prev)}
-        style={{
-          height: 36,
-          minWidth: 210,
-          padding: "0 12px",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-          whiteSpace: "nowrap",
-          color: "#475569",
-          fontWeight: 700,
-        }}
+    style={{
+  height: 36,
+  minWidth: 210,
+  padding: "0 12px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  whiteSpace: "nowrap",
+  background: "#fff",
+  border: "1px solid rgba(148,163,184,0.28)",
+  color: "#475569",
+  fontWeight: 700,
+  boxShadow: "0 8px 22px rgba(15,23,42,0.06)",
+}}
       >
         <span style={{ flex: 1, textAlign: "left" }}>{current.label}</span>
-        <span style={{ fontSize: 10, color: "#64748B" }}>{open ? "▲" : "▼"}</span>
+        <span
+  style={{
+    fontSize: 16,
+    color: "#94A3B8",
+    lineHeight: 1,
+    transform: open ? "rotate(180deg)" : "rotate(0deg)",
+    transition: "transform 120ms ease",
+  }}
+>
+  ˅
+</span>
       </Button>
 
       {open && (
