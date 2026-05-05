@@ -1,5 +1,5 @@
 // /api/eori-validate-batch.js
-
+import { requireModuleAccess } from "../lib/auth.js";
 const DEFAULT_HMRC_EORI_API_BASE_URL = "https://api.service.hmrc.gov.uk";
 const HMRC_EORI_API_PATH = "/customs/eori/lookup/check-multiple-eori";
 const MAX_BATCH_SIZE = 10;
