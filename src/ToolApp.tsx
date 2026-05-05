@@ -219,7 +219,19 @@ const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
-
+const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
+  width: 18,
+  height: 18,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 999,
+  background: "rgba(11,46,95,0.08)",
+  color: "#0B2E5F",
+  fontSize: 11,
+  fontWeight: 900,
+  flex: "0 0 auto",
+};
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
   fontWeight: 600,
   opacity: 0.72,
@@ -1562,7 +1574,13 @@ function PortalBanner({
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
   const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
-
+  function statusIcon(label: string) {
+    if (label === t(language, "mode")) return "M";
+    if (label === t(language, "credits")) return "∞";
+    if (label === t(language, "lastUpdate")) return "↻";
+    if (label === t(language, "country")) return "🌐";
+    return "•";
+  }
   return (
     <div className="banner">
       <div className="banner-accent" />
@@ -1620,10 +1638,11 @@ function PortalBanner({
       <React.Fragment key={`${item.label}-${index}`}>
         {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
-        <span style={BANNER_STATUS_ITEM_STYLE}>
-          <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-          <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
-        </span>
+<span style={BANNER_STATUS_ITEM_STYLE}>
+  <span style={BANNER_STATUS_ICON_STYLE}>{statusIcon(item.label)}</span>
+  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+  <b style={BANNER_STATUS_VALUE_STYLE}>{item.value}</b>
+</span>
       </React.Fragment>
     ))}
   </div>
