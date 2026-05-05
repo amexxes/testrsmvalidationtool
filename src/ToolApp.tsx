@@ -1701,7 +1701,7 @@ function statusIcon(label: string): React.ReactNode {
         {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
 <span style={BANNER_STATUS_ITEM_STYLE}>
-  <span style={{ ...BANNER_STATUS_ICON_STYLE, ...statusIconStyle(item.label) }}>
+  <span style={BANNER_STATUS_ICON_STYLE}>{statusIcon(item.label)}</span>
   {statusIcon(item.label)}
 </span>
   <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
