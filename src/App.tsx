@@ -5,6 +5,11 @@ import LoginPage from "./LoginPage";
 import AdminUsersPanel from "./AdminUsersPanel";
 import ChangePasswordPanel from "./ChangePasswordPanel";
 import AccountMenu from "./AccountMenu";
+import {
+  getStoredLanguage,
+  storeLanguage,
+  type PortalLanguage,
+} from "./i18n";
 import AdminUsageDashboard from "./AdminUsageDashboard";
 import AdminClientBrandingPanel from "./AdminClientBrandingPanel";
 import PortalTaskHistoryPanel from "./PortalTaskHistoryPanel";
@@ -76,6 +81,7 @@ export default function App() {
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [branding, setBranding] = useState<ClientBranding>(DEFAULT_BRANDING);
+  const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
 
   const [adminOpen, setAdminOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -99,6 +105,10 @@ export default function App() {
     applyBrandingVars(DEFAULT_BRANDING);
     void loadSession();
   }, []);
+
+  useEffect(() => {
+    storeLanguage(language);
+  }, [language]);
 
   async function loadBranding() {
     try {
@@ -296,12 +306,16 @@ export default function App() {
 
       <ToolApp
         branding={effectiveBranding}
+        language={language}
+        setLanguage={setLanguage}
         onRunCompleted={user.role !== "admin" ? handleRunCompleted : undefined}
       />
 
       <div style={accountMenuWrapStyle}>
         <AccountMenu
           user={user}
+          language={language}
+          setLanguage={setLanguage}
           onOpenUsers={() => setAdminOpen(true)}
           onOpenUsage={() => setUsageOpen(true)}
           onOpenBranding={() => setBrandingOpen(true)}
