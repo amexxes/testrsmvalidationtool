@@ -43,7 +43,7 @@ const translations = {
     restore: "Restore",
     delete: "Delete",
 
-    vatTab: "VAT VIES Validation",
+    vatTab: "VAT Validation",
     tinTab: "TIN Validation",
     eoriTab: "EORI Validation",
 
@@ -127,7 +127,7 @@ const translations = {
     eoriPlaceholder: "NL123456789 / GB123456789000",
     eoriValidationFailed: "EORI validation failed",
 
-    vatSubtitle: "VAT / VIES batch checks and review.",
+    vatSubtitle: "VAT batch checks and review.",
     tinSubtitle: "TIN batch checks and review.",
     eoriSubtitle: "GB and EU EORI batch checks and review.",
   },
@@ -151,7 +151,7 @@ const translations = {
     restore: "Herstellen",
     delete: "Verwijderen",
 
-    vatTab: "VAT VIES-validatie",
+    vatTab: "VAT-validatie",
     tinTab: "TIN-validatie",
     eoriTab: "EORI-validatie",
 
@@ -178,8 +178,8 @@ const translations = {
     vatInputHelp:
       "Plak btw-nummers, 1 per regel. Niet-FR wordt realtime gecontroleerd. FR komt in de wachtrij en werkt bij via polling.",
     filterHelp: "Zoeken, sorteren en invoerverdeling.",
-    viesStatusTitle: "VIES-status per land",
-    viesStatusHelp: "Beschikbaarheid volgens de VIES-statuscontrole.",
+    viesStatusTitle: "VAT-status per land",
+    viesStatusHelp: "Beschikbaarheid volgens de VAT-statuscontrole.",
     vatTip:
       "Gebruik de filter om resultaten te zoeken. Klik op een kolomkop om te sorteren. Klik op een regel voor details.",
 
@@ -235,7 +235,7 @@ const translations = {
     eoriPlaceholder: "NL123456789 / GB123456789000",
     eoriValidationFailed: "EORI-validatie mislukt",
 
-    vatSubtitle: "VAT / VIES batchvalidaties en review.",
+    vatSubtitle: "VAT batchvalidaties en review.",
     tinSubtitle: "TIN batchvalidaties en review.",
     eoriSubtitle: "GB- en EU-EORI batchvalidaties en review.",
   },
@@ -259,7 +259,7 @@ const translations = {
     restore: "Wiederherstellen",
     delete: "Löschen",
 
-    vatTab: "VAT VIES-Prüfung",
+    vatTab: "VAT-Prüfung",
     tinTab: "TIN-Prüfung",
     eoriTab: "EORI-Prüfung",
 
@@ -286,8 +286,8 @@ const translations = {
     vatInputHelp:
       "Fügen Sie USt-IdNrn. ein, eine pro Zeile. Nicht-FR wird in Echtzeit geprüft. FR wird in die Warteschlange gestellt.",
     filterHelp: "Suche, Sortierung und Eingabeverteilung.",
-    viesStatusTitle: "VIES-Status nach Land",
-    viesStatusHelp: "Verfügbarkeit gemäß VIES-Statusprüfung.",
+    viesStatusTitle: "VAT-Status nach Land",
+    viesStatusHelp: "Verfügbarkeit gemäß VAT-Statusprüfung.",
     vatTip:
       "Nutzen Sie den Filter zur Suche. Klicken Sie auf eine Spaltenüberschrift zum Sortieren. Klicken Sie auf eine Zeile für Details.",
 
@@ -343,7 +343,7 @@ const translations = {
     eoriPlaceholder: "NL123456789 / GB123456789000",
     eoriValidationFailed: "EORI-Prüfung fehlgeschlagen",
 
-    vatSubtitle: "VAT / VIES-Batchprüfungen und Review.",
+    vatSubtitle: "VAT-Batchprüfungen und Review.",
     tinSubtitle: "TIN-Batchprüfungen und Review.",
     eoriSubtitle: "GB- und EU-EORI-Batchprüfungen und Review.",
   },
@@ -367,7 +367,7 @@ const translations = {
     restore: "Restaurer",
     delete: "Supprimer",
 
-    vatTab: "Validation VAT VIES",
+    vatTab: "Validation VAT",
     tinTab: "Validation TIN",
     eoriTab: "Validation EORI",
 
@@ -394,8 +394,8 @@ const translations = {
     vatInputHelp:
       "Collez les numéros VAT, un par ligne. Les numéros hors FR sont vérifiés en temps réel. Les FR sont mis en file d’attente.",
     filterHelp: "Recherche, tri et répartition de la saisie.",
-    viesStatusTitle: "Statut VIES par pays",
-    viesStatusHelp: "Disponibilité selon le contrôle de statut VIES.",
+    viesStatusTitle: "Statut VAT par pays",
+    viesStatusHelp: "Disponibilité selon le contrôle de statut VAT.",
     vatTip:
       "Utilisez le filtre pour chercher dans les résultats. Cliquez sur un en-tête pour trier. Cliquez sur une ligne pour les détails.",
 
@@ -451,7 +451,7 @@ const translations = {
     eoriPlaceholder: "NL123456789 / GB123456789000",
     eoriValidationFailed: "Échec de la validation EORI",
 
-    vatSubtitle: "Contrôles batch VAT / VIES et revue.",
+    vatSubtitle: "Contrôles batch VAT et revue.",
     tinSubtitle: "Contrôles batch TIN et revue.",
     eoriSubtitle: "Contrôles batch EORI GB et UE, avec revue.",
   },
