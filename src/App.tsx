@@ -448,7 +448,7 @@ const rsmFooterLogoWrapStyle: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   padding: "0 0 8px 24px",
-  marginTop: -50,
+  marginTop: -25,
 };
 
 const rsmFooterLogoStyle: React.CSSProperties = {
