@@ -2799,7 +2799,7 @@ if (ratio >= 0.85) {
         borderRadius: 14,
 background: "linear-gradient(135deg, rgba(99,199,242,0.22), rgba(99,199,242,0.10))",
 color: "#0B2E5F",
-boxShadow: "0 8px 18px rgba(99,199,242,0.10)",
+boxShadow: "0 8px 18px rgba(99, 199, 242, 0)",
         flex: "0 0 auto",
       }}
     >
