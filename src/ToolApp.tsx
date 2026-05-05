@@ -1621,9 +1621,9 @@ function PortalBanner({
       };
     }
 
-    return {};
-  }"•";
+       return {};
   }
+
   return (
     <div className="banner">
       <div className="banner-accent" />
