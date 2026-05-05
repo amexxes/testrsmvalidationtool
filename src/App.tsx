@@ -447,7 +447,8 @@ const viewAsStopButtonStyle: React.CSSProperties = {
 const rsmFooterLogoWrapStyle: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
-  padding: "0 0 18px 24px",
+  padding: "0 0 8px 24px",
+  marginTop: -10,
 };
 
 const rsmFooterLogoStyle: React.CSSProperties = {
