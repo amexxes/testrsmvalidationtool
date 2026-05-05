@@ -5070,7 +5070,7 @@ function IbanPage({
 
           <Card style={{ height: "100%" }}>
             <CardHeader className="pb-4">
-              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <InputSectionTitle language={language} />
               <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
             </CardHeader>
 
