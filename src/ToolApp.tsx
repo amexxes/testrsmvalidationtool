@@ -169,7 +169,7 @@ const BANNER_LEFT_STYLE: React.CSSProperties = {
 const BANNER_CENTER_STYLE: React.CSSProperties = {
   display: "inline-flex",
   flexDirection: "column",
-  alignItems: "center",
+  alignItems: "flex-start",
   justifyContent: "center",
   gap: 8,
   minWidth: 0,
