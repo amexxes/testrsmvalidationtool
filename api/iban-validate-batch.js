@@ -1,5 +1,5 @@
 // /api/iban-validate-batch.js
-
+import { requireModuleAccess } from "../lib/auth.js";
 const MAX_BATCH_SIZE = Number(process.env.IBAN_MAX_BATCH_SIZE || 500);
 
 const IBAN_LENGTHS = {
