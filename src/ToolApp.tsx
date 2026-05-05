@@ -1620,7 +1620,13 @@ function PortalBanner({
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
-  const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
+  const statusItems = [
+  {
+    label: t(language, "mode"),
+    value: activePage.toUpperCase(),
+  },
+  ...meta,
+];
 function statusIcon(label: string): React.ReactNode {
   if (label === t(language, "mode")) return "M";
   if (label === t(language, "credits")) return "€";
