@@ -1,4 +1,5 @@
 // /api/eu-eori-validate-batch.ts
+import { requireModuleAccess } from "../lib/auth.js";
 
 type ApiRequest = {
   method?: string;
