@@ -1521,7 +1521,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                   }}
                 />
 
-                <span style={{ flex: 1, textAlign: "center" }}>{item.label}</span>
+                <span style={{ flex: 1, textAlign: "left" }}>{item.label}</span>
               </button>
             );
           })}
