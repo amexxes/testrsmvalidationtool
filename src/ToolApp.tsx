@@ -2930,15 +2930,6 @@ if (ratio >= 0.85) {
 
                   <div id="countryMap" />
 
-<div className="mapbox-foot">
-  <div />
-
-  <div className="map-attrib">
-    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
-      OpenStreetMap
-    </a>
-  </div>
-</div>
                 </div>
               </CardContent>
             </Card>
