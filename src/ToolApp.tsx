@@ -261,18 +261,6 @@ const BANNER_CONTROL_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
-const RSM_BOTTOM_LOGO_STYLE: React.CSSProperties = {
-  position: "fixed",
-  left: 24,
-  bottom: 18,
-  width: 82,
-  height: "auto",
-  objectFit: "contain",
-  opacity: 0.42,
-  mixBlendMode: "multiply",
-  pointerEvents: "none",
-  zIndex: 12000,
-};
 
 type PageSwitcherProps = {
   activePage: ActivePage;
@@ -1695,11 +1683,7 @@ function statusIconStyle(label: string): React.CSSProperties {
 </div>
       </div>
 
-      <img
-        src="/rsmlogo.png"
-        alt="Made by RSM"
-        style={RSM_BOTTOM_LOGO_STYLE}
-      />
+
     </div>
   );
 }
