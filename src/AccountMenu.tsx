@@ -100,10 +100,9 @@ export default function AccountMenu({
   key={item.code}
   type="button"
   aria-label={item.label}
-  onClick={() => {
-    setLanguage(item.code);
-    setOpen(false);
-  }}
+onClick={() => {
+  setLanguage(item.code);
+}}
   style={{
     ...languageButtonStyle,
     ...(active ? languageButtonActiveStyle : {}),
