@@ -21,13 +21,45 @@ import {
   type PortalRunSummary,
 } from "./portalRunHistory";
 
+type ActivePage = "vat" | "tin" | "eori" | "iban";
+
+type ClientModules = Record<ActivePage, boolean>;
+
 type AuthUser = {
   id: string;
   email: string;
   role: "admin" | "user";
   active: boolean;
   createdAt: string;
+  modules?: Partial<ClientModules>;
 };
+
+const DEFAULT_CLIENT_MODULES: ClientModules = {
+  vat: true,
+  tin: false,
+  eori: false,
+  iban: false,
+};
+
+const ADMIN_CLIENT_MODULES: ClientModules = {
+  vat: true,
+  tin: true,
+  eori: true,
+  iban: true,
+};
+
+function normalizeClientModules(
+  role: "admin" | "user",
+  modules?: Partial<ClientModules>
+): ClientModules {
+  if (role === "admin") return ADMIN_CLIENT_MODULES;
+
+  return {
+    ...DEFAULT_CLIENT_MODULES,
+    ...(modules || {}),
+    vat: true,
+  };
+}
 
 type ClientBranding = {
   id: string;
@@ -83,13 +115,13 @@ export default function App() {
   const [branding, setBranding] = useState<ClientBranding>(DEFAULT_BRANDING);
   const [language, setLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
 
-  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);f
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
-  const [portalRuns, setPortalRuns] = useState<PortalRunSummary[]>([]);
+  const [portalRuns, setPortalRuns] = useState<PortalfRunSummary[]>([]);
 
   const [viewAsOpen, setViewAsOpen] = useState(false);
   const [viewAsLoading, setViewAsLoading] = useState(false);
@@ -100,7 +132,11 @@ export default function App() {
   const effectiveBranding = useMemo(() => {
     return viewAsBranding || branding;
   }, [viewAsBranding, branding]);
+const effectiveClientModules = useMemo(() => {
+  if (!user) return DEFAULT_CLIENT_MODULES;
 
+  return normalizeClientModules(user.role, user.modules);
+}, [user]);
   useEffect(() => {
     applyBrandingVars(DEFAULT_BRANDING);
     void loadSession();
@@ -304,12 +340,18 @@ export default function App() {
         </div>
       )}
 
-      <ToolApp
-        branding={effectiveBranding}
-        language={language}
-        setLanguage={setLanguage}
-        onRunCompleted={user.role !== "admin" ? handleRunCompleted : undefined}
-      />
+<ToolApp
+  branding={effectiveBranding}
+  viewAsEmail={viewAsEmail}
+  language={language}
+  setLanguage={setLanguage}
+  userRole={user.role}
+  clientModules={effectiveClientModules}
+  onRunCompleted={handleRunCompleted}
+  onRequestModuleUpgrade={(module) => {
+    window.alert(`${module.toUpperCase()} is an add-on module.`);
+  }}
+/>
 <div style={rsmFooterLogoWrapStyle}>
   <img
     src="/rsmlogo.png"
