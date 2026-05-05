@@ -97,7 +97,8 @@ async function getViesStatusSnapshot() {
     return [];
   }
 }
-
+const auth = await requireModuleAccess(req, res, "vat");
+if (!auth) return;
 function normalizeVatLine(s) {
   return String(s || "")
     .trim()
