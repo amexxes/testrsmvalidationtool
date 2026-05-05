@@ -3035,9 +3035,7 @@ if (ratio >= 0.85) {
                 <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
 {!viesStatus.length ? (
   <>
-    <div style={{ padding: 12, color: "var(--muted)" }}>
-      {t(language, "noData")}
-    </div>
+    <div style={{ padding: 12, color: "var(--muted)" }}>{t(language, "noData")}</div>
 
     <ValidationFlow language={language} />
   </>
@@ -3964,12 +3962,15 @@ function TinPage({
                 </div>
               )}
 
-              {!error && !rows.length && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  {t(language, "noResultsYet")}
-                </div>
-      <ValidationFlow language={language} />
-              )}
+{!error && !rows.length && (
+  <>
+    <div className="callout" style={{ marginTop: 10 }}>
+      {t(language, "noResultsYet")}
+    </div>
+
+    <ValidationFlow language={language} />
+  </>
+)}
 
               {!!rows.length && (
                 <>
@@ -4654,12 +4655,15 @@ async function runEoriValidation(eoris: string[]) {
                 </div>
               )}
 
-              {!error && !rows.length && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  {t(language, "noResultsYet")}
-                </div>
-      <ValidationFlow language={language} />
-              )}
+{!error && !rows.length && (
+  <>
+    <div className="callout" style={{ marginTop: 10 }}>
+      {t(language, "noResultsYet")}
+    </div>
+
+    <ValidationFlow language={language} />
+  </>
+)}
 
               {!!rows.length && (
                 <>
@@ -5009,13 +5013,15 @@ function IbanPage({
                   <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
                 </div>
               )}
+{!error && !rows.length && (
+  <>
+    <div className="callout" style={{ marginTop: 10 }}>
+      {t(language, "noResultsYet")}
+    </div>
 
-              {!error && !rows.length && (
-                <div className="callout" style={{ marginTop: 10 }}>
-                  {t(language, "noResultsYet")}
-                </div>
-      <ValidationFlow language={language} />
-              )}
+    <ValidationFlow language={language} />
+  </>
+)}
 
               {!!rows.length && (
                 <>
