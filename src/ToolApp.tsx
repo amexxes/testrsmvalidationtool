@@ -1621,15 +1621,26 @@ function PortalBanner({
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
   const statusItems = [{ label: t(language, "mode"), value: modeValue }, ...meta];
-  function statusIcon(label: string) {
-    if (label === t(language, "mode")) return "M";
-    if (label === t(language, "credits")) return "€";
-    if (label === t(language, "lastUpdate")) return "↻";
-    if (label === t(language, "country")) return "⌾";
-    return "•";
+function statusIcon(label: string): React.ReactNode {
+  if (label === t(language, "mode")) return "M";
+  if (label === t(language, "credits")) return "€";
+  if (label === t(language, "lastUpdate")) return "↻";
+
+  if (label === t(language, "country")) {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2.2" />
+        <path
+          d="M3.8 12h16.4M12 3.5c2.1 2.4 3.1 5.2 3.1 8.5s-1 6.1-3.1 8.5M12 3.5C9.9 5.9 8.9 8.7 8.9 12s1 6.1 3.1 8.5"
+          stroke="currentColor"
+          strokeWidth="1.9"
+          strokeLinecap="round"
+        />
+      </svg>
+    );
   }
-function statusIconStyle(label: string): React.CSSProperties {
-  return {};
+
+  return "•";
 }
 
   return (
@@ -2743,7 +2754,42 @@ if (ratio >= 0.85) {
         <div className="grid" style={{ alignItems: "stretch" }}>
           <Card style={{ height: "100%" }}>
 <CardHeader className="pb-4">
-  <SectionTitle>{t(language, "input")}</SectionTitle>
+  <SectionTitle>
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 9,
+    }}
+  >
+    <span
+      style={{
+        width: 28,
+        height: 28,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: 10,
+        background: "linear-gradient(135deg, rgba(99,199,242,0.18), rgba(11,46,95,0.08))",
+        color: "#0B2E5F",
+        border: "1px solid rgba(11,46,95,0.08)",
+        flex: "0 0 auto",
+      }}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+        <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="2.2" />
+        <path
+          d="M8 9h8M8 13h8M8 17h5"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+
+    {t(language, "input")}
+  </span>
+</SectionTitle>
 
   <div className="callout" style={{ marginTop: 10 }}>
     UK VAT checks via HMRC are currently being prepared and will go live soon.
