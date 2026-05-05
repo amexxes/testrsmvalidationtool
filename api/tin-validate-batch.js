@@ -6,7 +6,11 @@ let cachedSoapEndpoint = null;
 
 function normalizeCountry(country) {
   const c = String(country || "").toUpperCase().trim();
-  return c === "GR" ? "EL" : c;
+
+  if (c === "GR") return "EL";
+  if (c === "UK") return "GB";
+
+  return c;
 }
 
 function normalizeTinInput(countryCode, tinNumber) {
@@ -59,7 +63,135 @@ function toBooleanOrNull(value) {
   if (s === "false") return false;
   return null;
 }
+function cleanTin(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "")
+    .replace(/[.\-_/]/g, "");
+}
 
+function isValidUkNino(value) {
+  const nino = cleanTin(value);
+
+  return /^(?!BG)(?!GB)(?!KN)(?!NK)(?!NT)(?!TN)(?!ZZ)[A-CEGHJ-PR-TW-Z][A-CEGHJ-NPR-TW-Z]\d{6}[A-D]$/.test(
+    nino
+  );
+}
+
+function isValidUkUtr(value) {
+  const utr = cleanTin(value);
+
+  return /^\d{10}$/.test(utr) || /^\d{13}$/.test(utr);
+}
+
+function isValidSwissAhv(value) {
+  const ahv = cleanTin(value);
+
+  if (!/^756\d{10}$/.test(ahv)) return false;
+
+  const digits = ahv.split("").map(Number);
+  const checkDigit = digits[12];
+
+  const sum = digits.slice(0, 12).reduce((acc, digit, index) => {
+    return acc + digit * (index % 2 === 0 ? 1 : 3);
+  }, 0);
+
+  return (10 - (sum % 10)) % 10 === checkDigit;
+}
+
+function isValidSwissUid(value) {
+  const compact = cleanTin(value);
+
+  if (!/^CHE\d{9}$/.test(compact)) return false;
+
+  const digits = compact.slice(3);
+  const weights = [5, 4, 3, 2, 7, 6, 5, 4];
+  const sum = weights.reduce((acc, weight, index) => {
+    return acc + Number(digits[index]) * weight;
+  }, 0);
+
+  const expected = String((11 - (sum % 11)) % 11);
+  return digits[8] === expected;
+}
+
+function validateLocalTin(country, tin) {
+  const normalized = cleanTin(tin);
+
+  if (country === "GB") {
+    if (isValidUkNino(tin)) {
+      return {
+        status: "valid",
+        country,
+        tin_number: normalized,
+        request_date: new Date().toISOString().slice(0, 10),
+        structure_valid: true,
+        syntax_valid: true,
+        message: "Valid UK NINO format",
+      };
+    }
+
+    if (isValidUkUtr(tin)) {
+      return {
+        status: "valid",
+        country,
+        tin_number: normalized,
+        request_date: new Date().toISOString().slice(0, 10),
+        structure_valid: true,
+        syntax_valid: true,
+        message: "Valid UK UTR format",
+      };
+    }
+
+    return {
+      status: "invalid",
+      country,
+      tin_number: normalized,
+      request_date: new Date().toISOString().slice(0, 10),
+      structure_valid: false,
+      syntax_valid: false,
+      message: "Invalid UK TIN format. Expected NINO or UTR.",
+    };
+  }
+
+  if (country === "CH") {
+    if (isValidSwissAhv(tin)) {
+      return {
+        status: "valid",
+        country,
+        tin_number: normalized,
+        request_date: new Date().toISOString().slice(0, 10),
+        structure_valid: true,
+        syntax_valid: true,
+        message: "Valid Swiss AHV/OASI format",
+      };
+    }
+
+    if (isValidSwissUid(tin)) {
+      return {
+        status: "valid",
+        country,
+        tin_number: normalized,
+        request_date: new Date().toISOString().slice(0, 10),
+        structure_valid: true,
+        syntax_valid: true,
+        message: "Valid Swiss UID format",
+      };
+    }
+
+    return {
+      status: "invalid",
+      country,
+      tin_number: normalized,
+      request_date: new Date().toISOString().slice(0, 10),
+      structure_valid: false,
+      syntax_valid: false,
+      message: "Invalid Swiss TIN format. Expected AHV/OASI or UID.",
+    };
+  }
+
+  return null;
+}
 function buildSoapEnvelope(countryCode, tinNumber) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:tin:services:checkTin:types">
@@ -246,28 +378,30 @@ export default async function handler(req, res) {
       });
     }
 
-    const results = await mapLimit(tins, 2, async (tin, index) => {
-      try {
-        const result = await callTinSoap(country, tin);
-        return {
-          index,
-          input_tin: tin,
-          ...result,
-        };
-      } catch (err) {
-        return {
-          index,
-          input_tin: tin,
-          status: "error",
-          country,
-          tin_number: tin,
-          request_date: null,
-          structure_valid: null,
-          syntax_valid: null,
-          message: String(err?.message || err),
-        };
-      }
-    });
+const results = await mapLimit(tins, 2, async (tin, index) => {
+  try {
+    const localResult = validateLocalTin(country, tin);
+    const result = localResult || (await callTinSoap(country, tin));
+
+    return {
+      index,
+      input_tin: tin,
+      ...result,
+    };
+  } catch (err) {
+    return {
+      index,
+      input_tin: tin,
+      status: "error",
+      country,
+      tin_number: tin,
+      request_date: null,
+      structure_valid: null,
+      syntax_valid: null,
+      message: String(err?.message || err),
+    };
+  }
+});
 
     const stats = {
       total: results.length,
