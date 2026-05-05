@@ -152,7 +152,7 @@ const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(0, 360px) auto minmax(0, 1fr)",
   alignItems: "center",
   gap: 18,
   padding: "18px 22px",
@@ -1594,18 +1594,20 @@ function PortalBanner({
           </div>
 
           <div style={{ minWidth: 0 }}>
-            <div
-              className="title"
-              style={{
-                ...PAGE_TITLE_STYLE,
-                fontWeight: 800,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              Validation Portal
-            </div>
+ <div
+  className="title"
+  style={{
+    ...PAGE_TITLE_STYLE,
+    fontWeight: 800,
+    display: "flex",
+    flexDirection: "column",
+    lineHeight: 1.05,
+    whiteSpace: "normal",
+  }}
+>
+  <span>Validation</span>
+  <span>Portal</span>
+</div>
           </div>
         </div>
 
@@ -4812,7 +4814,7 @@ function IbanPage({
                   fontWeight: 500,
                 }}
               >
-                Controleer IBAN-formaat, landlengte en MOD-97 checksum. Dit bevestigt niet of de rekening echt bestaat.
+                {t(language, "ibanInputHelp")}
               </div>
             </CardHeader>
 
