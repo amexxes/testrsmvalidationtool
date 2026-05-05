@@ -119,6 +119,7 @@ const translations = {
       "Check GB EORI numbers via HMRC and EU EORI numbers via the EU database.",
     eoriImportant:
       "GB EORI numbers are checked via HMRC. EU EORI numbers are checked via the EU EORI database.",
+    ibanInputHelp: "Check IBAN format.",
     eori: "EORI",
     inputEori: "Input EORI",
     traderName: "Trader name",
@@ -226,6 +227,7 @@ const translations = {
       "Controleer GB EORI-nummers via HMRC en EU EORI-nummers via de EU-database.",
     eoriImportant:
       "GB EORI-nummers worden gecontroleerd via HMRC. EU EORI-nummers worden gecontroleerd via de EU EORI-database.",
+    ibanInputHelp: "Controleer IBAN-formaat.",
     eori: "EORI",
     inputEori: "Invoer-EORI",
     traderName: "Handelsnaam",
@@ -319,6 +321,7 @@ const translations = {
       "Wählen Sie das Land, fügen Sie eine oder mehrere TINs ein und prüfen Sie diese als Batch.",
     tinImportant:
       "Wählen Sie das richtige Land und geben Sie die TIN ohne Ländercode ein.",
+    ibanInputHelp: "IBAN-Format pruefen.",
     overviewFiltersSorting: "Übersicht, Filter und Sortierung.",
     validRate: "Gültigkeitsrate",
     allStatuses: "Alle Status",
@@ -426,6 +429,7 @@ const translations = {
       "Sélectionnez le pays, collez une ou plusieurs TINs et validez-les en lot.",
     tinImportant:
       "Sélectionnez le bon pays et saisissez le TIN sans code pays.",
+    ibanInputHelp: "Verifier le format IBAN.",
     overviewFiltersSorting: "Vue d’ensemble, filtres et tri.",
     validRate: "Taux valide",
     allStatuses: "Tous les statuts",
