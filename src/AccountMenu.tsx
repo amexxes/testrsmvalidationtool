@@ -63,8 +63,24 @@ export default function AccountMenu({
   const initials = String(user.email || "?").slice(0, 1).toUpperCase();
 
   return (
-    <div ref={rootRef} style={rootStyle}>
-      <button
+ <div ref={rootRef} style={rootStyle}>
+  <style>
+    {`
+      @keyframes accountMenuDropIn {
+        from {
+          opacity: 0;
+          transform: translateY(14px) scaleY(0.88);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0) scaleY(1);
+        }
+      }
+    `}
+  </style>
+
+  <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         style={triggerStyle}
@@ -276,13 +292,15 @@ const menuStyle: React.CSSProperties = {
   position: "absolute",
   right: 0,
   bottom: "calc(100% + 10px)",
-  width: 280,
+  width: 286,
   borderRadius: 18,
   overflow: "hidden",
   background: "rgba(255,255,255,0.98)",
-  border: "1px solid rgba(0,0,0,0.08)",
+  border: "1px solid rgba(148,163,184,0.22)",
   boxShadow: "0 24px 60px rgba(11,46,95,0.18)",
   zIndex: 20000,
+  transformOrigin: "bottom right",
+  animation: "accountMenuDropIn 520ms cubic-bezier(0.16, 1, 0.3, 1)",
 };
 
 const menuHeaderStyle: React.CSSProperties = {
