@@ -1734,20 +1734,20 @@ function statusIcon(label: string): React.ReactNode {
             {statusIcon(item.label)}
           </span>
 
-<span
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-  }}
->
-  <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-  <AnimatedBannerValue value={item.value} />
-</span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+            <AnimatedBannerValue value={item.value} />
+          </span>
+        </span>
       </React.Fragment>
     ))}
   </div>
 </div>
-
 <div style={BANNER_RIGHT_STYLE}>
   <div style={BANNER_CONTROL_STYLE}>
     <PageSwitcher activePage={activePage} setActivePage={setActivePage} language={language} />
