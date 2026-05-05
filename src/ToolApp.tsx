@@ -246,9 +246,12 @@ const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 850,
-  color: "#0B2E5F",
+  display: "block",
+  marginTop: 3,
+  fontSize: 12,
+  lineHeight: 1.15,
+  fontWeight: 700,
+  color: "#64748B",
   whiteSpace: "nowrap",
 };
 
@@ -1499,28 +1502,28 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
             aria-label={item.title}
             title={item.title}
             onClick={() => setActivePage(item.key)}
-            style={{
-              width: 48,
-              height: 40,
-              display: "inline-flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 3,
-              borderRadius: 10,
-              border: active
-                ? "1px solid rgba(11,46,95,0.92)"
-                : "1px solid rgba(148,163,184,0.22)",
-              background: active
-                ? "linear-gradient(135deg, #0B2E5F, #16457F)"
-                : "rgba(255,255,255,0.92)",
-              color: active ? "#FFFFFF" : "#0B2E5F",
-              boxShadow: active
-                ? "0 8px 18px rgba(11,46,95,0.20)"
-                : "0 6px 14px rgba(15,23,42,0.07)",
-              cursor: "pointer",
-              fontFamily: PORTAL_FONT,
-            }}
+style={{
+  width: 48,
+  height: 40,
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 3,
+  borderRadius: 10,
+  border: active
+    ? "1px solid rgba(11,46,95,0.92)"
+    : "1px solid rgba(148,163,184,0.22)",
+  background: active
+    ? "linear-gradient(135deg, #0B2E5F, #16457F)"
+    : "rgba(255,255,255,0.92)",
+  color: active ? "#FFFFFF" : "#64748B",
+  boxShadow: active
+    ? "0 8px 18px rgba(11,46,95,0.20)"
+    : "0 6px 14px rgba(15,23,42,0.07)",
+  cursor: "pointer",
+  fontFamily: PORTAL_FONT,
+}}
           >
             <span
               style={{
@@ -1535,16 +1538,17 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
               {item.icon}
             </span>
 
-            <span
-              style={{
-                fontSize: 9,
-                lineHeight: 1,
-                fontWeight: 850,
-                letterSpacing: "0.02em",
-              }}
-            >
-              {item.label}
-            </span>
+<span
+  style={{
+    fontSize: 9,
+    lineHeight: 1,
+    fontWeight: 700,
+    letterSpacing: "0.02em",
+    color: active ? "#FFFFFF" : "#64748B",
+  }}
+>
+  {item.label}
+</span>
           </button>
         );
       })}
