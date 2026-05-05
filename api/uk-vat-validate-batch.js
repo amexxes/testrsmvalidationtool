@@ -1,5 +1,5 @@
 // /api/uk-vat-validate-batch.js
-
+import { requireModuleAccess } from "../lib/auth.js";
 const HMRC_ACCEPT_HEADER = "application/vnd.hmrc.2.0+json";
 
 let cachedToken = null;
