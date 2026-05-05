@@ -234,7 +234,8 @@ async function resolveSoapEndpoint() {
       Accept: "text/xml, application/xml, */*",
     },
   });
-
+const auth = await requireModuleAccess(req, res, "tin");
+if (!auth) return;
   const wsdlText = await wsdlResp.text();
 
   if (!wsdlResp.ok) {
