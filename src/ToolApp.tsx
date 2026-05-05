@@ -190,64 +190,71 @@ const BANNER_RIGHT_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
-  height: 36,
+  minHeight: 44,
   display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "center",
   flexWrap: "nowrap",
-  gap: 8,
-  padding: "0 12px",
+  gap: 10,
+  padding: "6px 16px",
   borderRadius: 999,
   border: "1px solid rgba(11,46,95,0.10)",
-  background: "rgba(255,255,255,0.82)",
+  background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,251,255,0.92))",
+  boxShadow: "0 10px 24px rgba(11,46,95,0.10)",
   color: "#0B2E5F",
   fontFamily: PORTAL_FONT,
-  fontSize: 12,
-  lineHeight: "36px",
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
 
 const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
-  height: 36,
+  minHeight: 32,
   display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 5,
+  gap: 7,
   whiteSpace: "nowrap",
   flex: "0 0 auto",
 };
+
 const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
-  width: 18,
-  height: 18,
+  width: 24,
+  height: 24,
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 999,
-  background: "#fff",
-  color: "#94A3B8",
-  border: "1px solid rgba(148,163,184,0.28)",
-  fontSize: 10,
+  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
+  color: "#FFFFFF",
+  border: "1px solid rgba(255,255,255,0.65)",
+  boxShadow: "0 4px 10px rgba(11,46,95,0.18)",
+  fontSize: 11,
   fontWeight: 900,
   flex: "0 0 auto",
-  lineHeight: "18px",
-textAlign: "center",
-fontFamily: "Arial, sans-serif",
+  lineHeight: "24px",
+  textAlign: "center",
+  fontFamily: "Arial, sans-serif",
 };
+
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
-  fontWeight: 600,
-  opacity: 0.72,
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.03em",
+  color: "#64748B",
   whiteSpace: "nowrap",
 };
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
-  fontWeight: 800,
+  fontSize: 13,
+  fontWeight: 850,
+  color: "#0B2E5F",
   whiteSpace: "nowrap",
 };
 
 const BANNER_DOT_STYLE: React.CSSProperties = {
-  opacity: 0.35,
+  color: "rgba(11,46,95,0.22)",
+  fontWeight: 700,
   whiteSpace: "nowrap",
 };
 
