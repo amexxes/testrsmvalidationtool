@@ -233,6 +233,9 @@ const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
   fontSize: 10,
   fontWeight: 900,
   flex: "0 0 auto",
+  lineHeight: "18px",
+textAlign: "center",
+fontFamily: "Arial, sans-serif",
 };
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
   fontWeight: 600,
@@ -1451,7 +1454,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
   boxShadow: "0 8px 22px rgba(15,23,42,0.06)",
 }}
       >
-        <span style={{ flex: 1, textAlign: "left" }}>{current.label}</span>
+        <span style={{ flex: 1, textAlign: "center" }}>{current.label}</span>
         <span
   style={{
     fontSize: 16,
@@ -1518,7 +1521,7 @@ function PageSwitcher({ activePage, setActivePage, language }: PageSwitcherProps
                   }}
                 />
 
-                <span>{item.label}</span>
+                <span style={{ flex: 1, textAlign: "center" }}>{item.label}</span>
               </button>
             );
           })}
@@ -1597,7 +1600,7 @@ function PortalBanner({
     if (label === t(language, "mode")) return "M";
     if (label === t(language, "credits")) return "€";
     if (label === t(language, "lastUpdate")) return "↻";
-    if (label === t(language, "country")) return "🌍";
+    if (label === t(language, "country")) return "⌾";
     return "•";
   }
 function statusIconStyle(label: string): React.CSSProperties {
