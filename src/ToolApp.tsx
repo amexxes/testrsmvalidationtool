@@ -247,11 +247,11 @@ const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
 
 const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
   display: "block",
-  marginTop: 3,
+  marginTop: 0,
   fontSize: 12,
   lineHeight: 1.15,
   fontWeight: 700,
-  color: "#64748B",
+  color: "#0B2E5F",
   whiteSpace: "nowrap",
 };
 
