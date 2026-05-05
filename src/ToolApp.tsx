@@ -1717,7 +1717,95 @@ function MetricGrid({
     </div>
   );
 }
+function ValidationFlow({ language }: { language: PortalLanguage }) {
+  const copy =
+    language === "nl"
+      ? {
+          title: "Validatieproces",
+          steps: ["Input", "Formaat", "Bron", "Resultaat", "Export"],
+        }
+      : language === "de"
+        ? {
+            title: "Pruefprozess",
+            steps: ["Input", "Format", "Quelle", "Ergebnis", "Export"],
+          }
+        : language === "fr"
+          ? {
+              title: "Processus de validation",
+              steps: ["Saisie", "Format", "Source", "Resultat", "Export"],
+            }
+          : {
+              title: "Validation flow",
+              steps: ["Input", "Format", "Source", "Result", "Export"],
+            };
 
+  return (
+    <div
+      className="callout"
+      style={{
+        marginTop: 12,
+        padding: "12px 14px",
+      }}
+    >
+      <div style={{ ...SMALL_HEADER_STYLE, fontSize: 12 }}>{copy.title}</div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+          gap: 8,
+          alignItems: "center",
+          marginTop: 10,
+        }}
+      >
+        {copy.steps.map((step, index) => (
+          <div
+            key={step}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              minWidth: 0,
+            }}
+          >
+            <span
+              style={{
+                width: 9,
+                height: 9,
+                borderRadius: 999,
+                background: "rgba(100,116,139,0.45)",
+                flex: "0 0 auto",
+              }}
+            />
+
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 750,
+                color: "#64748B",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {step}
+            </span>
+
+            {index < copy.steps.length - 1 && (
+              <span
+                style={{
+                  flex: 1,
+                  height: 1,
+                  background: "rgba(148,163,184,0.35)",
+                }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <CardTitle style={PAGE_TITLE_STYLE}>{children}</CardTitle>;
 }
@@ -2945,9 +3033,15 @@ if (ratio >= 0.85) {
                 style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
               >
                 <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
-                  {!viesStatus.length ? (
-                    <div style={{ padding: 12, color: "var(--muted)" }}>{t(language, "noData")}</div>
-                  ) : (
+{!viesStatus.length ? (
+  <>
+    <div style={{ padding: 12, color: "var(--muted)" }}>
+      {t(language, "noData")}
+    </div>
+
+    <ValidationFlow language={language} />
+  </>
+) : (
                     <div
                       style={{
                         display: "grid",
@@ -3874,6 +3968,7 @@ function TinPage({
                 <div className="callout" style={{ marginTop: 10 }}>
                   {t(language, "noResultsYet")}
                 </div>
+      <ValidationFlow language={language} />
               )}
 
               {!!rows.length && (
@@ -4563,6 +4658,7 @@ async function runEoriValidation(eoris: string[]) {
                 <div className="callout" style={{ marginTop: 10 }}>
                   {t(language, "noResultsYet")}
                 </div>
+      <ValidationFlow language={language} />
               )}
 
               {!!rows.length && (
@@ -4918,6 +5014,7 @@ function IbanPage({
                 <div className="callout" style={{ marginTop: 10 }}>
                   {t(language, "noResultsYet")}
                 </div>
+      <ValidationFlow language={language} />
               )}
 
               {!!rows.length && (
