@@ -2982,12 +2982,12 @@ if (ratio >= 0.85) {
                             <div
                               key={c.countryCode}
                               title={`${c.countryCode} - ${c.availability}`}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: 8,
-                                padding: "8px 10px",
+style={{
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  padding: "6px 8px",
                                 borderRadius: 12,
                                 border: "1px solid rgba(0,0,0,0.08)",
                                 background: "rgba(255,255,255,0.18)",
@@ -2998,7 +2998,7 @@ if (ratio >= 0.85) {
                               <ReactCountryFlag
                                 countryCode={iso2}
                                 svg
-                                style={{ width: "22px", height: "16px", borderRadius: 3 }}
+                                style={{ width: "18px", height: "14px", borderRadius: 3 }}
                                 title={c.countryCode}
                               />
 
@@ -3007,8 +3007,10 @@ if (ratio >= 0.85) {
                                 style={{
                                   fontWeight: 800,
                                   color: ok ? "var(--ok)" : "var(--bad)",
-                                  fontSize: 16,
-                                  lineHeight: "16px",
+fontSize: 14,
+lineHeight: "14px",
+width: 18,
+textAlign: "center",
                                 }}
                               >
                                 {ok ? "✓" : "×"}
