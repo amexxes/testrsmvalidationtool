@@ -1717,95 +1717,7 @@ function MetricGrid({
     </div>
   );
 }
-function ValidationFlow({ language }: { language: PortalLanguage }) {
-  const copy =
-    language === "nl"
-      ? {
-          title: "Validatieproces",
-          steps: ["Input", "Formaat", "Bron", "Resultaat", "Export"],
-        }
-      : language === "de"
-        ? {
-            title: "Pruefprozess",
-            steps: ["Input", "Format", "Quelle", "Ergebnis", "Export"],
-          }
-        : language === "fr"
-          ? {
-              title: "Processus de validation",
-              steps: ["Saisie", "Format", "Source", "Resultat", "Export"],
-            }
-          : {
-              title: "Validation flow",
-              steps: ["Input", "Format", "Source", "Result", "Export"],
-            };
 
-  return (
-    <div
-      className="callout"
-      style={{
-        marginTop: 12,
-        padding: "12px 14px",
-      }}
-    >
-      <div style={{ ...SMALL_HEADER_STYLE, fontSize: 12 }}>{copy.title}</div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-          gap: 8,
-          alignItems: "center",
-          marginTop: 10,
-        }}
-      >
-        {copy.steps.map((step, index) => (
-          <div
-            key={step}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              minWidth: 0,
-            }}
-          >
-            <span
-              style={{
-                width: 9,
-                height: 9,
-                borderRadius: 999,
-                background: "rgba(100,116,139,0.45)",
-                flex: "0 0 auto",
-              }}
-            />
-
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 750,
-                color: "#64748B",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {step}
-            </span>
-
-            {index < copy.steps.length - 1 && (
-              <span
-                style={{
-                  flex: 1,
-                  height: 1,
-                  background: "rgba(148,163,184,0.35)",
-                }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <CardTitle style={PAGE_TITLE_STYLE}>{children}</CardTitle>;
 }
@@ -3022,88 +2934,86 @@ if (ratio >= 0.85) {
               </CardContent>
             </Card>
 
-<Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-  <CardHeader className="pb-4">
-    <SectionTitle>{t(language, "viesStatusTitle")}</SectionTitle>
-    <SectionSubtitle maxWidth={520}>{t(language, "viesStatusHelp")}</SectionSubtitle>
-  </CardHeader>
+            <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <CardHeader className="pb-4">
+                <SectionTitle>{t(language, "viesStatusTitle")}</SectionTitle>
+                <SectionSubtitle maxWidth={520}>{t(language, "viesStatusHelp")}</SectionSubtitle>
+              </CardHeader>
 
-  <CardContent
-    className="pt-0"
-    style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
-  >
-    <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
-      {!viesStatus.length ? (
-        <div style={{ padding: 12, color: "var(--muted)" }}>
-          {t(language, "noData")}
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-            gap: 10,
-            padding: 6,
-          }}
-        >
-          {[...viesStatus]
-            .sort((a, b) => {
-              const ca = countryCounts[a.countryCode] || 0;
-              const cb = countryCounts[b.countryCode] || 0;
-              if (cb !== ca) return cb - ca;
-              return a.countryCode.localeCompare(b.countryCode, "en");
-            })
-            .map((c) => {
-              const ok = String(c.availability || "").toLowerCase() === "available";
-              const iso2 = vatCcToIso2ForFlag(c.countryCode);
+              <CardContent
+                className="pt-0"
+                style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+              >
+                <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
+                  {!viesStatus.length ? (
+                    <div style={{ padding: 12, color: "var(--muted)" }}>{t(language, "noData")}</div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+                        gap: 10,
+                        padding: 6,
+                      }}
+                    >
+                      {[...viesStatus]
+                        .sort((a, b) => {
+                          const ca = countryCounts[a.countryCode] || 0;
+                          const cb = countryCounts[b.countryCode] || 0;
+                          if (cb !== ca) return cb - ca;
+                          return a.countryCode.localeCompare(b.countryCode, "en");
+                        })
+                        .map((c) => {
+                          const ok = String(c.availability || "").toLowerCase() === "available";
+                          const iso2 = vatCcToIso2ForFlag(c.countryCode);
 
-              return (
-                <div
-                  key={c.countryCode}
-                  title={`${c.countryCode} - ${c.availability}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    padding: "6px 8px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    background: "rgba(255,255,255,0.18)",
-                    backdropFilter: "blur(6px)",
-                    WebkitBackdropFilter: "blur(6px)",
-                  }}
-                >
-                  <ReactCountryFlag
-                    countryCode={iso2}
-                    svg
-                    style={{ width: "18px", height: "14px", borderRadius: 3 }}
-                    title={c.countryCode}
-                  />
+                          return (
+                            <div
+                              key={c.countryCode}
+                              title={`${c.countryCode} - ${c.availability}`}
+style={{
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  padding: "6px 8px",
+                                borderRadius: 12,
+                                border: "1px solid rgba(0,0,0,0.08)",
+                                background: "rgba(255,255,255,0.18)",
+                                backdropFilter: "blur(6px)",
+                                WebkitBackdropFilter: "blur(6px)",
+                              }}
+                            >
+                              <ReactCountryFlag
+                                countryCode={iso2}
+                                svg
+                                style={{ width: "18px", height: "14px", borderRadius: 3 }}
+                                title={c.countryCode}
+                              />
 
-                  <span
-                    className="mono"
-                    style={{
-                      fontWeight: 800,
-                      color: ok ? "var(--ok)" : "var(--bad)",
-                      fontSize: 14,
-                      lineHeight: "14px",
-                      width: 18,
-                      textAlign: "center",
-                    }}
-                  >
-                    {ok ? "✓" : "×"}
-                  </span>
+                              <span
+                                className="mono"
+                                style={{
+                                  fontWeight: 800,
+                                  color: ok ? "var(--ok)" : "var(--bad)",
+fontSize: 14,
+lineHeight: "14px",
+width: 18,
+textAlign: "center",
+                                }}
+                              >
+                                {ok ? "✓" : "×"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
-              );
-            })}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      )}
-    </div>
-
-    <ValidationFlow language={language} />
-  </CardContent>
-</Card>
 
         <div className="tableWrap" style={{ marginLeft: 12 }}>
           <div className="tableHeader">
@@ -3960,11 +3870,11 @@ function TinPage({
                 </div>
               )}
 
-{!error && !rows.length && (
-  <div className="callout" style={{ marginTop: 10 }}>
-    {t(language, "noResultsYet")}
-  </div>
-)}
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
 
               {!!rows.length && (
                 <>
@@ -4649,11 +4559,11 @@ async function runEoriValidation(eoris: string[]) {
                 </div>
               )}
 
-{!error && !rows.length && (
-  <div className="callout" style={{ marginTop: 10 }}>
-    {t(language, "noResultsYet")}
-  </div>
-)}
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
 
               {!!rows.length && (
                 <>
@@ -5003,11 +4913,12 @@ function IbanPage({
                   <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
                 </div>
               )}
-{!error && !rows.length && (
-  <div className="callout" style={{ marginTop: 10 }}>
-    {t(language, "noResultsYet")}
-  </div>
-)}
+
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
 
               {!!rows.length && (
                 <>
