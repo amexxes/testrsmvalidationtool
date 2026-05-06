@@ -1787,18 +1787,8 @@ type GlassCardProps = React.HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
 };
 
-const ImportedGlassCard = (ReactGlassUI as any).Card as
-  | React.ComponentType<GlassCardProps>
-  | undefined;
-
 function GlassCard({ glow, className, style, children, ...props }: GlassCardProps) {
-  if (ImportedGlassCard) {
-    return (
-      <ImportedGlassCard glow={glow} className={className} style={style} {...props}>
-        {children}
-      </ImportedGlassCard>
-    );
-  }
+  void ReactGlassUI;
 
   return (
     <div
