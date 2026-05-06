@@ -3358,7 +3358,7 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
           </Card>
 
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
-            <Card>
+            <Card style={GLASS_PANEL_STYLE}>
               <CardHeader className="pb-4">
                 <SectionTitle>{t(language, "filter")}</SectionTitle>
                 <SectionSubtitle maxWidth={520}>{t(language, "filterHelp")}</SectionSubtitle>
