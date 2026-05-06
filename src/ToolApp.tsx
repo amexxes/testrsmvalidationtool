@@ -131,6 +131,18 @@ const GLASS_TABLE_WRAP_STYLE: React.CSSProperties = {
   backdropFilter: "blur(18px) saturate(1.28)",
   WebkitBackdropFilter: "blur(18px) saturate(1.28)",
 };
+const RSM_PROGRESS_OUTER_STYLE: React.CSSProperties = {
+  background: "rgba(81,83,86,0.14)",
+  border: "1px solid rgba(255,255,255,0.58)",
+  boxShadow: "inset 0 1px 3px rgba(47,48,51,0.10)",
+};
+
+const RSM_PROGRESS_INNER_STYLE: React.CSSProperties = {
+  height: "100%",
+  borderRadius: 999,
+  background: `linear-gradient(90deg, ${RSM_GREEN}, ${RSM_BLUE})`,
+  boxShadow: "0 0 16px rgba(0,156,222,0.22)",
+};
 const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
@@ -3337,13 +3349,21 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
   className="progress"
   aria-label={`${t(language, "progress")}: ${progressPct}%`}
   style={{
+    ...RSM_PROGRESS_OUTER_STYLE,
     marginTop: 10,
     position: "relative",
     height: 8,
     overflow: "hidden",
   }}
 >
-  <div className="bar" style={{ width: `${progressPct}%`, height: "100%" }} />
+  <div
+    className="bar"
+    style={{
+      ...RSM_PROGRESS_INNER_STYLE,
+      width: `${progressPct}%`,
+    }}
+  />
+</div>"bar" style={{ width: `${progressPct}%`, height: "100%" }} />
 </div>
 
 <div style={{ marginTop: 14 }}>
@@ -4402,10 +4422,24 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                     <br />
                     <b>{t(language, "validRate")}</b>: {validPct}%
                   </div>
-
-                  <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
-                    <div className="bar" style={{ width: `${validPct}%` }} />
-                  </div>
+<div
+  className="progress"
+  aria-hidden="true"
+  style={{
+    ...RSM_PROGRESS_OUTER_STYLE,
+    marginTop: 12,
+    height: 8,
+    overflow: "hidden",
+  }}
+>
+  <div
+    className="bar"
+    style={{
+      ...RSM_PROGRESS_INNER_STYLE,
+      width: `${validPct}%`,
+    }}
+  />
+</div>
 
                   <div className="filterBox" style={{ marginTop: 14 }}>
                     <input
