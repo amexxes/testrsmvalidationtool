@@ -342,8 +342,12 @@ const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
+  height: 24,
+  display: "inline-flex",
+  alignItems: "center",
   fontSize: 12,
-  lineHeight: 1.15,
+  lineHeight: 1,
   fontWeight: 700,
   color: RSM_TEXT,
   whiteSpace: "nowrap",
@@ -355,9 +359,10 @@ const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  fontFamily: PORTAL_FONT,
   fontSize: 12,
   lineHeight: 1,
-  fontWeight: 800,
+  fontWeight: 700,
   letterSpacing: "0.055em",
   textTransform: "uppercase",
   color: RSM_DARK,
@@ -1969,13 +1974,12 @@ function PortalBanner({
                     {statusIcon(item.label)}
                   </span>
 
-                  <span style={BANNER_STATUS_TEXT_WRAP_STYLE}>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                      }}
-                    >
+<span
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+  }}
+>
                       <span style={BANNER_STATUS_LABEL_STYLE}>
                         {item.label}
                       </span>
