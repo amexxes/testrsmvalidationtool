@@ -1,7 +1,11 @@
 // api/validate-batch.js
 import { kv } from "@vercel/kv";
 import { randomUUID } from "crypto";
-import { requireModuleAccess, consumeVatCreditsForUser } from "../lib/auth.js";
+import {
+  requireModuleAccess,
+  consumeVatCreditsForUser,
+} from "../lib/auth.js";
+
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 const STATUS_CACHE_SEC = 30;
 
@@ -9,7 +13,7 @@ const REQUESTER_MS = (process.env.REQUESTER_MS || "").toUpperCase();
 const REQUESTER_VAT = process.env.REQUESTER_VAT || "";
 
 const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 20000);
-const JOB_TTL_SEC = 6 * 60 * 60; // 6 uur
+const JOB_TTL_SEC = 6 * 60 * 60;
 
 const RETRYABLE_CODES = new Set([
   "SERVICE_UNAVAILABLE",
@@ -29,9 +33,11 @@ const RETRYABLE_CODES = new Set([
 function isRetryable(code, httpStatus) {
   const c = String(code || "").trim();
   const s = Number(httpStatus || 0);
+
   if (RETRYABLE_CODES.has(c)) return true;
   if ([429, 502, 503, 504].includes(s)) return true;
   if (s === 0) return true;
+
   return false;
 }
 
@@ -51,6 +57,7 @@ async function fetchJson(url, init, timeoutMs = VIES_TIMEOUT_MS) {
     });
 
     const text = await resp.text();
+
     let data;
     try {
       data = text ? JSON.parse(text) : null;
@@ -61,10 +68,14 @@ async function fetchJson(url, init, timeoutMs = VIES_TIMEOUT_MS) {
     return { ok: resp.ok, status: resp.status, data };
   } catch (e) {
     const isAbort = String(e?.name || "").toLowerCase() === "aborterror";
+
     return {
       ok: false,
       status: 0,
-      data: { error: isAbort ? "TIMEOUT" : "NETWORK_ERROR", message: String(e?.message || e) },
+      data: {
+        error: isAbort ? "TIMEOUT" : "NETWORK_ERROR",
+        message: String(e?.message || e),
+      },
     };
   } finally {
     clearTimeout(t);
@@ -75,6 +86,7 @@ async function getViesStatusSnapshot() {
   try {
     const cacheKey = "vies:status";
     const cached = await kv.get(cacheKey);
+
     if (cached) {
       if (typeof cached === "string") {
         try {
@@ -83,22 +95,27 @@ async function getViesStatusSnapshot() {
           return cached;
         }
       }
+
       return cached;
     }
 
-    const r = await fetchJson(`${VIES_BASE}/check-status`, { method: "GET" }, 10_000);
+    const r = await fetchJson(`${VIES_BASE}/check-status`, { method: "GET" }, 10000);
+
     const list = Array.isArray(r?.data?.countries)
-      ? r.data.countries.map((c) => ({ countryCode: c.countryCode, availability: c.availability }))
+      ? r.data.countries.map((c) => ({
+          countryCode: c.countryCode,
+          availability: c.availability,
+        }))
       : [];
 
     await kv.set(cacheKey, list, { ex: STATUS_CACHE_SEC });
+
     return list;
   } catch {
     return [];
   }
 }
-const auth = await requireModuleAccess(req, res, "vat");
-if (!auth) return;
+
 function normalizeVatLine(s) {
   return String(s || "")
     .trim()
@@ -114,7 +131,8 @@ function parseVat(line) {
   let countryCode = v.slice(0, 2);
   if (!/^[A-Z]{2}$/.test(countryCode)) return null;
 
-  if (countryCode === "GR") countryCode = "EL"; // VIES uses EL
+  if (countryCode === "GR") countryCode = "EL";
+
   const vatNumber = v.slice(2);
   if (!vatNumber) return null;
 
@@ -124,22 +142,30 @@ function parseVat(line) {
 function isCommonResponse(data) {
   return data && typeof data === "object" && "actionSucceed" in data && "errorWrappers" in data;
 }
+
 function extractErrorCode(data) {
   const wrappers = data?.errorWrappers;
+
   if (Array.isArray(wrappers) && wrappers.length) return wrappers[0]?.error || null;
   if (typeof data?.error === "string") return data.error;
+
   return null;
 }
+
 function extractErrorMessage(data) {
   const wrappers = data?.errorWrappers;
+
   if (Array.isArray(wrappers) && wrappers.length) return wrappers[0]?.message || "";
   if (typeof data?.message === "string") return data.message;
+
   return "";
 }
 
 function requesterString() {
   if (!REQUESTER_MS || !REQUESTER_VAT) return "";
+
   const reqNo = normalizeVatLine(REQUESTER_VAT).replace(/^[A-Z]{2}/, "");
+
   return `${REQUESTER_MS}${reqNo}`;
 }
 
@@ -202,7 +228,10 @@ function rowFromError(p, errorCode, details, case_ref) {
 }
 
 async function viesCheck(p) {
-  const body = { countryCode: p.countryCode, vatNumber: p.vatNumber };
+  const body = {
+    countryCode: p.countryCode,
+    vatNumber: p.vatNumber,
+  };
 
   if (REQUESTER_MS && REQUESTER_VAT) {
     body.requesterMemberStateCode = REQUESTER_MS;
@@ -238,7 +267,6 @@ async function viesCheck(p) {
   return { ok: true, status: r.status, data: r.data };
 }
 
-// simpele concurrency limiter
 async function mapLimit(arr, limit, fn) {
   const out = new Array(arr.length);
   let i = 0;
@@ -247,77 +275,104 @@ async function mapLimit(arr, limit, fn) {
     while (true) {
       const idx = i++;
       if (idx >= arr.length) break;
+
       out[idx] = await fn(arr[idx], idx);
     }
   });
 
   await Promise.all(workers);
+
   return out;
 }
 
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const auth = await requireModuleAccess(req, res, "vat");
+  if (!auth) return;
+
   try {
-    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-const auth = await requireModuleAccess(req, res, "vat");
-if (!auth) return;
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
     const vat_numbers = Array.isArray(body?.vat_numbers) ? body.vat_numbers : [];
     const case_ref = (body?.case_ref || "").toString().slice(0, 80);
 
     const parsed = vat_numbers.map(parseVat).filter(Boolean);
 
-    // dedupe
     const seen = new Set();
     const unique = [];
     let duplicates_ignored = 0;
 
     for (const p of parsed) {
       const key = `${p.countryCode}:${p.vatNumber}`;
+
       if (seen.has(key)) {
         duplicates_ignored++;
         continue;
       }
+
       seen.add(key);
       unique.push(p);
     }
-let vat_credits;
 
-try {
-  vat_credits = await consumeVatCreditsForUser(auth.user, unique.length);
-} catch (error) {
-  if (error?.code === "VAT_CREDITS_EXCEEDED") {
-    return res.status(403).json({
-      error: "VAT_CREDITS_EXCEEDED",
-      message: "VAT credit limit reached.",
-      credits: error.details,
-    });
-  }
+    let vat_credits = null;
 
-  throw error;
-}
+    try {
+      vat_credits = await consumeVatCreditsForUser(auth.user, unique.length);
+    } catch (error) {
+      if (error?.code === "VAT_CREDITS_EXCEEDED") {
+        return res.status(403).json({
+          error: "VAT_CREDITS_EXCEEDED",
+          message: "VAT credit limit reached.",
+          credits: error.details,
+        });
+      }
+
+      throw error;
+    }
+
     let fr_job_id = null;
     const realtime = [];
     const queued = [];
 
     const checked = await mapLimit(unique, 6, async (p) => {
-      // FR altijd async
       if (p.countryCode === "FR") {
         if (!fr_job_id) fr_job_id = randomUUID();
-        return { kind: "queued", row: rowFromQueued(p, case_ref), key: `${p.countryCode}:${p.vatNumber}` };
+
+        return {
+          kind: "queued",
+          row: rowFromQueued(p, case_ref),
+          key: `${p.countryCode}:${p.vatNumber}`,
+        };
       }
 
       const r = await viesCheck(p);
-      if (r.ok) return { kind: "realtime", row: rowFromOk(p, r.data, case_ref) };
+
+      if (r.ok) {
+        return {
+          kind: "realtime",
+          row: rowFromOk(p, r.data, case_ref),
+        };
+      }
 
       const code = r.errorCode || `HTTP_${r.status || 0}`;
       const details = r.message || JSON.stringify(r.data);
 
       if (isRetryable(code, r.status)) {
         if (!fr_job_id) fr_job_id = randomUUID();
-        return { kind: "queued", row: rowFromQueued(p, case_ref), key: `${p.countryCode}:${p.vatNumber}` };
+
+        return {
+          kind: "queued",
+          row: rowFromQueued(p, case_ref),
+          key: `${p.countryCode}:${p.vatNumber}`,
+        };
       }
 
-      return { kind: "realtime", row: rowFromError(p, code, details, case_ref) };
+      return {
+        kind: "realtime",
+        row: rowFromError(p, code, details, case_ref),
+      };
     });
 
     for (const x of checked) {
@@ -325,7 +380,6 @@ try {
       else realtime.push(x);
     }
 
-    // schrijf job + queued rows naar KV
     if (fr_job_id) {
       const metaKey = `job:${fr_job_id}:meta`;
       const resKey = `job:${fr_job_id}:results`;
@@ -356,17 +410,15 @@ try {
           attempt: 0,
           nextRunAt: Date.now(),
           case_ref,
-          // lease fields (optional; fr-job claim code werkt ook zonder)
           leaseOwner: "",
           leaseAt: 0,
           leaseUntil: 0,
         };
 
-        // list queue
         await kv.lpush("queue:vies", JSON.stringify(task));
-
-        // pending queue (collision-safe): jobId|country:vat
-        await kv.hset("queue:pending", { [pendingField(fr_job_id, q.key)]: JSON.stringify(task) });
+        await kv.hset("queue:pending", {
+          [pendingField(fr_job_id, q.key)]: JSON.stringify(task),
+        });
       }
 
       await kv.expire("queue:pending", JOB_TTL_SEC);
@@ -376,14 +428,14 @@ try {
     const results = [...realtime.map((x) => x.row), ...queued.map((x) => x.row)];
     const vies_status = await getViesStatusSnapshot();
 
-return res.status(200).json({
-  duplicates_ignored,
-  vies_status,
-  results,
-  fr_job_id,
-  count: results.length,
-  vat_credits,
-});
+    return res.status(200).json({
+      duplicates_ignored,
+      vies_status,
+      results,
+      fr_job_id,
+      count: results.length,
+      vat_credits,
+    });
   } catch (e) {
     return res.status(500).json({
       error: "validate-batch failed",
