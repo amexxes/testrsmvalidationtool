@@ -291,7 +291,7 @@ const BANNER_RIGHT_STYLE: React.CSSProperties = {
   zIndex: 40000,
 };
 
-cconst BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
+const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   minHeight: 44,
   display: "inline-flex",
   flexDirection: "row",
