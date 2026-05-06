@@ -107,6 +107,16 @@ const GLASS_PANEL_STYLE: React.CSSProperties = {
   backdropFilter: "blur(18px) saturate(1.28)",
   WebkitBackdropFilter: "blur(18px) saturate(1.28)",
 };
+const GLASS_TABLE_WRAP_STYLE: React.CSSProperties = {
+  marginLeft: 12,
+  borderRadius: 22,
+  overflow: "hidden",
+  background: "rgba(255,255,255,0.54)",
+  border: "1px solid rgba(255,255,255,0.58)",
+  boxShadow: "0 22px 60px rgba(11,46,95,0.12)",
+  backdropFilter: "blur(18px) saturate(1.28)",
+  WebkitBackdropFilter: "blur(18px) saturate(1.28)",
+};
 const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
@@ -3484,7 +3494,7 @@ textAlign: "center",
           </div>
         </div>
 
-        <div className="tableWrap" style={{ marginLeft: 12 }}>
+        <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
@@ -4406,7 +4416,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
           </Card>
         </div>
 
-        <div className="tableWrap" style={{ marginLeft: 12 }}>
+        <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
@@ -5094,7 +5104,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
           </Card>
         </div>
 
-        <div className="tableWrap" style={{ marginLeft: 12 }}>
+        <<div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
@@ -5444,7 +5454,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
           </Card>
         </div>
 
-        <div className="tableWrap" style={{ marginLeft: 12 }}>
+        <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
