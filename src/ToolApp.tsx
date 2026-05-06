@@ -148,7 +148,7 @@ const RSM_PROGRESS_OUTER_STYLE: React.CSSProperties = {
 const RSM_PROGRESS_INNER_STYLE: React.CSSProperties = {
   height: "100%",
   borderRadius: 999,
-  background: `linear-gradient(90deg, ${RSM_GREEN}, ${RSM_BLUE})`,
+  background: RSM_BLUE,
   boxShadow: "0 0 16px rgba(0,156,222,0.22)",
 };
 const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
