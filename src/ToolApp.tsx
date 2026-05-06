@@ -2089,6 +2089,23 @@ function InputSectionTitle({ language }: { language: PortalLanguage }) {
     </SectionTitle>
   );
 }
+type VatCreditStatus = {
+  plan: "starter" | "business" | "enterprise";
+  year: string;
+  used: number;
+  limit: number | null;
+  unlimited: boolean;
+  remaining: number | null;
+};
+
+function formatVatCredits(status: VatCreditStatus | null, language: PortalLanguage) {
+  if (!status) return "-";
+  if (status.unlimited || status.limit === null) return "Unlimited";
+
+  return `${status.used.toLocaleString(localeForLanguage(language))} / ${status.limit.toLocaleString(
+    localeForLanguage(language)
+  )}`;
+}
 function VatPage({
   activePage,
   setActivePage,
@@ -2110,6 +2127,7 @@ function VatPage({
   const [duplicatesIgnored, setDuplicatesIgnored] = useState(0);
   const [viesStatus, setViesStatus] = useState<Array<{ countryCode: string; availability: string }>>([]);
   const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+  const [vatCredits, setVatCredits] = useState<VatCreditStatus | null>(null);
 
   const [, setFrText] = useState("-");
   const [lastUpdate, setLastUpdate] = useState("-");
@@ -2942,7 +2960,7 @@ if (ratio >= 0.85) {
         title={branding.portalTitle || "Validation Portal"}
         modeValue="VAT"
         meta={[
-          { label: t(language, "credits"), value: t(language, "unlimited") },
+          { label: t(language, "credits"), value: formatVatCredits(vatCredits, language) },
           { label: t(language, "lastUpdate"), value: lastUpdate },
         ]}
         activePage={activePage}
