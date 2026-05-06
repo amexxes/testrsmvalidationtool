@@ -187,7 +187,29 @@ const BANNER_INNER_STYLE: React.CSSProperties = {
   gap: 18,
   padding: "18px 22px",
 };
+const BANNER_STATUS_TEXT_WRAP_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  justifyContent: "center",
+  gap: 3,
+  minWidth: 0,
+};
 
+const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
+  width: 74,
+  height: 5,
+  borderRadius: 999,
+  overflow: "hidden",
+  background: "rgba(148,163,184,0.22)",
+  boxShadow: "inset 0 1px 2px rgba(15,23,42,0.08)",
+};
+
+const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
+  height: "100%",
+  borderRadius: 999,
+  background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
+};
 const BANNER_LEFT_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1728,6 +1750,22 @@ function AnimatedBannerValue({ value }: { value: React.ReactNode }) {
     </span>
   );
 }
+function creditBarPercent(value: React.ReactNode): number {
+  const text = String(value || "");
+
+  if (text.toLowerCase().includes("unlimited")) return 100;
+
+  const numbers = text.match(/\d[\d.,]*/g);
+
+  if (!numbers || numbers.length < 2) return 0;
+
+  const used = Number(numbers[0].replace(/[.,]/g, ""));
+  const limit = Number(numbers[1].replace(/[.,]/g, ""));
+
+  if (!limit) return 0;
+
+  return Math.min(100, Math.round((used / limit) * 100));
+}
 function PortalBanner({
   modeValue,
   meta = [],
@@ -1832,19 +1870,33 @@ function statusIcon(label: string): React.ReactNode {
             {statusIcon(item.label)}
           </span>
 
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-            }}
-          >
-            <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
-            {item.label === t(language, "mode") ? (
-  <AnimatedBannerValue value={item.value} />
-) : (
-  <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
-)}
-          </span>
+ <span style={BANNER_STATUS_TEXT_WRAP_STYLE}>
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+    }}
+  >
+    <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+
+    {item.label === t(language, "mode") ? (
+      <AnimatedBannerValue value={item.value} />
+    ) : (
+      <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
+    )}
+  </span>
+
+  {item.label === t(language, "credits") && (
+    <span style={BANNER_CREDIT_BAR_OUTER_STYLE}>
+      <span
+        style={{
+          ...BANNER_CREDIT_BAR_INNER_STYLE,
+          width: `${creditBarPercent(item.value)}%`,
+        }}
+      />
+    </span>
+  )}
+</span>
         </span>
       </React.Fragment>
     ))}
