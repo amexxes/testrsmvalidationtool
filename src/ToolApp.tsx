@@ -309,7 +309,13 @@ const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
   color: "#0B2E5F",
   whiteSpace: "nowrap",
 };
-
+const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
+  fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 900,
+  letterSpacing: "0.075em",
+  textTransform: "uppercase",
+};
 const BANNER_DOT_STYLE: React.CSSProperties = {
   color: "rgba(11,46,95,0.22)",
   fontWeight: 700,
@@ -1731,7 +1737,13 @@ function LanguageSwitcher({ language, setLanguage }: LanguageSwitcherProps) {
     </div>
   );
 }
-function AnimatedBannerValue({ value }: { value: React.ReactNode }) {
+function AnimatedBannerValue({
+  value,
+  style,
+}: {
+  value: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
   const [animateKey, setAnimateKey] = React.useState(0);
 
   React.useEffect(() => {
@@ -1743,6 +1755,7 @@ function AnimatedBannerValue({ value }: { value: React.ReactNode }) {
       key={animateKey}
       style={{
         ...BANNER_STATUS_VALUE_STYLE,
+        ...style,
         animation: "bannerValueDropIn 260ms ease-out",
       }}
     >
@@ -1879,11 +1892,23 @@ function statusIcon(label: string): React.ReactNode {
   >
     <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
 
-    {item.label === t(language, "mode") ? (
-      <AnimatedBannerValue value={item.value} />
-    ) : (
-      <span style={BANNER_STATUS_VALUE_STYLE}>{item.value}</span>
-    )}
+{item.label === t(language, "mode") ? (
+  <AnimatedBannerValue
+    value={item.value}
+    style={BANNER_STATUS_VALUE_SPECIAL_STYLE}
+  />
+) : (
+  <span
+    style={{
+      ...BANNER_STATUS_VALUE_STYLE,
+      ...(item.label === t(language, "credits")
+        ? BANNER_STATUS_VALUE_SPECIAL_STYLE
+        : {}),
+    }}
+  >
+    {item.value}
+  </span>
+)}
   </span>
 
   {item.label === t(language, "credits") && (
