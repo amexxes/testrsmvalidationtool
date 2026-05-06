@@ -370,10 +370,10 @@ const BANNER_DOT_STYLE: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
-  fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
+  fontFamily: PORTAL_FONT,
   fontVariantNumeric: "tabular-nums",
-  fontWeight: 900,
-  letterSpacing: "0.075em",
+  fontWeight: 700,
+  letterSpacing: "0.055em",
   textTransform: "uppercase",
 };
 
@@ -1989,9 +1989,9 @@ function PortalBanner({
                         <span
                           style={{
                             ...BANNER_STATUS_VALUE_STYLE,
-                            ...(item.label === t(language, "credits")
-                              ? BANNER_STATUS_VALUE_SPECIAL_STYLE
-                              : {}),
+...([t(language, "credits"), t(language, "lastUpdate"), t(language, "country")].includes(item.label)
+  ? BANNER_STATUS_VALUE_SPECIAL_STYLE
+  : {}),
                           }}
                         >
                           {item.value}
