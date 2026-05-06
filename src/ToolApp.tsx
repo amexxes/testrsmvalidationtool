@@ -210,6 +210,14 @@ const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
   borderRadius: 999,
   background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
 };
+
+const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
+  fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 900,
+  letterSpacing: "0.075em",
+  textTransform: "uppercase",
+};
 const BANNER_LEFT_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -1795,34 +1803,35 @@ function PortalBanner({
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
   const statusItems = [
-  {
-    label: t(language, "mode"),
-    value: activePage.toUpperCase(),
-  },
-  ...meta,
-];
-function statusIcon(label: string): React.ReactNode {
-  if (label === t(language, "mode")) {
-    return <SvgIcon src="/gauge.svg" alt="Mode" size={13} active />;
-  }
+    {
+      label: t(language, "mode"),
+      value: modeValue || activePage.toUpperCase(),
+    },
+    ...meta,
+  ];
 
-  if (label === t(language, "credits")) {
-    return <SvgIcon src="/credit-card.svg" alt="Credits" size={13} active />;
-  }
+  function statusIcon(label: string): React.ReactNode {
+    if (label === t(language, "mode")) {
+      return <SvgIcon src="/gauge.svg" alt="Mode" size={13} active />;
+    }
 
-  if (label === t(language, "lastUpdate")) {
-    return <SvgIcon src="/refresh.svg" alt="Last update" size={13} active />;
-  }
+    if (label === t(language, "credits")) {
+      return <SvgIcon src="/credit-card.svg" alt="Credits" size={13} active />;
+    }
 
-  if (label === t(language, "country")) {
-    return <SvgIcon src="/world.svg" alt="Country" size={13} active />;
-  }
+    if (label === t(language, "lastUpdate")) {
+      return <SvgIcon src="/refresh.svg" alt="Last update" size={13} active />;
+    }
 
-  return null;
-}
+    if (label === t(language, "country")) {
+      return <SvgIcon src="/world.svg" alt="Country" size={13} active />;
+    }
+
+    return null;
+  }
 
   return (
-    <div className="banner">
+    <GlassCard glow className="banner">
       <div className="banner-accent" />
 
       <div style={BANNER_INNER_STYLE}>
@@ -1855,94 +1864,95 @@ function statusIcon(label: string): React.ReactNode {
           </div>
 
           <div style={{ minWidth: 0 }}>
- <div
-  className="title"
-  style={{
-    ...PAGE_TITLE_STYLE,
-    fontWeight: 800,
-    display: "flex",
-    flexDirection: "column",
-    lineHeight: 1.05,
-    whiteSpace: "normal",
-  }}
->
-  <span>Validation</span>
-  <span>Portal</span>
-</div>
+            <div
+              className="title"
+              style={{
+                ...PAGE_TITLE_STYLE,
+                fontWeight: 800,
+                display: "flex",
+                flexDirection: "column",
+                lineHeight: 1.05,
+                whiteSpace: "normal",
+              }}
+            >
+              <span>Validation</span>
+              <span>Portal</span>
+            </div>
           </div>
         </div>
 
-<div style={BANNER_CENTER_STYLE}>
-  <div style={BANNER_STATUS_BAR_STYLE}>
-    {statusItems.map((item, index) => (
-      <React.Fragment key={`${item.label}-${index}`}>
-        {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
+        <div style={BANNER_CENTER_STYLE}>
+          <div style={BANNER_STATUS_BAR_STYLE}>
+            {statusItems.map((item, index) => (
+              <React.Fragment key={`${item.label}-${index}`}>
+                {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
-        <span style={BANNER_STATUS_ITEM_STYLE}>
-          <span style={BANNER_STATUS_ICON_STYLE}>
-            {statusIcon(item.label)}
-          </span>
+                <span style={BANNER_STATUS_ITEM_STYLE}>
+                  <span style={BANNER_STATUS_ICON_STYLE}>
+                    {statusIcon(item.label)}
+                  </span>
 
- <span style={BANNER_STATUS_TEXT_WRAP_STYLE}>
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-    }}
-  >
-    <span style={BANNER_STATUS_LABEL_STYLE}>{item.label}</span>
+                  <span style={BANNER_STATUS_TEXT_WRAP_STYLE}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <span style={BANNER_STATUS_LABEL_STYLE}>
+                        {item.label}
+                      </span>
 
-{item.label === t(language, "mode") ? (
-  <AnimatedBannerValue
-    value={item.value}
-    style={BANNER_STATUS_VALUE_SPECIAL_STYLE}
-  />
-) : (
-  <span
-    style={{
-      ...BANNER_STATUS_VALUE_STYLE,
-      ...(item.label === t(language, "credits")
-        ? BANNER_STATUS_VALUE_SPECIAL_STYLE
-        : {}),
-    }}
-  >
-    {item.value}
-  </span>
-)}
-  </span>
+                      {item.label === t(language, "mode") ? (
+                        <AnimatedBannerValue
+                          value={item.value}
+                          style={BANNER_STATUS_VALUE_SPECIAL_STYLE}
+                        />
+                      ) : (
+                        <span
+                          style={{
+                            ...BANNER_STATUS_VALUE_STYLE,
+                            ...(item.label === t(language, "credits")
+                              ? BANNER_STATUS_VALUE_SPECIAL_STYLE
+                              : {}),
+                          }}
+                        >
+                          {item.value}
+                        </span>
+                      )}
+                    </span>
 
-  {item.label === t(language, "credits") && (
-    <span style={BANNER_CREDIT_BAR_OUTER_STYLE}>
-      <span
-        style={{
-          ...BANNER_CREDIT_BAR_INNER_STYLE,
-          width: `${creditBarPercent(item.value)}%`,
-        }}
-      />
-    </span>
-  )}
-</span>
-        </span>
-      </React.Fragment>
-    ))}
-  </div>
-</div>
-<div style={BANNER_RIGHT_STYLE}>
-  <div style={BANNER_CONTROL_STYLE}>
-    <PageSwitcher
-  activePage={activePage}
-  setActivePage={setActivePage}
-  language={language}
-  userRole={userRole}
-  clientModules={clientModules}
-  onRequestModuleUpgrade={onRequestModuleUpgrade}
-/>
-  </div>
-</div>
+                    {item.label === t(language, "credits") && (
+                      <span style={BANNER_CREDIT_BAR_OUTER_STYLE}>
+                        <span
+                          style={{
+                            ...BANNER_CREDIT_BAR_INNER_STYLE,
+                            width: `${creditBarPercent(item.value)}%`,
+                          }}
+                        />
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+
+        <div style={BANNER_RIGHT_STYLE}>
+          <div style={BANNER_CONTROL_STYLE}>
+            <PageSwitcher
+              activePage={activePage}
+              setActivePage={setActivePage}
+              language={language}
+              userRole={userRole}
+              clientModules={clientModules}
+              onRequestModuleUpgrade={onRequestModuleUpgrade}
+            />
+          </div>
+        </div>
       </div>
-
-
-    </div>
+    </GlassCard>
   );
 }
 
