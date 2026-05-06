@@ -5130,7 +5130,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
           </Card>
         </div>
 
-        <<div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
+                <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
           <div className="tableHeader">
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
