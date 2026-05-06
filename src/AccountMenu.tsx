@@ -25,6 +25,13 @@ const RSM_BLUE = "#009CDE";
 const RSM_TEXT = "#515356";
 const RSM_DARK = "#2F3033";
 const RSM_RED = "#8F1D1D";
+
+const LANGUAGE_FLAGS: Record<PortalLanguage, string> = {
+  en: "GB",
+  nl: "NL",
+  de: "DE",
+  fr: "FR",
+};
 function subscriptionLabel(value?: "starter" | "business" | "enterprise") {
   if (value === "business") return "Business";
   if (value === "enterprise") return "Enterprise";
