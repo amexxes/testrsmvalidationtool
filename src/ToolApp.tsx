@@ -16,6 +16,14 @@ import {
   type PortalLanguage,
 } from "./i18n";
 
+import {
+  CheckCircle,
+  IdCard,
+  Globe,
+  Landmark,
+  Lock,
+} from "lucide-react";
+
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin" | "eori" | "iban";
 type UserRole = "admin" | "user";
@@ -1482,53 +1490,31 @@ function PageSwitcher({
     key: ActivePage;
     label: string;
     title: string;
-    icon: React.ReactNode;
+    Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   }> = [
     {
       key: "vat",
       label: "VAT",
       title: t(language, "vatTab"),
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.4" />
-          <path d="M8 12.2l2.6 2.6L16.5 9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
+      Icon: CheckCircle,
     },
     {
       key: "tin",
       label: "TIN",
       title: t(language, "tinTab"),
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" strokeWidth="2.2" />
-          <circle cx="9" cy="11" r="2.2" stroke="currentColor" strokeWidth="2.1" />
-          <path d="M6.7 16c.7-1.5 3.9-1.5 4.6 0" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
-          <path d="M14 10h3.8M14 14h3.8" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" />
-        </svg>
-      ),
+      Icon: IdCard,
     },
     {
       key: "eori",
       label: "EORI",
       title: t(language, "eoriTab"),
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.2" />
-          <path d="M3.5 12h17M12 3c2.2 2.4 3.2 5.4 3.2 9s-1 6.6-3.2 9M12 3C9.8 5.4 8.8 8.4 8.8 12s1 6.6 3.2 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      ),
+      Icon: Globe,
     },
     {
       key: "iban",
       label: "IBAN",
       title: "IBAN",
-      icon: (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <path d="M4 10h16L12 5 4 10z" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
-          <path d="M6.5 10v7M10.2 10v7M13.8 10v7M17.5 10v7M4.5 18.5h15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-        </svg>
-      ),
+      Icon: Landmark,
     },
   ];
 
@@ -1545,6 +1531,7 @@ function PageSwitcher({
       {options.map((item) => {
         const enabled = canAccessPage(item.key, clientModules, userRole);
         const active = enabled && item.key === activePage;
+        const Icon = item.Icon;
 
         return (
           <button
@@ -1608,12 +1595,10 @@ function PageSwitcher({
                   justifyContent: "center",
                   background: "#0B2E5F",
                   color: "#FFFFFF",
-                  fontSize: 10,
-                  fontWeight: 900,
                   boxShadow: "0 4px 10px rgba(11,46,95,0.20)",
                 }}
               >
-                +
+                <Lock size={9} strokeWidth={3} />
               </span>
             )}
 
@@ -1628,7 +1613,7 @@ function PageSwitcher({
                 color: active ? "#FFFFFF" : "#64748B",
               }}
             >
-              {item.icon}
+              <Icon size={15} strokeWidth={2.4} />
             </span>
 
             <span
