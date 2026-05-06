@@ -16,8 +16,6 @@ import {
   type PortalLanguage,
 } from "./i18n";
 
-import * as ReactGlassUI from "@dinakars777/react-glass-ui";
-
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin" | "eori" | "iban";
 type UserRole = "admin" | "user";
@@ -1781,43 +1779,6 @@ function creditBarPercent(value: React.ReactNode): number {
 
   return Math.min(100, Math.round((used / limit) * 100));
 }
-type GlassCardProps = React.HTMLAttributes<HTMLDivElement> & {
-  glow?: boolean;
-  children?: React.ReactNode;
-};
-
-const ImportedGlassCard = (ReactGlassUI as any).Card as
-  | React.ComponentType<GlassCardProps>
-  | undefined;
-
-function GlassCard({ glow, className, style, children, ...props }: GlassCardProps) {
-  if (ImportedGlassCard) {
-    return (
-      <ImportedGlassCard glow={glow} className={className} style={style} {...props}>
-        {children}
-      </ImportedGlassCard>
-    );
-  }
-
-  return (
-    <div
-      className={className}
-      style={{
-        background: "rgba(255,255,255,0.62)",
-        border: "1px solid rgba(255,255,255,0.58)",
-        boxShadow: glow
-          ? "0 24px 70px rgba(11,46,95,0.16)"
-          : "0 14px 34px rgba(11,46,95,0.10)",
-        backdropFilter: "blur(18px) saturate(1.35)",
-        WebkitBackdropFilter: "blur(18px) saturate(1.35)",
-        ...style,
-      }}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
 function PortalBanner({
   modeValue,
   meta = [],
@@ -1860,38 +1821,38 @@ function statusIcon(label: string): React.ReactNode {
   return null;
 }
 
- return (
-  <GlassCard glow className="banner">
-    <div className="banner-accent" />
+  return (
+    <div className="banner">
+      <div className="banner-accent" />
 
-    <div style={BANNER_INNER_STYLE}>
-      <div style={BANNER_LEFT_STYLE}>
-        <div
-          className="mark"
-          aria-hidden="true"
-          style={{
-            padding: "8px 12px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minWidth: 152,
-            flex: "0 0 auto",
-          }}
-        >
-          <img
-            src={logoUrl}
-            alt={logoAlt}
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = "/rsmlogo.png";
-            }}
+      <div style={BANNER_INNER_STYLE}>
+        <div style={BANNER_LEFT_STYLE}>
+          <div
+            className="mark"
+            aria-hidden="true"
             style={{
-              maxWidth: 150,
-              maxHeight: 58,
-              objectFit: "contain",
+              padding: "8px 12px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minWidth: 152,
+              flex: "0 0 auto",
             }}
-          />
-        </div>
+          >
+            <img
+              src={logoUrl}
+              alt={logoAlt}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/rsmlogo.png";
+              }}
+              style={{
+                maxWidth: 150,
+                maxHeight: 58,
+                objectFit: "contain",
+              }}
+            />
+          </div>
 
           <div style={{ minWidth: 0 }}>
  <div
@@ -1979,7 +1940,9 @@ function statusIcon(label: string): React.ReactNode {
   </div>
 </div>
       </div>
-    </GlassCard>
+
+
+    </div>
   );
 }
 
