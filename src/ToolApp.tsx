@@ -378,7 +378,7 @@ const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontVariantNumeric: "tabular-nums",
   fontWeight: 700,
-  letterSpacing: "0.055em",
+  letterSpacing: "0.075em",
   textTransform: "uppercase",
 };
 
@@ -1969,39 +1969,55 @@ function PortalBanner({
               <React.Fragment key={`${item.label}-${index}`}>
                 {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
 
-                <span style={BANNER_STATUS_ITEM_STYLE}>
-                  <span style={BANNER_STATUS_ICON_STYLE}>
-                    {statusIcon(item.label)}
-                  </span>
+<span style={BANNER_STATUS_ITEM_STYLE}>
+  <span style={BANNER_STATUS_ICON_STYLE}>
+    {statusIcon(item.label)}
+  </span>
 
-<span
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-  }}
->
-                      <span style={BANNER_STATUS_LABEL_STYLE}>
-                        {item.label}
-                      </span>
+  <span style={BANNER_STATUS_TEXT_WRAP_STYLE}>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <span style={BANNER_STATUS_LABEL_STYLE}>
+        {item.label}
+      </span>
 
-                      {item.label === t(language, "mode") ? (
-                        <AnimatedBannerValue
-                          value={item.value}
-                          style={BANNER_STATUS_VALUE_SPECIAL_STYLE}
-                        />
-                      ) : (
-                        <span
-                          style={{
-                            ...BANNER_STATUS_VALUE_STYLE,
-...([t(language, "credits"), t(language, "lastUpdate"), t(language, "country")].includes(item.label)
-  ? BANNER_STATUS_VALUE_SPECIAL_STYLE
-  : {}),
-                          }}
-                        >
-                          {item.value}
-                        </span>
-                      )}
-                    </span>
+      {item.label === t(language, "mode") ? (
+        <AnimatedBannerValue
+          value={item.value}
+          style={BANNER_STATUS_VALUE_SPECIAL_STYLE}
+        />
+      ) : (
+        <span
+          style={{
+            ...BANNER_STATUS_VALUE_STYLE,
+            ...([t(language, "credits"), t(language, "lastUpdate"), t(language, "country")].includes(item.label)
+              ? BANNER_STATUS_VALUE_SPECIAL_STYLE
+              : {}),
+          }}
+        >
+          {item.value}
+        </span>
+      )}
+    </span>
+
+    {item.label === t(language, "credits") && (
+      <span style={BANNER_CREDIT_BAR_OUTER_STYLE}>
+        <span
+          style={{
+            ...BANNER_CREDIT_BAR_INNER_STYLE,
+            width: `${creditBarPercent(item.value)}%`,
+          }}
+        />
+      </span>
+    )}
+  </span>
+</span>
 
                     {item.label === t(language, "credits") && (
                       <span style={BANNER_CREDIT_BAR_OUTER_STYLE}>
