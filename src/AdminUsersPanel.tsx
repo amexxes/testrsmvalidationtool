@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 type ModuleKey = "vat" | "tin" | "eori" | "iban";
+type VatSubscription = "starter" | "business" | "enterprise";
 
 type ClientModules = Record<ModuleKey, boolean>;
 
@@ -12,6 +13,7 @@ type UserRow = {
   createdAt: string;
   updatedAt?: string | null;
   modules?: Partial<ClientModules>;
+  vatSubscription?: VatSubscription;
 };
 
 type Props = {
@@ -39,7 +41,23 @@ const MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [
   { key: "eori", label: "EORI" },
   { key: "iban", label: "IBAN" },
 ];
+const VAT_SUBSCRIPTION_OPTIONS: Array<{
+  key: VatSubscription;
+  label: string;
+}> = [
+  { key: "starter", label: "Starter - 50k VAT checks" },
+  { key: "business", label: "Business - 100k VAT checks" },
+  { key: "enterprise", label: "Enterprise - Unlimited" },
+];
 
+function normalizeSubscription(user: UserRow): VatSubscription {
+  if (user.role === "admin") return "enterprise";
+
+  if (user.vatSubscription === "business") return "business";
+  if (user.vatSubscription === "enterprise") return "enterprise";
+
+  return "starter";
+}
 function normalizeModules(user: UserRow): ClientModules {
   if (user.role === "admin") return ADMIN_CLIENT_MODULES;
 
@@ -158,7 +176,39 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
       setActionLoadingEmail("");
     }
   }
+async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscription) {
+  if (user.role === "admin") return;
 
+  setActionLoadingEmail(user.email);
+  setError("");
+  setSuccess("");
+
+  try {
+    const resp = await fetch("/api/admin/users/subscription", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        email: user.email,
+        vatSubscription,
+      }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      setError(data?.error || data?.message || "Could not update subscription");
+      return;
+    }
+
+    setSuccess(`Subscription updated for ${user.email}`);
+    await loadUsers();
+  } catch {
+    setError("Could not update subscription");
+  } finally {
+    setActionLoadingEmail("");
+  }
+}
   async function resetPassword(email: string) {
     const newPassword = window.prompt(`Enter a new password for ${email}`);
     if (!newPassword) return;
@@ -287,13 +337,14 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
           <div style={tableWrapStyle}>
             <table style={tableStyle}>
               <thead>
-                <tr>
-                  <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Role</th>
-                  <th style={thStyle}>Modules</th>
-                  <th style={thStyle}>Created</th>
-                  <th style={thStyle}>Actions</th>
-                </tr>
+<tr>
+  <th style={thStyle}>Email</th>
+  <th style={thStyle}>Role</th>
+  <th style={thStyle}>Subscription</th>
+  <th style={thStyle}>Modules</th>
+  <th style={thStyle}>Created</th>
+  <th style={thStyle}>Actions</th>
+</tr>
               </thead>
 
               <tbody>
@@ -306,14 +357,36 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
                     <tr key={user.email}>
                       <td style={tdStyle}>{user.email}</td>
 
-                      <td style={tdStyle}>
-                        <span style={isAdmin ? roleAdminStyle : roleUserStyle}>
-                          {isAdmin ? "Admin" : "User"}
-                        </span>
-                      </td>
+  <td style={tdStyle}>
+  <span style={isAdmin ? roleAdminStyle : roleUserStyle}>
+    {isAdmin ? "Admin" : "User"}
+  </span>
+</td>
 
-                      <td style={tdStyle}>
-                        <div style={moduleGridStyle}>
+<td style={tdStyle}>
+  <select
+    value={normalizeSubscription(user)}
+    disabled={busy || isAdmin}
+    onChange={(e) =>
+      updateUserSubscription(user, e.target.value as VatSubscription)
+    }
+    style={{
+      ...subscriptionSelectStyle,
+      opacity: isAdmin ? 0.72 : 1,
+      cursor: isAdmin ? "not-allowed" : "pointer",
+    }}
+    title={isAdmin ? "Admin is always Enterprise" : "VAT subscription"}
+  >
+    {VAT_SUBSCRIPTION_OPTIONS.map((option) => (
+      <option key={option.key} value={option.key}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</td>
+
+<td style={tdStyle}>
+  <div style={moduleGridStyle}>
                           {MODULE_OPTIONS.map((module) => {
                             const enabled = modules[module.key];
                             const locked = module.key === "vat" || isAdmin;
@@ -628,4 +701,17 @@ const successStyle: React.CSSProperties = {
   color: "#0a6a38",
   fontSize: 14,
   marginTop: 10,
+};
+const subscriptionSelectStyle: React.CSSProperties = {
+  width: "100%",
+  minWidth: 210,
+  height: 34,
+  borderRadius: 999,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "#FFFFFF",
+  color: "#0B2E5F",
+  fontSize: 12,
+  fontWeight: 800,
+  padding: "0 10px",
+  outline: "none",
 };
