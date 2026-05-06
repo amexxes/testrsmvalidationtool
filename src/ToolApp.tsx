@@ -5363,40 +5363,43 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
             </CardHeader>
 
             <CardContent className="pt-0">
-              <div style={ACTION_ROW_STYLE}>
-                <input
-                  type="text"
-                  value="IBAN"
-                  readOnly
-                  style={{
-                    ...ACTION_FIRST_FIELD_STYLE,
-                    opacity: 0.9,
-                  }}
-                />
+ <div style={ACTION_ROW_STYLE}>
+  <input
+    type="text"
+    value="IBAN"
+    readOnly
+    style={{
+      ...ACTION_FIRST_FIELD_STYLE,
+      opacity: 0.9,
+    }}
+  />
 
-<Button
-  variant="secondary"
-  size="md"
-  onClick={exportIbanExcel}
-  disabled={!filteredRows.length}
-  style={{
-    ...ACTION_BUTTON_STYLE,
-    ...GLASS_BUTTON_STYLE,
-  }}
->
-  {t(language, "exportExcel")}
-</Button>
+  <Button
+    variant="secondary"
+    size="md"
+    onClick={exportIbanExcel}
+    disabled={!filteredRows.length}
+    style={{
+      ...ACTION_BUTTON_STYLE,
+      ...GLASS_BUTTON_STYLE,
+    }}
+  >
+    {t(language, "exportExcel")}
+  </Button>
 
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={onClearIban}
-                  disabled={loading}
-                  style={{   ...ACTION_BUTTON_STYLE,   ...GLASS_BUTTON_STYLE, }}
-                >
-                  {t(language, "clear")}
-                </Button>
-              </div>
+  <Button
+    variant="secondary"
+    size="md"
+    onClick={onClearIban}
+    disabled={loading}
+    style={{
+      ...ACTION_BUTTON_STYLE,
+      ...GLASS_BUTTON_STYLE,
+    }}
+  >
+    {t(language, "clear")}
+  </Button>
+</div>
 
               <textarea
                 value={ibanInput}
