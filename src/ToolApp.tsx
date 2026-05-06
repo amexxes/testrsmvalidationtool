@@ -6,6 +6,7 @@ import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import type { PortalRunSummary } from "./portalRunHistory";
 import * as XLSX from "xlsx";
 import UserDraftsPanel from "./UserDraftsPanel";
+import * as ReactGlassUI from "@dinakars777/react-glass-ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
