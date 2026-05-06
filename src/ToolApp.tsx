@@ -5674,32 +5674,33 @@ export default function App({
     onRequestModuleUpgrade,
   };
 
-  if (activePage === "vat") {
+   if (activePage === "vat") {
+    return (
+      <div style={APP_ROOT_STYLE}>
+        <VatPage {...sharedProps} />
+      </div>
+    );
+  }
+
+  if (activePage === "tin") {
+    return (
+      <div style={APP_ROOT_STYLE}>
+        <TinPage {...sharedProps} />
+      </div>
+    );
+  }
+
+  if (activePage === "eori") {
+    return (
+      <div style={APP_ROOT_STYLE}>
+        <EoriPage {...sharedProps} />
+      </div>
+    );
+  }
+
   return (
     <div style={APP_ROOT_STYLE}>
-      <VatPage {...sharedProps} />
+      <IbanPage {...sharedProps} />
     </div>
   );
 }
-
-if (activePage === "tin") {
-  return (
-    <div style={APP_ROOT_STYLE}>
-      <TinPage {...sharedProps} />
-    </div>
-  );
-}
-
-if (activePage === "eori") {
-  return (
-    <div style={APP_ROOT_STYLE}>
-      <EoriPage {...sharedProps} />
-    </div>
-  );
-}
-
-return (
-  <div style={APP_ROOT_STYLE}>
-    <IbanPage {...sharedProps} />
-  </div>
-);
