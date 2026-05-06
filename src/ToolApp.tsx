@@ -3363,7 +3363,6 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
       width: `${progressPct}%`,
     }}
   />
-</div>"bar" style={{ width: `${progressPct}%`, height: "100%" }} />
 </div>
 
 <div style={{ marginTop: 14 }}>
