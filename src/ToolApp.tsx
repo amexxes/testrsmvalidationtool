@@ -22,6 +22,7 @@ import {
   Globe,
   Landmark,
   Lock,
+  type LucideIcon,
 } from "lucide-react";
 
 type SortState = { colIndex: number | null; asc: boolean };
@@ -1490,7 +1491,7 @@ function PageSwitcher({
     key: ActivePage;
     label: string;
     title: string;
-    Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+    Icon: LucideIcon;
   }> = [
     {
       key: "vat",
