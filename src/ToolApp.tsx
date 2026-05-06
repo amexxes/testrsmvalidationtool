@@ -200,6 +200,10 @@ const ACTION_FIRST_FIELD_STYLE: React.CSSProperties = {
   minHeight: 38,
   boxSizing: "border-box",
   display: "block",
+  fontFamily: PORTAL_FONT,
+  fontSize: 14,
+  fontWeight: 300,
+  color: RSM_TEXT,
 };
 
 const ACTION_ROW_STYLE: React.CSSProperties = {
@@ -226,6 +230,9 @@ const ACTION_BUTTON_STYLE: React.CSSProperties = {
   paddingTop: 0,
   paddingBottom: 0,
   alignSelf: "center",
+  fontFamily: PORTAL_FONT,
+  fontSize: 14,
+  fontWeight: 700,
 };
 
 const BANNER_INNER_STYLE: React.CSSProperties = {
@@ -261,7 +268,11 @@ const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
   background: "rgba(0,156,222,0.86)",
 };
 
-
+const APP_ROOT_STYLE: React.CSSProperties = {
+  minHeight: "100vh",
+  fontFamily: PORTAL_FONT,
+  color: RSM_TEXT,
+};
 const BANNER_LEFT_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -378,8 +389,9 @@ const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontVariantNumeric: "tabular-nums",
   fontWeight: 700,
-  letterSpacing: "0.075em",
+  letterSpacing: "0.055em",
   textTransform: "uppercase",
+  color: RSM_DARK,
 };
 
 
@@ -5663,16 +5675,31 @@ export default function App({
   };
 
   if (activePage === "vat") {
-    return <VatPage {...sharedProps} />;
-  }
-
-  if (activePage === "tin") {
-    return <TinPage {...sharedProps} />;
-  }
-
-  if (activePage === "eori") {
-    return <EoriPage {...sharedProps} />;
-  }
-
-  return <IbanPage {...sharedProps} />;
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <VatPage {...sharedProps} />
+    </div>
+  );
 }
+
+if (activePage === "tin") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <TinPage {...sharedProps} />
+    </div>
+  );
+}
+
+if (activePage === "eori") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <EoriPage {...sharedProps} />
+    </div>
+  );
+}
+
+return (
+  <div style={APP_ROOT_STYLE}>
+    <IbanPage {...sharedProps} />
+  </div>
+);
