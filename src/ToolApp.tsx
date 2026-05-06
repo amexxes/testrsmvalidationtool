@@ -251,14 +251,14 @@ const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
   height: 5,
   borderRadius: 999,
   overflow: "hidden",
-  background: "rgba(148,163,184,0.22)",
-  boxShadow: "inset 0 1px 2px rgba(15,23,42,0.08)",
+  background: "rgba(0,156,222,0.16)",
+  boxShadow: "inset 0 1px 2px rgba(47,48,51,0.08)",
 };
 
 const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
   height: "100%",
   borderRadius: 999,
-  background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
+  background: "rgba(0,156,222,0.86)",
 };
 
 
@@ -291,7 +291,7 @@ const BANNER_RIGHT_STYLE: React.CSSProperties = {
   zIndex: 40000,
 };
 
-const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
+cconst BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   minHeight: 44,
   display: "inline-flex",
   flexDirection: "row",
@@ -301,13 +301,34 @@ const BANNER_STATUS_BAR_STYLE: React.CSSProperties = {
   gap: 10,
   padding: "6px 16px",
   borderRadius: 999,
-  border: "1px solid rgba(11,46,95,0.10)",
-  background: "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,251,255,0.92))",
-  boxShadow: "0 10px 24px rgba(11,46,95,0.10)",
-  color: "#0B2E5F",
+  border: "1px solid rgba(0,156,222,0.22)",
+  background: "rgba(255,255,255,0.46)",
+  boxShadow: "0 10px 24px rgba(0,156,222,0.12)",
+  color: RSM_DARK,
   fontFamily: PORTAL_FONT,
   whiteSpace: "nowrap",
   flex: "0 0 auto",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+};
+
+const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
+  width: 24,
+  height: 24,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 999,
+  background: "rgba(0,156,222,0.86)",
+  color: "#FFFFFF",
+  border: "1px solid rgba(255,255,255,0.62)",
+  boxShadow: "0 4px 10px rgba(0,156,222,0.18)",
+  fontSize: 11,
+  fontWeight: 900,
+  flex: "0 0 auto",
+  lineHeight: "24px",
+  textAlign: "center",
+  fontFamily: PORTAL_FONT,
 };
 
 const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
@@ -320,30 +341,11 @@ const BANNER_STATUS_ITEM_STYLE: React.CSSProperties = {
   flex: "0 0 auto",
 };
 
-const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
-  width: 24,
-  height: 24,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  borderRadius: 999,
-  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
-  color: "#FFFFFF",
-  border: "1px solid rgba(255,255,255,0.65)",
-  boxShadow: "0 4px 10px rgba(11,46,95,0.18)",
-  fontSize: 11,
-  fontWeight: 900,
-  flex: "0 0 auto",
-  lineHeight: "24px",
-  textAlign: "center",
-  fontFamily: "Arial, sans-serif",
-};
-
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
   fontSize: 12,
   lineHeight: 1.15,
   fontWeight: 700,
-  color: "#64748B",
+  color: RSM_TEXT,
   whiteSpace: "nowrap",
 };
 
@@ -358,7 +360,13 @@ const BANNER_STATUS_VALUE_STYLE: React.CSSProperties = {
   fontWeight: 800,
   letterSpacing: "0.055em",
   textTransform: "uppercase",
-  color: "#0B2E5F",
+  color: RSM_DARK,
+  whiteSpace: "nowrap",
+};
+
+const BANNER_DOT_STYLE: React.CSSProperties = {
+  color: "rgba(0,156,222,0.42)",
+  fontWeight: 700,
   whiteSpace: "nowrap",
 };
 const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
@@ -368,11 +376,7 @@ const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
   letterSpacing: "0.075em",
   textTransform: "uppercase",
 };
-const BANNER_DOT_STYLE: React.CSSProperties = {
-  color: "rgba(11,46,95,0.22)",
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-};
+
 
 const BANNER_CONTROL_STYLE: React.CSSProperties = {
   height: 36,
