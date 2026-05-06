@@ -2470,17 +2470,19 @@ function VatPage({
           signal: controller.signal,
         });
 
-        const ukData = await ukResp.json();
+   const ukData = await ukResp.json();
 
         if (!ukResp.ok) {
           throw new Error(ukData?.message || ukData?.error || "UK VAT validation failed");
         }
-
+        
+        if (ukData?.vat_credits) setVatCredits(ukData.vat_credits);
+        
         duplicatesTotal += Number(ukData.duplicates_ignored || 0);
-
-        if (Array.isArray(ukData.results)) {
-          combinedResults.push(...ukData.results);
-        }
+        
+                if (Array.isArray(ukData.results)) {
+                  combinedResults.push(...ukData.results);
+                }
       }
 
       if (chVatLines.length) {
@@ -2491,13 +2493,15 @@ function VatPage({
           signal: controller.signal,
         });
 
-        const chData = await chResp.json();
+const chData = await chResp.json();
 
-        if (!chResp.ok) {
-          throw new Error(chData?.message || chData?.error || "Swiss VAT validation failed");
-        }
+if (!chResp.ok) {
+  throw new Error(chData?.message || chData?.error || "Swiss VAT validation failed");
+}
 
-        duplicatesTotal += Number(chData.duplicates_ignored || 0);
+if (chData?.vat_credits) setVatCredits(chData.vat_credits);
+
+duplicatesTotal += Number(chData.duplicates_ignored || 0);
 
         if (Array.isArray(chData.results)) {
           combinedResults.push(...chData.results);
@@ -2533,13 +2537,15 @@ function VatPage({
           signal: controller.signal,
         });
 
-        const viesData = (await viesResp.json()) as ValidateBatchResponse & any;
+const viesData = (await viesResp.json()) as ValidateBatchResponse & any;
 
-        if (!viesResp.ok) {
-          throw new Error(viesData?.message || viesData?.error || "VAT validation failed");
-        }
+if (!viesResp.ok) {
+  throw new Error(viesData?.message || viesData?.error || "VAT validation failed");
+}
 
-        duplicatesTotal += Number(viesData.duplicates_ignored || 0);
+if (viesData?.vat_credits) setVatCredits(viesData.vat_credits);
+
+duplicatesTotal += Number(viesData.duplicates_ignored || 0);
         setViesStatus(Array.isArray(viesData.vies_status) ? viesData.vies_status : []);
 
         if (Array.isArray(viesData.results)) {
