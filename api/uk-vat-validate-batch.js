@@ -1,5 +1,9 @@
 // /api/uk-vat-validate-batch.js
-import { requireModuleAccess } from "../lib/auth.js";
+import {
+  requireModuleAccess,
+  consumeVatCreditsForUser,
+} from "../lib/auth.js";
+
 const HMRC_ACCEPT_HEADER = "application/vnd.hmrc.2.0+json";
 
 let cachedToken = null;
@@ -196,6 +200,9 @@ export default async function handler(req, res) {
     });
   }
 
+  const auth = await requireModuleAccess(req, res, "vatUk");
+  if (!auth) return;
+
   try {
     const input = Array.isArray(req.body?.vat_numbers) ? req.body.vat_numbers : [];
 
@@ -243,18 +250,37 @@ export default async function handler(req, res) {
       });
     }
 
-    const token = await getHmrcAccessToken();
+    let vat_credits = null;
 
-for (const vrn of validVrns) {
-  const row = await checkUkVat(vrn, token);
-  results.push(row);
-}
+    if (validVrns.length) {
+      try {
+        vat_credits = await consumeVatCreditsForUser(auth.user, validVrns.length);
+      } catch (error) {
+        if (error?.code === "VAT_CREDITS_EXCEEDED") {
+          return res.status(403).json({
+            error: "VAT_CREDITS_EXCEEDED",
+            message: "VAT credit limit reached.",
+            credits: error.details,
+          });
+        }
+
+        throw error;
+      }
+
+      const token = await getHmrcAccessToken();
+
+      for (const vrn of validVrns) {
+        const row = await checkUkVat(vrn, token);
+        results.push(row);
+      }
+    }
 
     return res.status(200).json({
       results,
       total: results.length,
       duplicates_ignored: duplicatesIgnored,
       checked_at: new Date().toISOString(),
+      vat_credits,
     });
   } catch (error) {
     return res.status(500).json({
