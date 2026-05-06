@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 
 type ModuleKey = "vat" | "tin" | "eori" | "iban";
+type VatSubscription = "starter" | "business" | "enterprise";
+
 type VatCreditStatus = {
   plan: "starter" | "business" | "enterprise";
   year: string;
@@ -49,6 +51,7 @@ const MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [
   { key: "eori", label: "EORI" },
   { key: "iban", label: "IBAN" },
 ];
+
 const VAT_SUBSCRIPTION_OPTIONS: Array<{
   key: VatSubscription;
   label: string;
@@ -67,16 +70,6 @@ function normalizeSubscription(user: UserRow): VatSubscription {
   return "starter";
 }
 
-function formatVatCredits(user: UserRow) {
-  const credits = user.vatCredits;
-
-  if (user.role === "admin") return "Unlimited";
-  if (!credits) return "-";
-  if (credits.unlimited || credits.limit === null) return "Unlimited";
-
-  return `${credits.used.toLocaleString("en-GB")} / ${credits.limit.toLocaleString("en-GB")}`;
-}
-
 function normalizeModules(user: UserRow): ClientModules {
   if (user.role === "admin") return ADMIN_CLIENT_MODULES;
 
@@ -85,6 +78,44 @@ function normalizeModules(user: UserRow): ClientModules {
     ...(user.modules || {}),
     vat: true,
   };
+}
+
+function VatCreditsIndicator({ user }: { user: UserRow }) {
+  const credits = user.vatCredits;
+
+  if (user.role === "admin") {
+    return <span style={creditBadgeStyle}>Unlimited</span>;
+  }
+
+  if (!credits) {
+    return <span style={creditBadgeStyle}>No data</span>;
+  }
+
+  if (credits.unlimited || credits.limit === null) {
+    return <span style={creditBadgeStyle}>Unlimited</span>;
+  }
+
+  const used = Number(credits.used || 0);
+  const limit = Number(credits.limit || 0);
+  const remaining = Math.max(0, limit - used);
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+  return (
+    <div style={{ minWidth: 180 }}>
+      <div style={creditTopRowStyle}>
+        <span>{used.toLocaleString("en-GB")}</span>
+        <span>/ {limit.toLocaleString("en-GB")}</span>
+      </div>
+
+      <div style={creditBarOuterStyle}>
+        <div style={{ ...creditBarInnerStyle, width: `${pct}%` }} />
+      </div>
+
+      <div style={creditSubTextStyle}>
+        {remaining.toLocaleString("en-GB")} remaining
+      </div>
+    </div>
+  );
 }
 
 export default function AdminUsersPanel({ open, onClose }: Props) {
@@ -195,39 +226,41 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
       setActionLoadingEmail("");
     }
   }
-async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscription) {
-  if (user.role === "admin") return;
 
-  setActionLoadingEmail(user.email);
-  setError("");
-  setSuccess("");
+  async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscription) {
+    if (user.role === "admin") return;
 
-  try {
-    const resp = await fetch("/api/admin/users/subscription", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        email: user.email,
-        vatSubscription,
-      }),
-    });
+    setActionLoadingEmail(user.email);
+    setError("");
+    setSuccess("");
 
-    const data = await resp.json();
+    try {
+      const resp = await fetch("/api/admin/users/subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: user.email,
+          vatSubscription,
+        }),
+      });
 
-    if (!resp.ok) {
-      setError(data?.error || data?.message || "Could not update subscription");
-      return;
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        setError(data?.error || data?.message || "Could not update subscription");
+        return;
+      }
+
+      setSuccess(`Subscription updated for ${user.email}`);
+      await loadUsers();
+    } catch {
+      setError("Could not update subscription");
+    } finally {
+      setActionLoadingEmail("");
     }
-
-    setSuccess(`Subscription updated for ${user.email}`);
-    await loadUsers();
-  } catch {
-    setError("Could not update subscription");
-  } finally {
-    setActionLoadingEmail("");
   }
-}
+
   async function resetPassword(email: string) {
     const newPassword = window.prompt(`Enter a new password for ${email}`);
     if (!newPassword) return;
@@ -356,15 +389,15 @@ async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscri
           <div style={tableWrapStyle}>
             <table style={tableStyle}>
               <thead>
-<tr>
-  <th style={thStyle}>Email</th>
-  <th style={thStyle}>Role</th>
-  <th style={thStyle}>Subscription</th>
-  <th style={thStyle}>VAT credits</th>
-  <th style={thStyle}>Modules</th>
-  <th style={thStyle}>Created</th>
-  <th style={thStyle}>Actions</th>
-</tr>
+                <tr>
+                  <th style={thStyle}>Email</th>
+                  <th style={thStyle}>Role</th>
+                  <th style={thStyle}>Subscription</th>
+                  <th style={thStyle}>VAT credits</th>
+                  <th style={thStyle}>Modules</th>
+                  <th style={thStyle}>Created</th>
+                  <th style={thStyle}>Actions</th>
+                </tr>
               </thead>
 
               <tbody>
@@ -377,42 +410,40 @@ async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscri
                     <tr key={user.email}>
                       <td style={tdStyle}>{user.email}</td>
 
-<td style={tdStyle}>
-  <span style={isAdmin ? roleAdminStyle : roleUserStyle}>
-    {isAdmin ? "Admin" : "User"}
-  </span>
-</td>
+                      <td style={tdStyle}>
+                        <span style={isAdmin ? roleAdminStyle : roleUserStyle}>
+                          {isAdmin ? "Admin" : "User"}
+                        </span>
+                      </td>
 
-<td style={tdStyle}>
-  <select
-    value={normalizeSubscription(user)}
-    disabled={busy || isAdmin}
-    onChange={(e) =>
-      updateUserSubscription(user, e.target.value as VatSubscription)
-    }
-    style={{
-      ...subscriptionSelectStyle,
-      opacity: isAdmin ? 0.72 : 1,
-      cursor: isAdmin ? "not-allowed" : "pointer",
-    }}
-    title={isAdmin ? "Admin is always Enterprise" : "VAT subscription"}
-  >
-    {VAT_SUBSCRIPTION_OPTIONS.map((option) => (
-      <option key={option.key} value={option.key}>
-        {option.label}
-      </option>
-    ))}
-  </select>
-</td>
+                      <td style={tdStyle}>
+                        <select
+                          value={normalizeSubscription(user)}
+                          disabled={busy || isAdmin}
+                          onChange={(e) =>
+                            updateUserSubscription(user, e.target.value as VatSubscription)
+                          }
+                          style={{
+                            ...subscriptionSelectStyle,
+                            opacity: isAdmin ? 0.72 : 1,
+                            cursor: isAdmin ? "not-allowed" : "pointer",
+                          }}
+                          title={isAdmin ? "Admin is always Enterprise" : "VAT subscription"}
+                        >
+                          {VAT_SUBSCRIPTION_OPTIONS.map((option) => (
+                            <option key={option.key} value={option.key}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
 
-<td style={tdStyle}>
-  <span style={creditBadgeStyle}>
-    {formatVatCredits(user)}
-  </span>
-</td>
+                      <td style={tdStyle}>
+                        <VatCreditsIndicator user={user} />
+                      </td>
 
-<td style={tdStyle}>
-  <div style={moduleGridStyle}>
+                      <td style={tdStyle}>
+                        <div style={moduleGridStyle}>
                           {MODULE_OPTIONS.map((module) => {
                             const enabled = modules[module.key];
                             const locked = module.key === "vat" || isAdmin;
@@ -504,7 +535,7 @@ const backdropStyle: React.CSSProperties = {
 
 const panelStyle: React.CSSProperties = {
   width: "100%",
-  maxWidth: 1180,
+  maxWidth: 1320,
   maxHeight: "calc(100vh - 48px)",
   overflow: "auto",
   borderRadius: 24,
@@ -728,6 +759,7 @@ const successStyle: React.CSSProperties = {
   fontSize: 14,
   marginTop: 10,
 };
+
 const subscriptionSelectStyle: React.CSSProperties = {
   width: "100%",
   minWidth: 210,
@@ -741,6 +773,7 @@ const subscriptionSelectStyle: React.CSSProperties = {
   padding: "0 10px",
   outline: "none",
 };
+
 const creditBadgeStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -753,4 +786,35 @@ const creditBadgeStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 800,
   whiteSpace: "nowrap",
+};
+
+const creditTopRowStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  color: "#0B2E5F",
+  fontSize: 12,
+  fontWeight: 800,
+};
+
+const creditBarOuterStyle: React.CSSProperties = {
+  width: "100%",
+  height: 7,
+  marginTop: 6,
+  borderRadius: 999,
+  overflow: "hidden",
+  background: "rgba(148,163,184,0.22)",
+};
+
+const creditBarInnerStyle: React.CSSProperties = {
+  height: "100%",
+  borderRadius: 999,
+  background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
+};
+
+const creditSubTextStyle: React.CSSProperties = {
+  marginTop: 4,
+  color: "#64748B",
+  fontSize: 11,
+  fontWeight: 700,
 };
