@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 
 type ModuleKey = "vat" | "tin" | "eori" | "iban";
-type VatSubscription = "starter" | "business" | "enterprise";
+type VatCreditStatus = {
+  plan: "starter" | "business" | "enterprise";
+  year: string;
+  used: number;
+  limit: number | null;
+  unlimited: boolean;
+  remaining: number | null;
+};
 
 type ClientModules = Record<ModuleKey, boolean>;
 
@@ -14,6 +21,7 @@ type UserRow = {
   updatedAt?: string | null;
   modules?: Partial<ClientModules>;
   vatSubscription?: VatSubscription;
+  vatCredits?: VatCreditStatus;
 };
 
 type Props = {
@@ -58,6 +66,17 @@ function normalizeSubscription(user: UserRow): VatSubscription {
 
   return "starter";
 }
+
+function formatVatCredits(user: UserRow) {
+  const credits = user.vatCredits;
+
+  if (user.role === "admin") return "Unlimited";
+  if (!credits) return "-";
+  if (credits.unlimited || credits.limit === null) return "Unlimited";
+
+  return `${credits.used.toLocaleString("en-GB")} / ${credits.limit.toLocaleString("en-GB")}`;
+}
+
 function normalizeModules(user: UserRow): ClientModules {
   if (user.role === "admin") return ADMIN_CLIENT_MODULES;
 
@@ -341,6 +360,7 @@ async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscri
   <th style={thStyle}>Email</th>
   <th style={thStyle}>Role</th>
   <th style={thStyle}>Subscription</th>
+  <th style={thStyle}>VAT credits</th>
   <th style={thStyle}>Modules</th>
   <th style={thStyle}>Created</th>
   <th style={thStyle}>Actions</th>
@@ -357,7 +377,7 @@ async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscri
                     <tr key={user.email}>
                       <td style={tdStyle}>{user.email}</td>
 
-  <td style={tdStyle}>
+<td style={tdStyle}>
   <span style={isAdmin ? roleAdminStyle : roleUserStyle}>
     {isAdmin ? "Admin" : "User"}
   </span>
@@ -383,6 +403,12 @@ async function updateUserSubscription(user: UserRow, vatSubscription: VatSubscri
       </option>
     ))}
   </select>
+</td>
+
+<td style={tdStyle}>
+  <span style={creditBadgeStyle}>
+    {formatVatCredits(user)}
+  </span>
 </td>
 
 <td style={tdStyle}>
@@ -714,4 +740,17 @@ const subscriptionSelectStyle: React.CSSProperties = {
   fontWeight: 800,
   padding: "0 10px",
   outline: "none",
+};
+const creditBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 30,
+  padding: "0 10px",
+  borderRadius: 999,
+  background: "rgba(11,46,95,0.08)",
+  color: "#0B2E5F",
+  fontSize: 12,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
 };
