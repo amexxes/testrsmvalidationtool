@@ -100,7 +100,13 @@ const PAGE_TITLE_STYLE: React.CSSProperties = {
   color: "#0B2E5F",
   margin: 0,
 };
-
+const GLASS_PANEL_STYLE: React.CSSProperties = {
+  background: "rgba(255,255,255,0.58)",
+  border: "1px solid rgba(255,255,255,0.55)",
+  boxShadow: "0 22px 60px rgba(11,46,95,0.12)",
+  backdropFilter: "blur(18px) saturate(1.28)",
+  WebkitBackdropFilter: "blur(18px) saturate(1.28)",
+};
 const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
@@ -3119,7 +3125,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
 <CardHeader className="pb-4">
 <SectionTitle>
   <span
