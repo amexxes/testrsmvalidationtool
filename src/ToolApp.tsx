@@ -190,14 +190,14 @@ const BANNER_INNER_STYLE: React.CSSProperties = {
 const BANNER_STATUS_TEXT_WRAP_STYLE: React.CSSProperties = {
   display: "inline-flex",
   flexDirection: "column",
-  alignItems: "flex-start",
+  alignItems: "stretch",
   justifyContent: "center",
-  gap: 3,
+  gap: 4,
   minWidth: 0,
 };
 
 const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
-  width: 74,
+  width: "100%",
   height: 5,
   borderRadius: 999,
   overflow: "hidden",
