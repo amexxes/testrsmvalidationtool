@@ -18,12 +18,13 @@ user: {
   onOpenChangePassword: () => void;
   onLogout: () => void;
 };
-const LANGUAGE_FLAGS: Record<PortalLanguage, string> = {
-  en: "GB",
-  nl: "NL",
-  de: "DE",
-  fr: "FR",
-};
+const PORTAL_FONT =
+  "'Prelo', 'Noto Sans', 'Noto Sans Georgian', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans JP', 'Noto Sans TC', 'Noto Sans SC', 'Noto Sans KR', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+const RSM_BLUE = "#009CDE";
+const RSM_TEXT = "#515356";
+const RSM_DARK = "#2F3033";
+const RSM_RED = "#8F1D1D";
 function subscriptionLabel(value?: "starter" | "business" | "enterprise") {
   if (value === "business") return "Business";
   if (value === "enterprise") return "Enterprise";
@@ -240,6 +241,8 @@ onClick={() => {
 
 const rootStyle: React.CSSProperties = {
   position: "relative",
+  fontFamily: PORTAL_FONT,
+  color: RSM_TEXT,
 };
 
 const triggerStyle: React.CSSProperties = {
@@ -250,11 +253,14 @@ const triggerStyle: React.CSSProperties = {
   maxWidth: 360,
   padding: "10px 12px",
   borderRadius: 16,
-  border: "1px solid rgba(11,46,95,0.10)",
-  background: "rgba(255,255,255,0.94)",
-  color: "#0B2E5F",
+  border: "1px solid rgba(255,255,255,0.58)",
+  background: "rgba(255,255,255,0.62)",
+  color: RSM_DARK,
   cursor: "pointer",
-  boxShadow: "0 10px 24px rgba(11,46,95,0.08)",
+  boxShadow: "0 14px 34px rgba(81,83,86,0.14)",
+  backdropFilter: "blur(18px) saturate(1.35)",
+  WebkitBackdropFilter: "blur(18px) saturate(1.35)",
+  fontFamily: PORTAL_FONT,
 };
 
 const avatarStyle: React.CSSProperties = {
@@ -263,18 +269,20 @@ const avatarStyle: React.CSSProperties = {
   borderRadius: 999,
   display: "grid",
   placeItems: "center",
-  background: "linear-gradient(135deg, #0B2E5F, #2BB3E6)",
+  background: RSM_BLUE,
   color: "#fff",
-  fontWeight: 800,
+  fontFamily: PORTAL_FONT,
+  fontWeight: 700,
   flex: "0 0 auto",
 };
 
 const accountLabelStyle: React.CSSProperties = {
   display: "block",
+  fontFamily: PORTAL_FONT,
   fontSize: 11,
   lineHeight: 1.2,
-  color: "#64748b",
-  fontWeight: 800,
+  color: RSM_TEXT,
+  fontWeight: 700,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
 };
@@ -282,17 +290,19 @@ const accountLabelStyle: React.CSSProperties = {
 const emailStyle: React.CSSProperties = {
   display: "block",
   marginTop: 2,
+  fontFamily: PORTAL_FONT,
   fontSize: 13,
-  color: "#0B2E5F",
-  fontWeight: 800,
+  color: RSM_DARK,
+  fontWeight: 700,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
 };
 
 const chevronStyle: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
   fontSize: 10,
-  color: "#64748b",
+  color: RSM_TEXT,
   flex: "0 0 auto",
 };
 
@@ -303,24 +313,29 @@ const menuStyle: React.CSSProperties = {
   width: 286,
   borderRadius: 18,
   overflow: "hidden",
-  background: "rgba(255,255,255,0.98)",
-  border: "1px solid rgba(148,163,184,0.22)",
-  boxShadow: "0 24px 60px rgba(11,46,95,0.18)",
+  background: "rgba(255,255,255,0.82)",
+  border: "1px solid rgba(255,255,255,0.58)",
+  boxShadow: "0 24px 60px rgba(81,83,86,0.18)",
+  backdropFilter: "blur(18px) saturate(1.35)",
+  WebkitBackdropFilter: "blur(18px) saturate(1.35)",
   zIndex: 20000,
   transformOrigin: "bottom right",
   animation: "accountMenuDropIn 520ms cubic-bezier(0.16, 1, 0.3, 1)",
+  fontFamily: PORTAL_FONT,
+  color: RSM_TEXT,
 };
 
 const menuHeaderStyle: React.CSSProperties = {
   padding: "14px 16px",
-  borderBottom: "1px solid rgba(11,46,95,0.08)",
-  background: "rgba(11,46,95,0.03)",
+  borderBottom: "1px solid rgba(81,83,86,0.10)",
+  background: "rgba(255,255,255,0.38)",
 };
 
 const menuEmailStyle: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
   fontSize: 13,
-  fontWeight: 800,
-  color: "#0B2E5F",
+  fontWeight: 700,
+  color: RSM_DARK,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -328,21 +343,23 @@ const menuEmailStyle: React.CSSProperties = {
 
 const menuRoleStyle: React.CSSProperties = {
   marginTop: 4,
+  fontFamily: PORTAL_FONT,
   fontSize: 12,
-  color: "#64748b",
-  fontWeight: 700,
+  color: RSM_TEXT,
+  fontWeight: 300,
 };
 
 const languageBlockStyle: React.CSSProperties = {
   padding: "12px 16px",
-  borderBottom: "1px solid rgba(11,46,95,0.06)",
-  background: "#fff",
+  borderBottom: "1px solid rgba(81,83,86,0.08)",
+  background: "rgba(255,255,255,0.34)",
 };
 
 const languageTitleStyle: React.CSSProperties = {
+  fontFamily: PORTAL_FONT,
   fontSize: 12,
-  fontWeight: 800,
-  color: "#64748b",
+  fontWeight: 700,
+  color: RSM_TEXT,
   marginBottom: 8,
 };
 
@@ -357,16 +374,17 @@ const languageButtonStyle: React.CSSProperties = {
   height: 30,
   padding: 0,
   borderRadius: 999,
-  border: "1px solid rgba(11,46,95,0.12)",
-  background: "#fff",
+  border: "1px solid rgba(81,83,86,0.16)",
+  background: "rgba(255,255,255,0.58)",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   cursor: "pointer",
+  fontFamily: PORTAL_FONT,
 };
 
 const languageButtonActiveStyle: React.CSSProperties = {
-  background: "#0B2E5F",
+  background: RSM_BLUE,
   color: "#fff",
 };
 
@@ -375,11 +393,12 @@ const menuItemStyle: React.CSSProperties = {
   textAlign: "left",
   padding: "14px 16px",
   border: 0,
-  background: "#fff",
-  color: "#0B2E5F",
+  background: "rgba(255,255,255,0.42)",
+  color: RSM_DARK,
+  fontFamily: PORTAL_FONT,
   fontWeight: 700,
   cursor: "pointer",
-  borderBottom: "1px solid rgba(11,46,95,0.06)",
+  borderBottom: "1px solid rgba(81,83,86,0.08)",
 };
 
 const dangerItemStyle: React.CSSProperties = {
@@ -388,7 +407,8 @@ const dangerItemStyle: React.CSSProperties = {
   padding: "14px 16px",
   border: 0,
   background: "rgba(185,28,28,0.05)",
-  color: "#8f1d1d",
+  color: RSM_RED,
+  fontFamily: PORTAL_FONT,
   fontWeight: 700,
   cursor: "pointer",
 };
@@ -396,9 +416,10 @@ const dangerItemStyle: React.CSSProperties = {
 const subscriptionStyle: React.CSSProperties = {
   display: "block",
   marginTop: 3,
+  fontFamily: PORTAL_FONT,
   fontSize: 11,
-  color: "#64748b",
-  fontWeight: 700,
+  color: RSM_TEXT,
+  fontWeight: 300,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
