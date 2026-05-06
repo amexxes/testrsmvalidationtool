@@ -114,10 +114,10 @@ const GLASS_PANEL_STYLE: React.CSSProperties = {
   WebkitBackdropFilter: "blur(18px) saturate(1.28)",
 };
 const GLASS_BUTTON_STYLE: React.CSSProperties = {
-  background: "rgba(255,255,255,0.48)",
-  border: "1px solid rgba(255,255,255,0.62)",
-  color: "#0B2E5F",
-  boxShadow: "0 12px 30px rgba(11,46,95,0.12)",
+  background: "rgba(255,255,255,0.56)",
+  border: "1px solid rgba(0,156,222,0.28)",
+  color: RSM_DARK,
+  boxShadow: "0 12px 30px rgba(0,156,222,0.13)",
   backdropFilter: "blur(14px) saturate(1.25)",
   WebkitBackdropFilter: "blur(14px) saturate(1.25)",
 };
@@ -239,7 +239,7 @@ const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
 const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
   height: "100%",
   borderRadius: 999,
-  background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
+  background: `linear-gradient(90deg, ${RSM_GREEN}, ${RSM_BLUE})`,
 };
 
 
@@ -308,16 +308,16 @@ const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 999,
-  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
+  background: `linear-gradient(135deg, ${RSM_BLUE}, ${RSM_GREEN})`,
   color: "#FFFFFF",
-  border: "1px solid rgba(255,255,255,0.65)",
-  boxShadow: "0 4px 10px rgba(11,46,95,0.18)",
+  border: "1px solid rgba(255,255,255,0.68)",
+  boxShadow: "0 4px 12px rgba(0,156,222,0.22)",
   fontSize: 11,
   fontWeight: 900,
   flex: "0 0 auto",
   lineHeight: "24px",
   textAlign: "center",
-  fontFamily: "Arial, sans-serif",
+  fontFamily: PORTAL_FONT,
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
