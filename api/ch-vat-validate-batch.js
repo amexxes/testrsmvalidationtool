@@ -1,5 +1,9 @@
 // /api/ch-vat-validate-batch.js
-import { requireModuleAccess } from "../lib/auth.js";
+import {
+  requireModuleAccess,
+  consumeVatCreditsForUser,
+} from "../lib/auth.js";
+
 const CH_UID_ENDPOINT =
   process.env.CH_UID_ENDPOINT || "https://www.uid-wse.admin.ch/V5.0/PublicServices.svc";
 
@@ -255,8 +259,7 @@ async function callSoap(operation, envelope) {
       },
       body: envelope,
     });
-const auth = await requireModuleAccess(req, res, "vatCh");
-if (!auth) return;
+
     const xml = await response.text();
     const fault = parseSoapFault(xml);
 
@@ -341,6 +344,7 @@ function extractOrganisationInfo(xml) {
 
 async function validateVat(uid) {
   const { xml, attempts } = await callSoap("ValidateVatNumber", buildValidateVatEnvelope(uid));
+
   return {
     valid: parseValidateVatResult(xml),
     attempts,
@@ -349,6 +353,7 @@ async function validateVat(uid) {
 
 async function getByUid(uidDigits) {
   const { xml, attempts } = await callSoap("GetByUID", buildGetByUidEnvelope(uidDigits));
+
   return {
     xml,
     attempts,
@@ -435,7 +440,9 @@ async function checkSwissItem(item) {
   }
 
   const message = resolvedFrom
-    ? `Resolved ${resolvedFrom} to ${uid}. ${vatResult.valid ? "VAT/MWST active." : "UID found, but VAT/MWST is not active."}`
+    ? `Resolved ${resolvedFrom} to ${uid}. ${
+        vatResult.valid ? "VAT/MWST active." : "UID found, but VAT/MWST is not active."
+      }`
     : vatResult.valid
       ? "VAT/MWST active."
       : "UID found, but VAT/MWST is not active.";
@@ -472,6 +479,9 @@ export default async function handler(req, res) {
     });
   }
 
+  const auth = await requireModuleAccess(req, res, "vatCh");
+  if (!auth) return;
+
   try {
     const input = Array.isArray(req.body?.vat_numbers) ? req.body.vat_numbers : [];
 
@@ -497,6 +507,7 @@ export default async function handler(req, res) {
           checked_at: new Date().toISOString(),
           source: "ch_uid",
         });
+
         continue;
       }
 
@@ -529,11 +540,29 @@ export default async function handler(req, res) {
       });
     }
 
-    for (const item of prepared) {
+    let vat_credits = null;
+
+    if (prepared.length) {
       try {
-        results.push(await checkSwissItem(item));
+        vat_credits = await consumeVatCreditsForUser(auth.user, prepared.length);
       } catch (error) {
-        results.push(retryRow(item, error, 1));
+        if (error?.code === "VAT_CREDITS_EXCEEDED") {
+          return res.status(403).json({
+            error: "VAT_CREDITS_EXCEEDED",
+            message: "VAT credit limit reached.",
+            credits: error.details,
+          });
+        }
+
+        throw error;
+      }
+
+      for (const item of prepared) {
+        try {
+          results.push(await checkSwissItem(item));
+        } catch (error) {
+          results.push(retryRow(item, error, 1));
+        }
       }
     }
 
@@ -542,6 +571,7 @@ export default async function handler(req, res) {
       total: results.length,
       duplicates_ignored,
       checked_at: new Date().toISOString(),
+      vat_credits,
     });
   } catch (error) {
     return res.status(500).json({
