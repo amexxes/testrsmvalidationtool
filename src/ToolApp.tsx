@@ -2127,7 +2127,36 @@ function VatPage({
   const [duplicatesIgnored, setDuplicatesIgnored] = useState(0);
   const [viesStatus, setViesStatus] = useState<Array<{ countryCode: string; availability: string }>>([]);
   const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
-  const [vatCredits, setVatCredits] = useState<VatCreditStatus | null>(null);
+const [vatCredits, setVatCredits] = useState<VatCreditStatus | null>(null);
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadVatCredits() {
+    try {
+      const resp = await fetch("/api/vat-credits/status", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await resp.json();
+
+      if (!cancelled && resp.ok && data?.vat_credits) {
+        setVatCredits(data.vat_credits);
+      }
+    } catch {
+      if (!cancelled) {
+        setVatCredits(null);
+      }
+    }
+  }
+
+  void loadVatCredits();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
 
   const [, setFrText] = useState("-");
   const [lastUpdate, setLastUpdate] = useState("-");
