@@ -107,6 +107,14 @@ const GLASS_PANEL_STYLE: React.CSSProperties = {
   backdropFilter: "blur(18px) saturate(1.28)",
   WebkitBackdropFilter: "blur(18px) saturate(1.28)",
 };
+const GLASS_BUTTON_STYLE: React.CSSProperties = {
+  background: "rgba(255,255,255,0.48)",
+  border: "1px solid rgba(255,255,255,0.62)",
+  color: "#0B2E5F",
+  boxShadow: "0 12px 30px rgba(11,46,95,0.12)",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+};
 const GLASS_TABLE_WRAP_STYLE: React.CSSProperties = {
   marginLeft: 12,
   borderRadius: 22,
@@ -3210,7 +3218,10 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
                   size="md"
                   onClick={openImportDialog}
                   disabled={loading}
-                  style={ACTION_BUTTON_STYLE}
+                  style={{
+  ...ACTION_BUTTON_STYLE,
+  ...GLASS_BUTTON_STYLE,
+}}
                 >
                   {t(language, "importXlsxCsv")}
                 </Button>
@@ -3220,7 +3231,10 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
                   size="md"
                   onClick={exportExcel}
                   disabled={!rows.length}
-                  style={ACTION_BUTTON_STYLE}
+                 style={{
+  ...ACTION_BUTTON_STYLE,
+  ...GLASS_BUTTON_STYLE,
+}}
                 >
                   {t(language, "exportExcel")}
                 </Button>
@@ -4246,7 +4260,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   size="md"
                   onClick={openImportDialog}
                   disabled={loading}
-                  style={ACTION_BUTTON_STYLE}
+                  style={{
+  ...ACTION_BUTTON_STYLE,
+  ...GLASS_BUTTON_STYLE,
+}}
                 >
                   {t(language, "importXlsxCsv")}
                 </Button>
@@ -4256,7 +4273,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   size="md"
                   onClick={exportTinExcel}
                   disabled={!filteredRows.length}
-                  style={ACTION_BUTTON_STYLE}
+                  style={{
+  ...ACTION_BUTTON_STYLE,
+  ...GLASS_BUTTON_STYLE,
+}}
                 >
                   {t(language, "exportExcel")}
                 </Button>
@@ -4921,7 +4941,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   size="md"
                   onClick={openImportDialog}
                   disabled={loading}
-                  style={ACTION_BUTTON_STYLE}
+                  style={{
+  ...ACTION_BUTTON_STYLE,
+  ...GLASS_BUTTON_STYLE,
+}}
                 >
                   {t(language, "importXlsxCsv")}
                 </Button>
@@ -4931,7 +4954,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   size="md"
                   onClick={exportEoriExcel}
                   disabled={!filteredRows.length}
-                  style={ACTION_BUTTON_STYLE}
+                  style={{
+  ...ACTION_BUTTON_STYLE,
+  ...GLASS_BUTTON_STYLE,
+}}
                 >
                   {t(language, "exportExcel")}
                 </Button>
@@ -5348,22 +5374,25 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   }}
                 />
 
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={exportIbanExcel}
-                  disabled={!filteredRows.length}
-                  style={ACTION_BUTTON_STYLE}
-                >
-                  {t(language, "exportExcel")}
-                </Button>
+<Button
+  variant="secondary"
+  size="md"
+  onClick={exportIbanExcel}
+  disabled={!filteredRows.length}
+  style={{
+    ...ACTION_BUTTON_STYLE,
+    ...GLASS_BUTTON_STYLE,
+  }}
+>
+  {t(language, "exportExcel")}
+</Button>
 
                 <Button
                   variant="secondary"
                   size="md"
                   onClick={onClearIban}
                   disabled={loading}
-                  style={ACTION_BUTTON_STYLE}
+                  style={{   ...ACTION_BUTTON_STYLE,   ...GLASS_BUTTON_STYLE, }}
                 >
                   {t(language, "clear")}
                 </Button>
