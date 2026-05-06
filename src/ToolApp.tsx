@@ -90,20 +90,14 @@ const DEFAULT_BRANDING: ClientBranding = {
 };
 
 const PORTAL_FONT =
-  "'Prelo', 'Noto Sans', 'Noto Sans Georgian', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans JP', 'Noto Sans TC', 'Noto Sans SC', 'Noto Sans KR', 'Helvetica Neue', Helvetica, Arial, sans-serif";
-
-const RSM_BLUE = "#009CDE";
-const RSM_GREEN = "#3F9C35";
-const RSM_TEXT = "#515356";
-const RSM_BG = "#CDCECF";
-const RSM_DARK = "#2F3033";
+  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 const PAGE_TITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 20,
   lineHeight: 1.2,
   fontWeight: 700,
-  color: RSM_DARK,
+  color: "#0B2E5F",
   margin: 0,
 };
 const GLASS_PANEL_STYLE: React.CSSProperties = {
@@ -114,10 +108,10 @@ const GLASS_PANEL_STYLE: React.CSSProperties = {
   WebkitBackdropFilter: "blur(18px) saturate(1.28)",
 };
 const GLASS_BUTTON_STYLE: React.CSSProperties = {
-  background: "rgba(255,255,255,0.56)",
-  border: "1px solid rgba(0,156,222,0.28)",
-  color: RSM_DARK,
-  boxShadow: "0 12px 30px rgba(0,156,222,0.13)",
+  background: "rgba(255,255,255,0.48)",
+  border: "1px solid rgba(255,255,255,0.62)",
+  color: "#0B2E5F",
+  boxShadow: "0 12px 30px rgba(11,46,95,0.12)",
   backdropFilter: "blur(14px) saturate(1.25)",
   WebkitBackdropFilter: "blur(14px) saturate(1.25)",
 };
@@ -135,8 +129,8 @@ const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
   lineHeight: 1.55,
-  fontWeight: 300,
-  color: RSM_TEXT,
+  fontWeight: 500,
+  color: "#0B2E5F",
   marginTop: 6,
 };
 
@@ -144,32 +138,32 @@ const SMALL_HEADER_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 13,
   lineHeight: 1.35,
-  fontWeight: 700,
-  color: RSM_DARK,
+  fontWeight: 800,
+  color: "#0B2E5F",
 };
 
 const TABLE_HEADER_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
   lineHeight: 1.35,
-  fontWeight: 700,
-  color: RSM_DARK,
+  fontWeight: 800,
+  color: "#0B2E5F",
 };
 
 const TABLE_META_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 13,
   lineHeight: 1.35,
-  fontWeight: 300,
+  fontWeight: 500,
 };
 
 const TH_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 12,
   lineHeight: 1.35,
-  fontWeight: 700,
+  fontWeight: 800,
   letterSpacing: "0.02em",
-  color: RSM_DARK,
+  color: "#0B2E5F",
   cursor: "pointer",
 };
 
@@ -239,7 +233,7 @@ const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
 const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
   height: "100%",
   borderRadius: 999,
-  background: `linear-gradient(90deg, ${RSM_GREEN}, ${RSM_BLUE})`,
+  background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
 };
 
 
@@ -308,16 +302,16 @@ const BANNER_STATUS_ICON_STYLE: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: 999,
-  background: `linear-gradient(135deg, ${RSM_BLUE}, ${RSM_GREEN})`,
+  background: "linear-gradient(135deg, #0B2E5F, #16457F)",
   color: "#FFFFFF",
-  border: "1px solid rgba(255,255,255,0.68)",
-  boxShadow: "0 4px 12px rgba(0,156,222,0.22)",
+  border: "1px solid rgba(255,255,255,0.65)",
+  boxShadow: "0 4px 10px rgba(11,46,95,0.18)",
   fontSize: 11,
   fontWeight: 900,
   flex: "0 0 auto",
   lineHeight: "24px",
   textAlign: "center",
-  fontFamily: PORTAL_FONT,
+  fontFamily: "Arial, sans-serif",
 };
 
 const BANNER_STATUS_LABEL_STYLE: React.CSSProperties = {
