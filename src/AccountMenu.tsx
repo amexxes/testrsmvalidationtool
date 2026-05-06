@@ -3,10 +3,11 @@ import ReactCountryFlag from "react-country-flag";
 import { LANGUAGES, type PortalLanguage } from "./i18n";
 
 type Props = {
-  user: {
-    email: string;
-    role: "admin" | "user";
-  };
+user: {
+  email: string;
+  role: "admin" | "user";
+  vatSubscription?: "starter" | "business" | "enterprise";
+};
   language: PortalLanguage;
   setLanguage: React.Dispatch<React.SetStateAction<PortalLanguage>>;
   onOpenUsers: () => void;
@@ -23,6 +24,11 @@ const LANGUAGE_FLAGS: Record<PortalLanguage, string> = {
   de: "DE",
   fr: "FR",
 };
+function subscriptionLabel(value?: "starter" | "business" | "enterprise") {
+  if (value === "business") return "Business";
+  if (value === "enterprise") return "Enterprise";
+  return "Starter";
+}
 export default function AccountMenu({
   user,
   language,
@@ -61,6 +67,7 @@ export default function AccountMenu({
   }, []);
 
   const initials = String(user.email || "?").slice(0, 1).toUpperCase();
+  const subscription = subscriptionLabel(user.vatSubscription);
 
   return (
  <div ref={rootRef} style={rootStyle}>
@@ -87,10 +94,11 @@ export default function AccountMenu({
       >
         <span style={avatarStyle}>{initials}</span>
 
-        <span style={{ minWidth: 0, flex: 1 }}>
-          <span style={accountLabelStyle}>Account</span>
-          <span style={emailStyle}>{user.email}</span>
-        </span>
+<span style={{ minWidth: 0, flex: 1 }}>
+  <span style={accountLabelStyle}>Account</span>
+  <span style={emailStyle}>{user.email}</span>
+  <span style={subscriptionStyle}>Subscription: {subscription}</span>
+</span>
 
         <span style={chevronStyle}>{open ? "▲" : "▼"}</span>
       </button>
@@ -383,4 +391,15 @@ const dangerItemStyle: React.CSSProperties = {
   color: "#8f1d1d",
   fontWeight: 700,
   cursor: "pointer",
+};
+
+const subscriptionStyle: React.CSSProperties = {
+  display: "block",
+  marginTop: 3,
+  fontSize: 11,
+  color: "#64748b",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
