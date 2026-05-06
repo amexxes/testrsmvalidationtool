@@ -16,18 +16,6 @@ import {
   type PortalLanguage,
 } from "./i18n";
 
-import {
-  CheckCircle,
-  IdCard,
-  Globe,
-  Landmark,
-  Lock,
-  CreditCard,
-  RefreshCw,
-  Gauge,
-  type LucideIcon,
-} from "lucide-react";
-
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin" | "eori" | "iban";
 type UserRole = "admin" | "user";
@@ -1481,7 +1469,36 @@ function InputCountryBarChart({
     </div>
   );
 }
-
+function SvgIcon({
+  src,
+  alt,
+  size = 15,
+  active = false,
+  disabled = false,
+}: {
+  src: string;
+  alt: string;
+  size?: number;
+  active?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={{
+        width: size,
+        height: size,
+        display: "block",
+        objectFit: "contain",
+        opacity: disabled ? 0.7 : 1,
+        filter: active
+          ? "brightness(0) invert(1)"
+          : "brightness(0) saturate(100%) invert(39%) sepia(10%) saturate(958%) hue-rotate(176deg) brightness(93%) contrast(86%)",
+      }}
+    />
+  );
+}
 function PageSwitcher({
   activePage,
   setActivePage,
@@ -1494,31 +1511,31 @@ function PageSwitcher({
     key: ActivePage;
     label: string;
     title: string;
-    Icon: LucideIcon;
+    iconSrc: string;
   }> = [
     {
       key: "vat",
       label: "VAT",
       title: t(language, "vatTab"),
-      Icon: CheckCircle,
+      iconSrc: "/receipt-tax.svg",
     },
     {
       key: "tin",
       label: "TIN",
       title: t(language, "tinTab"),
-      Icon: IdCard,
+      iconSrc: "/id.svg",
     },
     {
       key: "eori",
       label: "EORI",
       title: t(language, "eoriTab"),
-      Icon: Globe,
+      iconSrc: "/world.svg",
     },
     {
       key: "iban",
       label: "IBAN",
       title: "IBAN",
-      Icon: Landmark,
+      iconSrc: "/building-bank.svg",
     },
   ];
 
@@ -1535,7 +1552,6 @@ function PageSwitcher({
       {options.map((item) => {
         const enabled = canAccessPage(item.key, clientModules, userRole);
         const active = enabled && item.key === activePage;
-        const Icon = item.Icon;
 
         return (
           <button
@@ -1598,11 +1614,10 @@ function PageSwitcher({
                   alignItems: "center",
                   justifyContent: "center",
                   background: "#0B2E5F",
-                  color: "#FFFFFF",
                   boxShadow: "0 4px 10px rgba(11,46,95,0.20)",
                 }}
               >
-                <Lock size={9} strokeWidth={3} />
+                <SvgIcon src="/lock.svg" alt="Locked" size={9} active />
               </span>
             )}
 
@@ -1614,10 +1629,15 @@ function PageSwitcher({
                 alignItems: "center",
                 justifyContent: "center",
                 lineHeight: 1,
-                color: active ? "#FFFFFF" : "#64748B",
               }}
             >
-              <Icon size={15} strokeWidth={2.4} />
+              <SvgIcon
+                src={item.iconSrc}
+                alt={item.label}
+                size={15}
+                active={active}
+                disabled={!enabled}
+              />
             </span>
 
             <span
@@ -1732,19 +1752,19 @@ function PortalBanner({
 ];
 function statusIcon(label: string): React.ReactNode {
   if (label === t(language, "mode")) {
-    return <Gauge size={13} strokeWidth={2.5} />;
+    return <SvgIcon src="/gauge.svg" alt="Mode" size={13} active />;
   }
 
   if (label === t(language, "credits")) {
-    return <CreditCard size={13} strokeWidth={2.5} />;
+    return <SvgIcon src="/credit-card.svg" alt="Credits" size={13} active />;
   }
 
   if (label === t(language, "lastUpdate")) {
-    return <RefreshCw size={13} strokeWidth={2.5} />;
+    return <SvgIcon src="/refresh.svg" alt="Last update" size={13} active />;
   }
 
   if (label === t(language, "country")) {
-    return <Globe size={13} strokeWidth={2.5} />;
+    return <SvgIcon src="/world.svg" alt="Country" size={13} active />;
   }
 
   return null;
