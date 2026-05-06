@@ -32,6 +32,7 @@ type AuthUser = {
   active: boolean;
   createdAt: string;
   modules?: Partial<ClientModules>;
+  vatSubscription?: "starter" | "business" | "enterprise";
 };
 
 const DEFAULT_CLIENT_MODULES: ClientModules = {
