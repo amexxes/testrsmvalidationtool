@@ -212,13 +212,7 @@ const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
   background: "linear-gradient(90deg, #63C7F2, #0B2E5F)",
 };
 
-const BANNER_STATUS_VALUE_SPECIAL_STYLE: React.CSSProperties = {
-  fontFamily: "'Segoe UI Variable', 'Segoe UI', Arial, sans-serif",
-  fontVariantNumeric: "tabular-nums",
-  fontWeight: 900,
-  letterSpacing: "0.075em",
-  textTransform: "uppercase",
-};
+
 const BANNER_LEFT_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
