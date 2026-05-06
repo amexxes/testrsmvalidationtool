@@ -1665,11 +1665,11 @@ function PageSwitcher({
   border: active
     ? `1px solid rgba(255,255,255,0.76)`
     : `1px solid rgba(255,255,255,0.58)`,
-  background: active
-    ? `linear-gradient(135deg, rgba(0,156,222,0.86), rgba(63,156,53,0.78))`
-    : enabled
-      ? "rgba(255,255,255,0.46)"
-      : "rgba(255,255,255,0.24)",
+background: active
+  ? "rgba(0,156,222,0.86)"
+  : enabled
+    ? "rgba(255,255,255,0.46)"
+    : "rgba(255,255,255,0.24)",
   color: active ? "#FFFFFF" : RSM_DARK,
   boxShadow: active
     ? "0 14px 30px rgba(0,156,222,0.22)"
