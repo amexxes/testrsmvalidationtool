@@ -1,7 +1,7 @@
 // api/validate-batch.js
 import { kv } from "@vercel/kv";
 import { randomUUID } from "crypto";
-import { requireModuleAccess } from "../lib/auth.js";
+import { requireModuleAccess, consumeVatCreditsForUser } from "../lib/auth.js";
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
 const STATUS_CACHE_SEC = 30;
 
@@ -258,7 +258,8 @@ async function mapLimit(arr, limit, fn) {
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
-
+const auth = await requireModuleAccess(req, res, "vat");
+if (!auth) return;
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
     const vat_numbers = Array.isArray(body?.vat_numbers) ? body.vat_numbers : [];
     const case_ref = (body?.case_ref || "").toString().slice(0, 80);
@@ -279,7 +280,21 @@ export default async function handler(req, res) {
       seen.add(key);
       unique.push(p);
     }
+let vat_credits;
 
+try {
+  vat_credits = await consumeVatCreditsForUser(auth.user, unique.length);
+} catch (error) {
+  if (error?.code === "VAT_CREDITS_EXCEEDED") {
+    return res.status(403).json({
+      error: "VAT_CREDITS_EXCEEDED",
+      message: "VAT credit limit reached.",
+      credits: error.details,
+    });
+  }
+
+  throw error;
+}
     let fr_job_id = null;
     const realtime = [];
     const queued = [];
@@ -361,13 +376,14 @@ export default async function handler(req, res) {
     const results = [...realtime.map((x) => x.row), ...queued.map((x) => x.row)];
     const vies_status = await getViesStatusSnapshot();
 
-    return res.status(200).json({
-      duplicates_ignored,
-      vies_status,
-      results,
-      fr_job_id,
-      count: results.length,
-    });
+return res.status(200).json({
+  duplicates_ignored,
+  vies_status,
+  results,
+  fr_job_id,
+  count: results.length,
+  vat_credits,
+});
   } catch (e) {
     return res.status(500).json({
       error: "validate-batch failed",
