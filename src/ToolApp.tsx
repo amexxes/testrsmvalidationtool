@@ -2085,7 +2085,36 @@ function MetricGrid({
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <CardTitle style={PAGE_TITLE_STYLE}>{children}</CardTitle>;
+  return (
+    <CardTitle
+      style={{
+        ...PAGE_TITLE_STYLE,
+        fontSize: 19,
+      }}
+    >
+      {children}
+    </CardTitle>
+  );
+}
+
+function SectionSubtitle({
+  children,
+  maxWidth = 760,
+}: {
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  return (
+    <CardDescription
+      style={{
+        ...PAGE_SUBTITLE_STYLE,
+        fontSize: 13,
+        maxWidth,
+      }}
+    >
+      {children}
+    </CardDescription>
+  );
 }
 
 function SectionSubtitle({
