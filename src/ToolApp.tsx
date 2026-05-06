@@ -121,6 +121,14 @@ const GLASS_BUTTON_STYLE: React.CSSProperties = {
   backdropFilter: "blur(14px) saturate(1.25)",
   WebkitBackdropFilter: "blur(14px) saturate(1.25)",
 };
+const GLASS_PRIMARY_BUTTON_STYLE: React.CSSProperties = {
+  background: `linear-gradient(135deg, rgba(0,156,222,0.82), rgba(63,156,53,0.76))`,
+  border: "1px solid rgba(255,255,255,0.66)",
+  color: "#FFFFFF",
+  boxShadow: "0 14px 34px rgba(0,156,222,0.20)",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+};
 const GLASS_TABLE_WRAP_STYLE: React.CSSProperties = {
   marginLeft: 12,
   borderRadius: 22,
@@ -1644,34 +1652,36 @@ function PageSwitcher({
 
               setActivePage(item.key);
             }}
-            style={{
-              position: "relative",
-              width: 48,
-              height: 40,
-              display: "inline-flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 3,
-              borderRadius: 10,
-              border: active
-                ? "1px solid rgba(11,46,95,0.92)"
-                : "1px solid rgba(148,163,184,0.22)",
-              background: active
-                ? "linear-gradient(135deg, #0B2E5F, #16457F)"
-                : enabled
-                  ? "rgba(255,255,255,0.92)"
-                  : "rgba(241,245,249,0.72)",
-              color: active ? "#FFFFFF" : "#64748B",
-              boxShadow: active
-                ? "0 8px 18px rgba(11,46,95,0.20)"
-                : "0 6px 14px rgba(15,23,42,0.07)",
-              cursor: enabled ? "pointer" : "not-allowed",
-              fontFamily: PORTAL_FONT,
-              opacity: enabled ? 1 : 0.52,
-              filter: enabled ? "none" : "grayscale(0.35)",
-              animation: active ? "menuButtonDropIn 260ms ease-out" : "none",
-            }}
+  style={{
+  position: "relative",
+  width: 48,
+  height: 40,
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 3,
+  borderRadius: 12,
+  border: active
+    ? `1px solid rgba(255,255,255,0.76)`
+    : `1px solid rgba(255,255,255,0.58)`,
+  background: active
+    ? `linear-gradient(135deg, rgba(0,156,222,0.86), rgba(63,156,53,0.78))`
+    : enabled
+      ? "rgba(255,255,255,0.46)"
+      : "rgba(255,255,255,0.24)",
+  color: active ? "#FFFFFF" : RSM_DARK,
+  boxShadow: active
+    ? "0 14px 30px rgba(0,156,222,0.22)"
+    : "0 10px 24px rgba(47,48,51,0.10)",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+  cursor: enabled ? "pointer" : "not-allowed",
+  fontFamily: PORTAL_FONT,
+  opacity: enabled ? 1 : 0.52,
+  filter: enabled ? "none" : "grayscale(0.35)",
+  animation: active ? "menuButtonDropIn 260ms ease-out" : "none",
+}}
           >
             {!enabled && (
               <span
