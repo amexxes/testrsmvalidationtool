@@ -3395,7 +3395,15 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
               </CardContent>
             </Card>
 
-            <Card style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Card
+  style={{
+    ...GLASS_PANEL_STYLE,
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+  }}
+>
               <CardHeader className="pb-4">
                 <SectionTitle>{t(language, "viesStatusTitle")}</SectionTitle>
                 <SectionSubtitle maxWidth={520}>{t(language, "viesStatusHelp")}</SectionSubtitle>
@@ -4177,7 +4185,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
 <CardHeader className="pb-4">
   <InputSectionTitle language={language} />
 
@@ -4324,7 +4332,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
             </CardContent>
           </Card>
 
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
             <CardHeader className="pb-4">
               <SectionTitle>{t(language, "dashboard")}</SectionTitle>
               <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
@@ -4864,7 +4872,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
 <CardHeader className="pb-4">
   <InputSectionTitle language={language} />
 
@@ -5019,7 +5027,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
             </CardContent>
           </Card>
 
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
             <CardHeader className="pb-4">
               <SectionTitle>{t(language, "dashboard")}</SectionTitle>
               <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
@@ -5296,7 +5304,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
             <CardHeader className="pb-4">
               <InputSectionTitle language={language} />
 
@@ -5380,7 +5388,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
             </CardContent>
           </Card>
 
-          <Card style={{ height: "100%" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
             <CardHeader className="pb-4">
              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
               <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
