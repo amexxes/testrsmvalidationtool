@@ -2117,16 +2117,6 @@ function SectionSubtitle({
   );
 }
 
-function SectionSubtitle({
-  children,
-  maxWidth = 760,
-}: {
-  children: React.ReactNode;
-  maxWidth?: number;
-}) {
-  return <CardDescription style={{ ...PAGE_SUBTITLE_STYLE, maxWidth }}>{children}</CardDescription>;
-}
-
 function ImportPreviewPanel({
   preview,
   language,
