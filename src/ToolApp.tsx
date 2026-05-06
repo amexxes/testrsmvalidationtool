@@ -16,6 +16,8 @@ import {
   type PortalLanguage,
 } from "./i18n";
 
+import { Card as GlassCard } from "@dinakars777/react-glass-ui";
+
 type SortState = { colIndex: number | null; asc: boolean };
 type ActivePage = "vat" | "tin" | "eori" | "iban";
 type UserRole = "admin" | "user";
@@ -1821,38 +1823,38 @@ function statusIcon(label: string): React.ReactNode {
   return null;
 }
 
-  return (
-    <div className="banner">
-      <div className="banner-accent" />
+ return (
+  <GlassCard glow className="banner">
+    <div className="banner-accent" />
 
-      <div style={BANNER_INNER_STYLE}>
-        <div style={BANNER_LEFT_STYLE}>
-          <div
-            className="mark"
-            aria-hidden="true"
-            style={{
-              padding: "8px 12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              minWidth: 152,
-              flex: "0 0 auto",
+    <div style={BANNER_INNER_STYLE}>
+      <div style={BANNER_LEFT_STYLE}>
+        <div
+          className="mark"
+          aria-hidden="true"
+          style={{
+            padding: "8px 12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 152,
+            flex: "0 0 auto",
+          }}
+        >
+          <img
+            src={logoUrl}
+            alt={logoAlt}
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = "/rsmlogo.png";
             }}
-          >
-            <img
-              src={logoUrl}
-              alt={logoAlt}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = "/rsmlogo.png";
-              }}
-              style={{
-                maxWidth: 150,
-                maxHeight: 58,
-                objectFit: "contain",
-              }}
-            />
-          </div>
+            style={{
+              maxWidth: 150,
+              maxHeight: 58,
+              objectFit: "contain",
+            }}
+          />
+        </div>
 
           <div style={{ minWidth: 0 }}>
  <div
@@ -1940,9 +1942,7 @@ function statusIcon(label: string): React.ReactNode {
   </div>
 </div>
       </div>
-
-
-    </div>
+    </GlassCard>
   );
 }
 
