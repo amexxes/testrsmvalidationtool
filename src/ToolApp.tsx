@@ -5315,7 +5315,11 @@ function IbanPage({
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "IBAN Results");
 
-    const filename = `iban_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
+    const filename = `iban_results_${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.xlsx`;
+
     XLSX.writeFile(wb, filename);
   }
 
@@ -5334,8 +5338,8 @@ function IbanPage({
         language={language}
         setLanguage={setLanguage}
         userRole={userRole}
-clientModules={clientModules}
-onRequestModuleUpgrade={onRequestModuleUpgrade}
+        clientModules={clientModules}
+        onRequestModuleUpgrade={onRequestModuleUpgrade}
       />
 
       <div className="wrap">
@@ -5363,43 +5367,43 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
             </CardHeader>
 
             <CardContent className="pt-0">
- <div style={ACTION_ROW_STYLE}>
-  <input
-    type="text"
-    value="IBAN"
-    readOnly
-    style={{
-      ...ACTION_FIRST_FIELD_STYLE,
-      opacity: 0.9,
-    }}
-  />
+              <div style={ACTION_ROW_STYLE}>
+                <input
+                  type="text"
+                  value="IBAN"
+                  readOnly
+                  style={{
+                    ...ACTION_FIRST_FIELD_STYLE,
+                    opacity: 0.9,
+                  }}
+                />
 
-  <Button
-    variant="secondary"
-    size="md"
-    onClick={exportIbanExcel}
-    disabled={!filteredRows.length}
-    style={{
-      ...ACTION_BUTTON_STYLE,
-      ...GLASS_BUTTON_STYLE,
-    }}
-  >
-    {t(language, "exportExcel")}
-  </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportIbanExcel}
+                  disabled={!filteredRows.length}
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    ...GLASS_BUTTON_STYLE,
+                  }}
+                >
+                  {t(language, "exportExcel")}
+                </Button>
 
-  <Button
-    variant="secondary"
-    size="md"
-    onClick={onClearIban}
-    disabled={loading}
-    style={{
-      ...ACTION_BUTTON_STYLE,
-      ...GLASS_BUTTON_STYLE,
-    }}
-  >
-    {t(language, "clear")}
-  </Button>
-</div>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onClearIban}
+                  disabled={loading}
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    ...GLASS_BUTTON_STYLE,
+                  }}
+                >
+                  {t(language, "clear")}
+                </Button>
+              </div>
 
               <textarea
                 value={ibanInput}
@@ -5432,8 +5436,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
           <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
             <CardHeader className="pb-4">
-             <SectionTitle>{t(language, "dashboard")}</SectionTitle>
-              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
+              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <SectionSubtitle maxWidth={520}>
+                {t(language, "overviewFiltersSorting")}
+              </SectionSubtitle>
             </CardHeader>
 
             <CardContent className="pt-0">
@@ -5491,7 +5497,8 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
             <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
             <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+              {t(language, "showing")}{" "}
+              <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
               {t(language, "rows")}
             </div>
           </div>
@@ -5504,7 +5511,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   <th style={{ ...TH_STYLE, width: 280 }}>IBAN</th>
                   <th style={{ ...TH_STYLE, width: 120 }}>{t(language, "country")}</th>
                   <th style={{ ...TH_STYLE, width: 150 }}>Bank ID</th>
-                  <th style={{ ...TH_STYLE, width: 360 }}>{t(language, "message")} / {t(language, "error")}</th>
+                  <th style={{ ...TH_STYLE, width: 360 }}>
+                    {t(language, "message")} / {t(language, "error")}
+                  </th>
                 </tr>
               </thead>
 
@@ -5528,7 +5537,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                       <td className="mono nowrap">{r.iban || r.input || ""}</td>
                       <td>{r.country_code || "-"}</td>
                       <td className="mono nowrap">{r.bank_identifier || "-"}</td>
-                      <td title={r.message || r.error || ""}>{r.message || r.error || ""}</td>
+                      <td title={r.message || r.error || ""}>
+                        {r.message || r.error || ""}
+                      </td>
                     </tr>
                   );
                 })}
