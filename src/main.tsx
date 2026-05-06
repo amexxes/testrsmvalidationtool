@@ -2,6 +2,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import * as Sentry from "@sentry/react";
+import "@dinakars777/react-glass-ui/style.css";
 
 import App from "./App";
 import "./styles.css";
