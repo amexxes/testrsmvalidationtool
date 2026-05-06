@@ -90,14 +90,20 @@ const DEFAULT_BRANDING: ClientBranding = {
 };
 
 const PORTAL_FONT =
-  "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  "'Prelo', 'Noto Sans', 'Noto Sans Georgian', 'Noto Sans Arabic', 'Noto Sans Hebrew', 'Noto Sans JP', 'Noto Sans TC', 'Noto Sans SC', 'Noto Sans KR', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+const RSM_BLUE = "#009CDE";
+const RSM_GREEN = "#3F9C35";
+const RSM_TEXT = "#515356";
+const RSM_BG = "#CDCECF";
+const RSM_DARK = "#2F3033";
 
 const PAGE_TITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 20,
   lineHeight: 1.2,
   fontWeight: 700,
-  color: "#0B2E5F",
+  color: RSM_DARK,
   margin: 0,
 };
 const GLASS_PANEL_STYLE: React.CSSProperties = {
@@ -129,8 +135,8 @@ const PAGE_SUBTITLE_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
   lineHeight: 1.55,
-  fontWeight: 500,
-  color: "#0B2E5F",
+  fontWeight: 300,
+  color: RSM_TEXT,
   marginTop: 6,
 };
 
@@ -138,32 +144,31 @@ const SMALL_HEADER_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 13,
   lineHeight: 1.35,
-  fontWeight: 800,
-  color: "#0B2E5F",
+  fontWeight: 700,
+  color: RSM_DARK,
 };
 
 const TABLE_HEADER_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 14,
   lineHeight: 1.35,
-  fontWeight: 800,
-  color: "#0B2E5F",
+  fontWeight: 700,
+  color: RSM_DARK,
 };
-
 const TABLE_META_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 13,
   lineHeight: 1.35,
-  fontWeight: 500,
+  fontWeight: 300,
 };
 
 const TH_STYLE: React.CSSProperties = {
   fontFamily: PORTAL_FONT,
   fontSize: 12,
   lineHeight: 1.35,
-  fontWeight: 800,
+  fontWeight: 700,
   letterSpacing: "0.02em",
-  color: "#0B2E5F",
+  color: RSM_DARK,
   cursor: "pointer",
 };
 
