@@ -1788,6 +1788,43 @@ function creditBarPercent(value: React.ReactNode): number {
 
   return Math.min(100, Math.round((used / limit) * 100));
 }
+type GlassCardProps = React.HTMLAttributes<HTMLDivElement> & {
+  glow?: boolean;
+  children?: React.ReactNode;
+};
+
+const ImportedGlassCard = (ReactGlassUI as any).Card as
+  | React.ComponentType<GlassCardProps>
+  | undefined;
+
+function GlassCard({ glow, className, style, children, ...props }: GlassCardProps) {
+  if (ImportedGlassCard) {
+    return (
+      <ImportedGlassCard glow={glow} className={className} style={style} {...props}>
+        {children}
+      </ImportedGlassCard>
+    );
+  }
+
+  return (
+    <div
+      className={className}
+      style={{
+        background: "rgba(255,255,255,0.62)",
+        border: "1px solid rgba(255,255,255,0.58)",
+        boxShadow: glow
+          ? "0 24px 70px rgba(11,46,95,0.16)"
+          : "0 14px 34px rgba(11,46,95,0.10)",
+        backdropFilter: "blur(18px) saturate(1.35)",
+        WebkitBackdropFilter: "blur(18px) saturate(1.35)",
+        ...style,
+      }}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
 function PortalBanner({
   modeValue,
   meta = [],
