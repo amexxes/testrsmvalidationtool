@@ -14,7 +14,7 @@
     "@tailwindcss/vite": "^4.2.4",
     "@upstash/redis": "^1.35.6",
     "@vercel/kv": "^0.2.4",
-    "@dinakars777/react-glass-ui": "latest"
+    "@dinakars777/react-glass-ui": "latest",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
