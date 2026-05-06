@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Unlimited logo</title>
+  <desc id="desc">Infinity symbol logo in RSM blue.</desc>
+  <rect width="256" height="256" rx="56" fill="none"/>
+  <path
+    d="M74 86c-28 0-50 19-50 42s22 42 50 42c20 0 37-10 54-28 17 18 34 28 54 28 28 0 50-19 50-42s-22-42-50-42c-20 0-37 10-54 28-17-18-34-28-54-28zm0 26c10 0 20 5 36 20-16 15-26 20-36 20-14 0-24-10-24-24s10-16 24-16zm108 0c14 0 24 10 24 16s-10 24-24 24c-10 0-20-5-36-20 16-15 26-20 36-20z"
+    fill="#009CDE"
+  />
+</svg>
