@@ -419,6 +419,7 @@ const handleRunCompleted = useCallback(
     />
   </>
 );
+}
 
 const loadingShellStyle: React.CSSProperties = {
   minHeight: "100vh",
