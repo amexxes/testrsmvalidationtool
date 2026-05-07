@@ -3215,7 +3215,7 @@ if (ratio >= 0.85) {
         title={branding.portalTitle || "Validation Portal"}
         modeValue="VAT"
 meta={[
-  { label: t(language, "credits"), value: <UnlimitedLogo /> },
+  { label: t(language, "credits"), value: formatVatCredits(vatCredits, language) },
   { label: t(language, "lastUpdate"), value: lastUpdate },
 ]}
         activePage={activePage}
