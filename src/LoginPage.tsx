@@ -103,7 +103,7 @@ function LoginSessionNote() {
   );
 }
 
-function LoginFormCard({
+ function LoginFormCard({
   email,
   password,
   loginLoading,
@@ -123,6 +123,8 @@ function LoginFormCard({
   handleLogin,
   handleBootstrap,
 }: LoginFormCardProps) {
+  const showSetup = false && !checkingStatus && !bootstrapped;
+
   return (
     <section style={formCardStyle}>
       <div>
@@ -157,51 +159,54 @@ function LoginFormCard({
           />
         </label>
 
-        {loginError && <div style={errorStyle}>{loginError}</div>}
+        {loginError ? <div style={errorStyle}>{loginError}</div> : null}
 
         <button type="submit" style={primaryButtonStyle} disabled={loginLoading}>
           {loginLoading ? "Signing in..." : "Sign in"}
         </button>
       </form>
 
-     {false && !checkingStatus && !bootstrapped && (
-  <div style={setupBlockStyle}>
-    <h3 style={setupTitleStyle}>First-time setup</h3>
-    <p style={setupTextStyle}>Create the first administrator account.</p>
+      {showSetup ? (
+        <div style={setupBlockStyle}>
+          <h3 style={setupTitleStyle}>First-time setup</h3>
+          <p style={setupTextStyle}>Create the first administrator account.</p>
 
-    <form onSubmit={handleBootstrap} style={formStyle}>
-      <input
-        type="text"
-        placeholder="Admin setup key"
-        value={setupKey}
-        onChange={(e) => setSetupKey(e.target.value)}
-        style={inputStyle}
-      />
+          <form onSubmit={handleBootstrap} style={formStyle}>
+            <input
+              type="text"
+              placeholder="Admin setup key"
+              value={setupKey}
+              onChange={(e) => setSetupKey(e.target.value)}
+              style={inputStyle}
+            />
 
-      <input
-        type="email"
-        placeholder="Admin email"
-        value={setupEmail}
-        onChange={(e) => setSetupEmail(e.target.value)}
-        style={inputStyle}
-      />
+            <input
+              type="email"
+              placeholder="Admin email"
+              value={setupEmail}
+              onChange={(e) => setSetupEmail(e.target.value)}
+              style={inputStyle}
+            />
 
-      <input
-        type="password"
-        placeholder="Admin password"
-        value={setupPassword}
-        onChange={(e) => setSetupPassword(e.target.value)}
-        style={inputStyle}
-      />
+            <input
+              type="password"
+              placeholder="Admin password"
+              value={setupPassword}
+              onChange={(e) => setSetupPassword(e.target.value)}
+              style={inputStyle}
+            />
 
-      {bootstrapError && <div style={errorStyle}>{bootstrapError}</div>}
+            {bootstrapError ? <div style={errorStyle}>{bootstrapError}</div> : null}
 
-      <button type="submit" style={secondaryButtonStyle} disabled={bootstrapLoading}>
-        {bootstrapLoading ? "Creating..." : "Create first admin"}
-      </button>
-    </form>
-  </div>
-)}
+            <button type="submit" style={secondaryButtonStyle} disabled={bootstrapLoading}>
+              {bootstrapLoading ? "Creating..." : "Create first admin"}
+            </button>
+          </form>
+        </div>
+      ) : null}
+    </section>
+  );
+}
 
 export default function LoginPage({ onLoggedIn }: Props) {
   const [bootstrapped, setBootstrapped] = useState(true);
