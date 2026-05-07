@@ -351,18 +351,13 @@ const handleRunCompleted = useCallback(
         </div>
       )}
 
-<ToolApp
-  branding={effectiveBranding}
-  viewAsEmail={viewAsEmail}
-  language={language}
-  setLanguage={setLanguage}
-  userRole={user.role}
-  clientModules={effectiveClientModules}
-  onRunCompleted={handleRunCompleted}
-  onRequestModuleUpgrade={(module) => {
-    window.alert(`${module.toUpperCase()} is an add-on module.`);
-  }}
-/>
+<div style={rsmFooterLogoWrapStyle}>
+  <img
+    src="/rsmlogo.png"
+    alt="Made by RSM"
+    style={rsmFooterLogoStyle}
+  />
+</div>
 <div style={rsmFooterLogoWrapStyle}>
   <img
     src="/rsmlogo.png"
