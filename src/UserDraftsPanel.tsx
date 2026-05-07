@@ -430,21 +430,15 @@ export default function UserDraftsPanel({
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    onClick={() => onRestoreDraft(draft)}
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: 10,
-                      border: "1px solid rgba(11,46,95,0.12)",
-                      background: "#fff",
-                      color: "#0B2E5F",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t(language, "restore")}
-                  </button>
+<button
+  type="button"
+  onClick={() => onRestoreDraft(draft)}
+  style={DRAFT_BUTTON_STYLE}
+>
+  <DraftButtonText icon="restore">
+    {t(language, "restore")}
+  </DraftButtonText>
+</button>
 
                   <button
                     type="button"
