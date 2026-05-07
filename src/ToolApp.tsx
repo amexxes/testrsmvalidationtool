@@ -2082,19 +2082,30 @@ function PortalBanner({
             ))}
           </div>
         </div>
+<div style={BANNER_RIGHT_STYLE}>
+  <img
+    src="/rsmlogo.png"
+    alt="RSM"
+    style={{
+      width: 82,
+      height: "auto",
+      objectFit: "contain",
+      display: "block",
+      marginRight: 8,
+    }}
+  />
 
-        <div style={BANNER_RIGHT_STYLE}>
-          <div style={BANNER_CONTROL_STYLE}>
-            <PageSwitcher
-              activePage={activePage}
-              setActivePage={setActivePage}
-              language={language}
-              userRole={userRole}
-              clientModules={clientModules}
-              onRequestModuleUpgrade={onRequestModuleUpgrade}
-            />
-          </div>
-        </div>
+  <div style={BANNER_CONTROL_STYLE}>
+    <PageSwitcher
+      activePage={activePage}
+      setActivePage={setActivePage}
+      language={language}
+      userRole={userRole}
+      clientModules={clientModules}
+      onRequestModuleUpgrade={onRequestModuleUpgrade}
+    />
+  </div>
+</div>
       </div>
     </GlassCard>
   );
