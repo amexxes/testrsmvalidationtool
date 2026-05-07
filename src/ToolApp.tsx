@@ -1894,36 +1894,31 @@ function TrialBadge({
 }) {
   if (!branding.isTrial) return null;
 
-  const rawDate = String(branding.trialEndsAt || "").trim();
-  const parsedDate = rawDate ? new Date(rawDate) : null;
-
-  const dateText =
-    parsedDate && !Number.isNaN(parsedDate.getTime())
-      ? parsedDate.toLocaleDateString(localeForLanguage(language))
-      : rawDate;
+  const dateText = formatTrialDate(branding.trialEndsAt, language);
 
   return (
     <div
       style={{
-        marginTop: 7,
         display: "inline-flex",
         alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
         width: "fit-content",
         padding: "4px 9px",
         borderRadius: 999,
-        border: "1px solid rgba(63,156,53,0.24)",
-        background: "rgba(63,156,53,0.08)",
-        color: "#3F9C35",
+        border: "1px solid rgba(81,83,86,0.14)",
+        background: "rgba(81,83,86,0.06)",
+        color: RSM_TEXT,
         fontFamily: PORTAL_FONT,
         fontSize: 10,
         lineHeight: 1,
         fontWeight: 700,
-        letterSpacing: "0.055em",
-        textTransform: "uppercase",
+        letterSpacing: "0.03em",
         whiteSpace: "nowrap",
       }}
     >
-      {dateText ? `TRIAL · t/m ${dateText}` : "TRIAL"}
+      <span>Trial</span>
+      {dateText ? <span style={{ fontWeight: 300 }}>until {dateText}</span> : null}
     </div>
   );
 }
@@ -2188,13 +2183,17 @@ function PortalBanner({
     <span>Validation</span>
     <span>Portal</span>
   </div>
-
-  <TrialBadge branding={branding} language={language} />
 </div>
 </div>
 
-<div style={BANNER_CENTER_STYLE}>
-          <div style={BANNER_STATUS_BAR_STYLE}>
+<div
+  style={{
+    ...BANNER_CENTER_STYLE,
+    flexDirection: "column",
+    gap: 7,
+  }}
+>
+  <div style={BANNER_STATUS_BAR_STYLE}>
             {statusItems.map((item, index) => (
               <React.Fragment key={`${item.label}-${index}`}>
                 {index > 0 && <span style={BANNER_DOT_STYLE}>|</span>}
@@ -2253,6 +2252,8 @@ function PortalBanner({
               </React.Fragment>
             ))}
           </div>
+
+          <TrialBadge branding={branding} language={language} />
         </div>
 <div style={BANNER_RIGHT_STYLE}>
   <img
