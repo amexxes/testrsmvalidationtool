@@ -1858,22 +1858,17 @@ function creditBarPercent(value: React.ReactNode): number {
 }
 function UnlimitedLogo() {
   return (
-    <span
-      aria-label="Unlimited"
-      title="Unlimited"
+    <img
+      src="/unlimited-logo.svg"
+      alt="Unlimited"
       style={{
         width: 58,
         height: 18,
+        objectFit: "contain",
         display: "inline-block",
-        backgroundColor: RSM_TEXT,
-        maskImage: "url(/unlimited-logo.svg)",
-        WebkitMaskImage: "url(/unlimited-logo.svg)",
-        maskRepeat: "no-repeat",
-        WebkitMaskRepeat: "no-repeat",
-        maskPosition: "center",
-        WebkitMaskPosition: "center",
-        maskSize: "contain",
-        WebkitMaskSize: "contain",
+        transform: "translateX(-6px)",
+        filter:
+          "brightness(0) saturate(100%) invert(16%) sepia(5%) saturate(421%) hue-rotate(182deg) brightness(91%) contrast(86%)",
       }}
     />
   );
