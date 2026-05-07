@@ -3461,13 +3461,13 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
               </div>
 
               <div className="row">
-                <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
-                  <ActionButtonText icon="validate">
-  <ActionButtonText icon="validate">
-  {loading ? t(language, "validating") : t(language, "validate")}
-</ActionButtonText>
-</ActionButtonText>
-                </Button>
+<Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
+  {loading ? t(language, "validating") : (
+    <ActionButtonText icon="validate">
+      {t(language, "validate")}
+    </ActionButtonText>
+  )}
+</Button>
 
                 <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
                   <ActionButtonText icon="clear">
