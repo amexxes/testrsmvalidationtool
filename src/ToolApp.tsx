@@ -3379,12 +3379,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  <span style={IMPORT_BUTTON_CONTENT_STYLE}>
-  <ImportIcon />
-  <span><ActionButtonText icon="import">
+<ActionButtonText icon="import">
   {t(language, "importXlsxCsv")}
-</ActionButtonText></span>
-</span>
+</ActionButtonText>
                 </Button>
 
                 <Button
@@ -4437,12 +4434,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  <span style={IMPORT_BUTTON_CONTENT_STYLE}>
-  <ImportIcon />
-  <span><ActionButtonText icon="import">
+<ActionButtonText icon="import">
   {t(language, "importXlsxCsv")}
-</ActionButtonText></span>
-</span>
+</ActionButtonText>
                 </Button>
 
                 <Button
@@ -5141,12 +5135,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  <span style={IMPORT_BUTTON_CONTENT_STYLE}>
-  <ImportIcon />
-  <span><ActionButtonText icon="import">
+<ActionButtonText icon="import">
   {t(language, "importXlsxCsv")}
-</ActionButtonText></span>
-</span>
+</ActionButtonText>
                 </Button>
 
                 <Button
