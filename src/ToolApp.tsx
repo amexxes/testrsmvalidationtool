@@ -712,26 +712,23 @@ function FilterSectionTitle({ language }: { language: PortalLanguage }) {
     <SectionTitle>
       <span
         style={{
-          width: "100%",
-          display: "flex",
+          display: "inline-flex",
           alignItems: "center",
-          justifyContent: "flex-start",
-          gap: 12,
-          textAlign: "left",
+          gap: 10,
         }}
       >
-        <span style={INPUT_CARD_ICON_STYLE}>
-  <img
-  src="/filter.png"
-  alt=""
-  style={{
-    width: 42,
-    height: 42,
-    objectFit: "contain",
-    display: "block",
-  }}
-/>
-        </span>
+        <img
+          src="/filter.png"
+          alt=""
+          aria-hidden="true"
+          style={{
+            width: 34,
+            height: 34,
+            objectFit: "contain",
+            display: "block",
+            flex: "0 0 auto",
+          }}
+        />
 
         <span>{t(language, "filter")}</span>
       </span>
