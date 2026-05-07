@@ -2180,6 +2180,7 @@ function PortalBanner({
 
   <TrialBadge branding={branding} language={language} />
 </div>
+</div>
 
         <div style={BANNER_CENTER_STYLE}>
           <div style={BANNER_STATUS_BAR_STYLE}>
