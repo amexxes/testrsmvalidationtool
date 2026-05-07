@@ -479,7 +479,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const auth = await requireModuleAccess(req, res, "vatCh");
+  const auth = await requireModuleAccess(req, res, "vat");
   if (!auth) return;
 
   try {
