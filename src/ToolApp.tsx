@@ -708,32 +708,7 @@ function normalizeTsMs(ts: any): number | undefined {
   return n;
 }
 function FilterSectionTitle({ language }: { language: PortalLanguage }) {
-  return (
-    <SectionTitle>
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <img
-          src="/filter.png"
-          alt=""
-          aria-hidden="true"
-          style={{
-            width: 34,
-            height: 34,
-            objectFit: "contain",
-            display: "block",
-            flex: "0 0 auto",
-          }}
-        />
-
-        <span>{t(language, "filter")}</span>
-      </span>
-    </SectionTitle>
-  );
+  return <SectionTitle>{t(language, "filter")}</SectionTitle>;
 }
 function rowKeyStable(r: Partial<VatRow>, fallbackIdx?: number): string {
   const vat = String((r as any).vat_number || "").trim();
