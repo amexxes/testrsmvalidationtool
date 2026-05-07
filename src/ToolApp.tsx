@@ -3577,8 +3577,15 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
               </div>
 
               <div className="row">
-<Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
-  {loading ? t(language, "validating") : (
+<Button
+  variant="primary"
+  size="md"
+  onClick={onValidate}
+  disabled={loading || !vatInput.trim()}
+>
+  {loading ? (
+    t(language, "validating")
+  ) : (
     <ActionButtonText icon="validate">
       {t(language, "validate")}
     </ActionButtonText>
