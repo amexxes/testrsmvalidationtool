@@ -721,17 +721,16 @@ function FilterSectionTitle({ language }: { language: PortalLanguage }) {
         }}
       >
         <span style={INPUT_CARD_ICON_STYLE}>
-          <img
-            src="/filter.png"
-            alt=""
-            aria-hidden="true"
-            style={{
-              width: 22,
-              height: 22,
-              objectFit: "contain",
-              display: "block",
-            }}
-          />
+  <img
+  src="/filter.png"
+  alt=""
+  style={{
+    width: 42,
+    height: 42,
+    objectFit: "contain",
+    display: "block",
+  }}
+/>
         </span>
 
         <span>{t(language, "filter")}</span>
