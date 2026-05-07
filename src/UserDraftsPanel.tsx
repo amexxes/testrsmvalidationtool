@@ -385,16 +385,19 @@ export default function UserDraftsPanel({
             {visibleDrafts.map((draft) => (
               <div
                 key={draft.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "minmax(220px, 1fr) auto",
-                  gap: 12,
-                  alignItems: "center",
-                  padding: 12,
-                  borderRadius: 16,
-                  border: "1px solid rgba(11,46,95,0.08)",
-                  background: "#FFFFFF",
-                }}
+style={{
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, 1fr) auto",
+  gap: 12,
+  alignItems: "center",
+  padding: 12,
+  borderRadius: 16,
+  border: "1px solid rgba(255,255,255,0.58)",
+  background: "rgba(255,255,255,0.48)",
+  boxShadow: "0 12px 30px rgba(11,46,95,0.08)",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+}}
               >
                 <div style={{ minWidth: 0 }}>
                   <div
