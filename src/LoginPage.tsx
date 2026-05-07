@@ -41,10 +41,11 @@ async function readApiResponse(resp: Response) {
   const text = await resp.text();
 
   try {
-    return JSON.parse(text);
+    return text ? JSON.parse(text) : {};
   } catch {
     return {
       error: resp.ok ? "" : `Request failed (${resp.status})`,
+      message: text || `Request failed (${resp.status})`,
     };
   }
 }
@@ -268,7 +269,7 @@ export default function LoginPage({ onLoggedIn }: Props) {
       const data = await readApiResponse(resp);
 
       if (!resp.ok) {
-        setLoginError(data?.error || data?.message || `Request failed (${resp.status})`);
+        setLoginError(data?.message || data?.error || `Request failed (${resp.status})`);
         return;
       }
 
