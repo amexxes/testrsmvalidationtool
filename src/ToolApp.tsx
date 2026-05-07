@@ -1923,6 +1923,112 @@ function UnlimitedLogo() {
     />
   );
 }
+type ActionButtonIcon =
+  | "import"
+  | "export"
+  | "validate"
+  | "clear"
+  | "cancel"
+  | "retry"
+  | "draft";
+
+function ActionButtonText({
+  icon,
+  children,
+}: {
+  icon: ActionButtonIcon;
+  children: React.ReactNode;
+}) {
+  const paths: Record<ActionButtonIcon, React.ReactNode> = {
+    import: (
+      <>
+        <path d="M12 3v10" />
+        <path d="M8 9l4 4 4-4" />
+        <path d="M5 17h14" />
+      </>
+    ),
+    export: (
+      <>
+        <path d="M12 21V11" />
+        <path d="M8 15l4-4 4 4" />
+        <path d="M5 7h14" />
+      </>
+    ),
+    validate: (
+      <>
+        <path d="M5 12l4 4L19 6" />
+      </>
+    ),
+    clear: (
+      <>
+        <path d="M4 7h16" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+        <path d="M6 7l1 14h10l1-14" />
+        <path d="M9 7V4h6v3" />
+      </>
+    ),
+    cancel: (
+      <>
+        <path d="M6 6l12 12" />
+        <path d="M18 6L6 18" />
+      </>
+    ),
+    retry: (
+      <>
+        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+        <path d="M20 4v6h-6" />
+      </>
+    ),
+    draft: (
+      <>
+        <path d="M5 4h11l3 3v13H5z" />
+        <path d="M16 4v4h4" />
+        <path d="M8 13h8" />
+        <path d="M8 17h5" />
+      </>
+    ),
+  };
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        fontWeight: 700,
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        style={{ flex: "0 0 auto" }}
+      >
+        <g
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {paths[icon]}
+        </g>
+      </svg>
+
+      <span>{children}</span>
+    </span>
+  );
+}
+
+
+
 const IMPORT_BUTTON_CONTENT_STYLE: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -2346,7 +2452,9 @@ function ImportPreviewPanel({
         </Button>
 
         <Button variant="primary" size="sm" onClick={onConfirm} disabled={!preview.readyCount}>
-          {copy.confirm}
+          <ActionButtonText icon="import">
+  {copy.confirm}
+</ActionButtonText>
         </Button>
       </div>
     </div>
@@ -3401,11 +3509,15 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
               <div className="row">
                 <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
-                  {loading ? t(language, "validating") : t(language, "validate")}
+                  <ActionButtonText icon="validate">
+  {loading ? t(language, "validating") : t(language, "validate")}
+</ActionButtonText>
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
-                  {t(language, "clear")}
+                  <ActionButtonText icon="clear">
+  {t(language, "clear")}
+</ActionButtonText>
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
@@ -4435,7 +4547,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
-                  {t(language, "clear")}
+                  <ActionButtonText icon="cancel">
+  {t(language, "cancel")}
+</ActionButtonText>
                 </Button>
 
                 <Button
@@ -4444,7 +4558,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   onClick={onRetryTinUnresolved}
                   disabled={loading || !retryTinLines.length}
                 >
-                  {localText(language, "retryUnresolved")}
+                  <ActionButtonText icon="retry">
+  {localText(language, "retryUnresolved")}
+</ActionButtonText>
                 </Button>
               </div>
 
