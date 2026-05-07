@@ -353,24 +353,14 @@ export default function UserDraftsPanel({
   onClick={() => void handleSaveDraft()}
   disabled={saving || !String(inputValue || "").trim()}
   style={{
+    ...DRAFT_BUTTON_STYLE,
     minWidth: 150,
-    height: 38,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.62)",
-    background: "rgba(255,255,255,0.48)",
-    color: "#0B2E5F",
-    boxShadow: "0 12px 30px rgba(11,46,95,0.12)",
-    backdropFilter: "blur(14px) saturate(1.25)",
-    WebkitBackdropFilter: "blur(14px) saturate(1.25)",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
     padding: "0 14px",
     cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
     opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
   }}
 >
-  <DraftButtonText>
+  <DraftButtonText icon="draft">
     {saving ? draftText(language, "saving") : t(language, "saveDraft")}
   </DraftButtonText>
 </button>
