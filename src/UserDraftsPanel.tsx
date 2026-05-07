@@ -475,7 +475,8 @@ return (
       )}
     </div>
   </div>
-);
+  );
+}
 
 const emptyStyle: React.CSSProperties = {
   padding: 14,
