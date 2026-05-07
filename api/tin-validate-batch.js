@@ -60,11 +60,15 @@ function extractTag(xml, tagName) {
 
 function toBooleanOrNull(value) {
   if (value === null || value === undefined) return null;
+
   const s = String(value).trim().toLowerCase();
+
   if (s === "true") return true;
   if (s === "false") return false;
+
   return null;
 }
+
 function cleanTin(value) {
   return String(value || "")
     .trim()
@@ -109,11 +113,13 @@ function isValidSwissUid(value) {
 
   const digits = compact.slice(3);
   const weights = [5, 4, 3, 2, 7, 6, 5, 4];
+
   const sum = weights.reduce((acc, weight, index) => {
     return acc + Number(digits[index]) * weight;
   }, 0);
 
   const expected = String((11 - (sum % 11)) % 11);
+
   return digits[8] === expected;
 }
 
@@ -194,6 +200,7 @@ function validateLocalTin(country, tin) {
 
   return null;
 }
+
 function buildSoapEnvelope(countryCode, tinNumber) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:tin:services:checkTin:types">
@@ -236,8 +243,7 @@ async function resolveSoapEndpoint() {
       Accept: "text/xml, application/xml, */*",
     },
   });
-const auth = await requireModuleAccess(req, res, "tin");
-if (!auth) return;
+
   const wsdlText = await wsdlResp.text();
 
   if (!wsdlResp.ok) {
@@ -257,6 +263,7 @@ if (!auth) return;
   }
 
   cachedSoapEndpoint = endpointMatch[1];
+
   return cachedSoapEndpoint;
 }
 
@@ -288,14 +295,17 @@ async function callTinSoap(country, tin) {
   }
 
   const fault = parseSoapFault(xml);
+
   if (fault) {
     const err = new Error(fault);
+
     err.httpStatus =
       fault === "INVALID_INPUT"
         ? 400
         : fault === "SERVICE_UNAVAILABLE" || fault === "SERVER_BUSY"
-        ? 503
-        : 502;
+          ? 503
+          : 502;
+
     throw err;
   }
 
@@ -346,7 +356,9 @@ async function mapLimit(items, limit, asyncFn) {
   async function worker() {
     while (true) {
       const current = nextIndex++;
+
       if (current >= items.length) return;
+
       results[current] = await asyncFn(items[current], current);
     }
   }
@@ -357,6 +369,7 @@ async function mapLimit(items, limit, asyncFn) {
   );
 
   await Promise.all(workers);
+
   return results;
 }
 
@@ -366,11 +379,15 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
+    const auth = await requireModuleAccess(req, res, "tin");
+    if (!auth) return;
+
     const body =
       typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
 
     const country = normalizeCountry(body?.country);
     const tinsRaw = Array.isArray(body?.tins) ? body.tins : [];
+
     const tins = tinsRaw
       .map((x) => normalizeTinInput(country, x))
       .filter(Boolean);
@@ -381,30 +398,30 @@ export default async function handler(req, res) {
       });
     }
 
-const results = await mapLimit(tins, 2, async (tin, index) => {
-  try {
-    const localResult = validateLocalTin(country, tin);
-    const result = localResult || (await callTinSoap(country, tin));
+    const results = await mapLimit(tins, 2, async (tin, index) => {
+      try {
+        const localResult = validateLocalTin(country, tin);
+        const result = localResult || (await callTinSoap(country, tin));
 
-    return {
-      index,
-      input_tin: tin,
-      ...result,
-    };
-  } catch (err) {
-    return {
-      index,
-      input_tin: tin,
-      status: "error",
-      country,
-      tin_number: tin,
-      request_date: null,
-      structure_valid: null,
-      syntax_valid: null,
-      message: String(err?.message || err),
-    };
-  }
-});
+        return {
+          index,
+          input_tin: tin,
+          ...result,
+        };
+      } catch (err) {
+        return {
+          index,
+          input_tin: tin,
+          status: "error",
+          country,
+          tin_number: tin,
+          request_date: null,
+          structure_valid: null,
+          syntax_valid: null,
+          message: String(err?.message || err),
+        };
+      }
+    });
 
     const stats = {
       total: results.length,
