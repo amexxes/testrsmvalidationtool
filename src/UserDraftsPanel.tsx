@@ -171,11 +171,14 @@ const DRAFT_PANEL_STYLE: React.CSSProperties = {
 };
 
 const DRAFT_BUTTON_STYLE: React.CSSProperties = {
+  minWidth: 132,
   height: 38,
   minHeight: 38,
+  boxSizing: "border-box",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
+  padding: "0 14px",
   borderRadius: 12,
   border: "1px solid rgba(255,255,255,0.62)",
   background: "rgba(255,255,255,0.48)",
@@ -317,28 +320,33 @@ export default function UserDraftsPanel({
           alignItems: "flex-start",
         }}
       >
-        <div>
-          <div
-            style={{
-              color: "#0B2E5F",
-              fontSize: 18,
-              fontWeight: 900,
-            }}
-          >
-            {t(language, "drafts")}
-          </div>
+  <div>
+  <div
+    style={{
+      fontFamily: PORTAL_FONT,
+      fontSize: 19,
+      lineHeight: 1.2,
+      fontWeight: 700,
+      color: "#2F3033",
+      margin: 0,
+    }}
+  >
+    {t(language, "drafts")}
+  </div>
 
-          <div
-            style={{
-              marginTop: 5,
-              color: "#607089",
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {draftText(language, "help")}
-          </div>
-        </div>
+  <div
+    style={{
+      fontFamily: PORTAL_FONT,
+      fontSize: 13,
+      lineHeight: 1.55,
+      fontWeight: 300,
+      color: "#515356",
+      marginTop: 6,
+    }}
+  >
+    {draftText(language, "help")}
+  </div>
+</div>
 
 <button
   type="button"
@@ -400,30 +408,34 @@ style={{
 }}
               >
                 <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      color: "#0B2E5F",
-                      fontSize: 13,
-                      fontWeight: 900,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                    title={draft.title}
-                  >
-                    {draft.title}
-                  </div>
+ <div
+  style={{
+    fontFamily: PORTAL_FONT,
+    color: "#2F3033",
+    fontSize: 13,
+    lineHeight: 1.35,
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  }}
+  title={draft.title}
+>
+  {draft.title}
+</div>
 
-                  <div
-                    style={{
-                      marginTop: 4,
-                      color: "#607089",
-                      fontSize: 12,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {new Date(draft.updatedAt).toLocaleString(localeForLanguage(language))}
-                  </div>
+<div
+  style={{
+    marginTop: 4,
+    fontFamily: PORTAL_FONT,
+    color: "#515356",
+    fontSize: 12,
+    lineHeight: 1.35,
+    fontWeight: 300,
+  }}
+>
+  {new Date(draft.updatedAt).toLocaleString(localeForLanguage(language))}
+</div>
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>
