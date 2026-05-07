@@ -5437,7 +5437,7 @@ function IbanPage({
         title={branding.portalTitle || "Validation Portal"}
         modeValue="IBAN"
         meta={[
-          { label: t(language, "credits"), value: t(language, "unlimited") },
+          { label: t(language, "credits"), value: <UnlimitedLogo /> },
           { label: t(language, "lastUpdate"), value: lastUpdate },
         ]}
         activePage={activePage}
