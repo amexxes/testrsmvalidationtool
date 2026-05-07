@@ -1919,6 +1919,32 @@ function TrialBadge({
         whiteSpace: "nowrap",
       }}
     >
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        style={{
+          flex: "0 0 auto",
+          transform: "translateY(0.5px)",
+        }}
+      >
+        <path
+          d="M12 3l7 3v5c0 4.5-2.8 8.4-7 10-4.2-1.6-7-5.5-7-10V6l7-3z"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 8v4l2.5 2"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+
       <span
         style={{
           display: "inline-flex",
