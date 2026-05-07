@@ -234,7 +234,55 @@ const ACTION_BUTTON_STYLE: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 700,
 };
+const ACTION_BUTTON_TEXT_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  fontFamily: PORTAL_FONT,
+  fontSize: 12,
+  lineHeight: 1,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
 
+function ActionButtonText({
+  icon,
+  children,
+}: {
+  icon: "import" | "export" | "validate" | "clear" | "cancel" | "retry" | "draft";
+  children: React.ReactNode;
+}) {
+  const path =
+    icon === "import"
+      ? "M12 3v10m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+      : icon === "export"
+        ? "M12 21V11m0 0-4 4m4-4 4 4M4 7V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"
+        : icon === "validate"
+          ? "M20 6 9 17l-5-5"
+          : icon === "clear"
+            ? "M6 6l12 12M18 6 6 18"
+            : icon === "cancel"
+              ? "M6 18 18 6M6 6l12 12"
+              : icon === "retry"
+                ? "M20 11a8 8 0 1 0-2.34 5.66M20 11V5m0 6h-6"
+                : "M5 5h14v14H5zM8 9h8M8 13h5";
+
+  return (
+    <span style={ACTION_BUTTON_TEXT_STYLE}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d={path}
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      <span>{children}</span>
+    </span>
+  );
+}
 const BANNER_INNER_STYLE: React.CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
@@ -3273,7 +3321,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 >
                   <span style={IMPORT_BUTTON_CONTENT_STYLE}>
   <ImportIcon />
-  <span>{t(language, "importXlsxCsv")}</span>
+  <span><ActionButtonText icon="import">
+  {t(language, "importXlsxCsv")}
+</ActionButtonText></span>
 </span>
                 </Button>
 
@@ -4325,7 +4375,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 >
                   <span style={IMPORT_BUTTON_CONTENT_STYLE}>
   <ImportIcon />
-  <span>{t(language, "importXlsxCsv")}</span>
+  <span><ActionButtonText icon="import">
+  {t(language, "importXlsxCsv")}
+</ActionButtonText></span>
 </span>
                 </Button>
 
@@ -5023,7 +5075,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 >
                   <span style={IMPORT_BUTTON_CONTENT_STYLE}>
   <ImportIcon />
-  <span>{t(language, "importXlsxCsv")}</span>
+  <span><ActionButtonText icon="import">
+  {t(language, "importXlsxCsv")}
+</ActionButtonText></span>
 </span>
                 </Button>
 
