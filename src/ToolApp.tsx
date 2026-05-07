@@ -54,6 +54,8 @@ type ClientBranding = {
   accentColor?: string;
   backgroundColor?: string;
   textColor?: string;
+  isTrial?: boolean;
+  trialEndsAt?: string;
 };
 
 type ToolAppProps = {
@@ -1883,7 +1885,48 @@ type ActionButtonIcon =
   | "cancel"
   | "retry"
   | "draft";
+function TrialBadge({
+  branding,
+  language,
+}: {
+  branding: ClientBranding;
+  language: PortalLanguage;
+}) {
+  if (!branding.isTrial) return null;
 
+  const rawDate = String(branding.trialEndsAt || "").trim();
+  const parsedDate = rawDate ? new Date(rawDate) : null;
+
+  const dateText =
+    parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? parsedDate.toLocaleDateString(localeForLanguage(language))
+      : rawDate;
+
+  return (
+    <div
+      style={{
+        marginTop: 7,
+        display: "inline-flex",
+        alignItems: "center",
+        width: "fit-content",
+        padding: "4px 9px",
+        borderRadius: 999,
+        border: "1px solid rgba(63,156,53,0.24)",
+        background: "rgba(63,156,53,0.08)",
+        color: "#3F9C35",
+        fontFamily: PORTAL_FONT,
+        fontSize: 10,
+        lineHeight: 1,
+        fontWeight: 700,
+        letterSpacing: "0.055em",
+        textTransform: "uppercase",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {dateText ? `TRIAL · t/m ${dateText}` : "TRIAL"}
+    </div>
+  );
+}
 function ActionButtonText({
   icon,
   children,
@@ -2119,23 +2162,24 @@ function PortalBanner({
             />
           </div>
 
-          <div style={{ minWidth: 0 }}>
-            <div
-              className="title"
-              style={{
-                ...PAGE_TITLE_STYLE,
-                fontWeight: 800,
-                display: "flex",
-                flexDirection: "column",
-                lineHeight: 1.05,
-                whiteSpace: "normal",
-              }}
-            >
-              <span>Validation</span>
-              <span>Portal</span>
-            </div>
-          </div>
-        </div>
+<div style={{ minWidth: 0 }}>
+  <div
+    className="title"
+    style={{
+      ...PAGE_TITLE_STYLE,
+      fontWeight: 800,
+      display: "flex",
+      flexDirection: "column",
+      lineHeight: 1.05,
+      whiteSpace: "normal",
+    }}
+  >
+    <span>Validation</span>
+    <span>Portal</span>
+  </div>
+
+  <TrialBadge branding={branding} language={language} />
+</div>
 
         <div style={BANNER_CENTER_STYLE}>
           <div style={BANNER_STATUS_BAR_STYLE}>
