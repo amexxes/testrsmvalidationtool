@@ -219,16 +219,19 @@ onClick={() => {
             </button>
           )}
 
-          <button
-            type="button"
-            style={menuItemStyle}
-            onClick={() => {
-              setOpen(false);
-              onOpenChangePassword();
-            }}
-          >
-            Change password
-          </button>
+<button
+  type="button"
+  disabled={user.role !== "admin"}
+  style={user.role !== "admin" ? disabledMenuItemStyle : menuItemStyle}
+  onClick={() => {
+    if (user.role !== "admin") return;
+
+    setOpen(false);
+    onOpenChangePassword();
+  }}
+>
+  Change password
+</button>
 
           <button
             type="button"
@@ -407,7 +410,13 @@ const menuItemStyle: React.CSSProperties = {
   cursor: "pointer",
   borderBottom: "1px solid rgba(81,83,86,0.08)",
 };
-
+const disabledMenuItemStyle: React.CSSProperties = {
+  ...menuItemStyle,
+  color: "rgba(81,83,86,0.42)",
+  background: "rgba(241,245,249,0.48)",
+  cursor: "not-allowed",
+  opacity: 0.62,
+};
 const dangerItemStyle: React.CSSProperties = {
   width: "100%",
   textAlign: "left",
