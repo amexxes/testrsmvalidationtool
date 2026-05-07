@@ -296,6 +296,42 @@ async function updateUserTrial(user: UserRow, isTrial: boolean, trialEndsAt: str
     setActionLoadingEmail("");
   }
 }
+async function resetVatCredits(user: UserRow) {
+  if (user.role === "admin") return;
+
+  const ok = window.confirm(`Reset VAT credits for ${user.email} to 0?`);
+  if (!ok) return;
+
+  setActionLoadingEmail(user.email);
+  setError("");
+  setSuccess("");
+
+  try {
+    const resp = await fetch("/api/admin/users/reset-vat-credits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        email: user.email,
+      }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      setError(data?.error || data?.message || "Could not reset VAT credits");
+      return;
+    }
+
+    setSuccess(`VAT credits reset for ${user.email}`);
+    await loadUsers();
+  } catch {
+    setError("Could not reset VAT credits");
+  } finally {
+    setActionLoadingEmail("");
+  }
+} 
+  
   async function resetPassword(email: string) {
     const newPassword = window.prompt(`Enter a new password for ${email}`);
     if (!newPassword) return;
@@ -564,25 +600,34 @@ async function updateUserTrial(user: UserRow, isTrial: boolean, trialEndsAt: str
                       </td>
 
                       <td style={tdStyle}>
-                        <div style={actionRowStyle}>
-                          <button
-                            type="button"
-                            style={smallButtonStyle}
-                            onClick={() => resetPassword(user.email)}
-                            disabled={busy}
-                          >
-                            Reset password
-                          </button>
+   <div style={actionRowStyle}>
+  <button
+    type="button"
+    style={smallButtonStyle}
+    onClick={() => resetPassword(user.email)}
+    disabled={busy}
+  >
+    Reset password
+  </button>
 
-                          <button
-                            type="button"
-                            style={smallDangerButtonStyle}
-                            onClick={() => deleteUser(user.email)}
-                            disabled={busy}
-                          >
-                            Delete
-                          </button>
-                        </div>
+  <button
+    type="button"
+    style={smallButtonStyle}
+    onClick={() => void resetVatCredits(user)}
+    disabled={busy || isAdmin}
+  >
+    Reset credits
+  </button>
+
+  <button
+    type="button"
+    style={smallDangerButtonStyle}
+    onClick={() => deleteUser(user.email)}
+    disabled={busy}
+  >
+    Delete
+  </button>
+</div>
                       </td>
                     </tr>
                   );
