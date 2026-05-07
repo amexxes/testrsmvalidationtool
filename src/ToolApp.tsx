@@ -2400,7 +2400,9 @@ function ImportPreviewPanel({
 
       <div className="row" style={{ marginTop: 10 }}>
         <Button variant="secondary" size="sm" onClick={onCancel}>
-          {t(language, "cancel")}
+          <ActionButtonText icon="cancel">
+  {t(language, "cancel")}
+</ActionButtonText>
         </Button>
 
         <Button variant="primary" size="sm" onClick={onConfirm} disabled={!preview.readyCount}>
@@ -3474,7 +3476,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={onCancel} disabled={!loading && !activeFrJobId}>
-                  {t(language, "cancel")}
+                 <ActionButtonText icon="cancel">
+  {t(language, "cancel")}
+</ActionButtonText>
                 </Button>
 
                 <Button
@@ -3483,7 +3487,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   onClick={onRetryVatUnresolved}
                   disabled={loading || !retryVatLines.length}
                 >
-                  {localText(language, "retryUnresolved")}
+                  <ActionButtonText icon="retry">
+  {localText(language, "retryUnresolved")}
+</ActionButtonText>
                 </Button>
 
                 <div style={{ flex: 1 }} />
@@ -4500,11 +4506,11 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 </ActionButtonText>
                 </Button>
 
-                <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
-                  <ActionButtonText icon="cancel">
-  {t(language, "cancel")}
-</ActionButtonText>
-                </Button>
+<Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
+  <ActionButtonText icon="clear">
+    {t(language, "clear")}
+  </ActionButtonText>
+</Button>
 
                 <Button
                   variant="secondary"
@@ -5238,7 +5244,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   onClick={onRetryEoriUnresolved}
                   disabled={loading || !retryEoriLines.length}
                 >
-                  {localText(language, "retryUnresolved")}
+                  <ActionButtonText icon="retry">
+  {localText(language, "retryUnresolved")}
+</ActionButtonText>
                 </Button>
               </div>
 
