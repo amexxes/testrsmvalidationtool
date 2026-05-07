@@ -193,6 +193,64 @@ const DRAFT_DELETE_BUTTON_STYLE: React.CSSProperties = {
   background: "rgba(185,28,28,0.05)",
   color: "#8F1D1D",
 };
+const PORTAL_FONT =
+  "'Prelo', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+const DRAFT_BUTTON_TEXT_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  fontFamily: PORTAL_FONT,
+  fontSize: 12,
+  lineHeight: 1,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
+
+function DraftButtonText({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={DRAFT_BUTTON_TEXT_STYLE}>
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+        style={{ flex: "0 0 auto" }}
+      >
+        <path
+          d="M5 4h11l3 3v13H5z"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M16 4v4h4"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8 13h8"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+        />
+        <path
+          d="M8 17h5"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+        />
+      </svg>
+
+      <span>{children}</span>
+    </span>
+  );
+}
 export default function UserDraftsPanel({
   activePage,
   referenceValue = "",
@@ -352,13 +410,24 @@ export default function UserDraftsPanel({
   onClick={() => void handleSaveDraft()}
   disabled={saving || !String(inputValue || "").trim()}
   style={{
-    ...DRAFT_BUTTON_STYLE,
     minWidth: 150,
+    height: 38,
+    borderRadius: 12,
+    border: "1px solid rgba(255,255,255,0.62)",
+    background: "rgba(255,255,255,0.48)",
+    color: "#0B2E5F",
+    boxShadow: "0 12px 30px rgba(11,46,95,0.12)",
+    backdropFilter: "blur(14px) saturate(1.25)",
+    WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0 14px",
     cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
     opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
   }}
 >
-  <DraftButtonText icon="draft">
+  <DraftButtonText>
     {saving ? draftText(language, "saving") : t(language, "saveDraft")}
   </DraftButtonText>
 </button>
@@ -440,21 +509,20 @@ export default function UserDraftsPanel({
   </DraftButtonText>
 </button>
 
-                  <button
-                    type="button"
-                    onClick={() => void handleDeleteDraft(draft.id)}
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: 10,
-                      border: "1px solid rgba(185,28,28,0.12)",
-                      background: "rgba(185,28,28,0.05)",
-                      color: "#8f1d1d",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t(language, "delete")}
-                  </button>
+ <button
+  type="button"
+  onClick={() => void handleDeleteDraft(draft.id)}
+  style={{
+    ...DRAFT_BUTTON_STYLE,
+    border: "1px solid rgba(185,28,28,0.14)",
+    background: "rgba(185,28,28,0.05)",
+    color: "#8F1D1D",
+  }}
+>
+  <DraftButtonText icon="delete">
+    {t(language, "delete")}
+  </DraftButtonText>
+</button>
                 </div>
               </div>
             ))}
