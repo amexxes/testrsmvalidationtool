@@ -2279,7 +2279,7 @@ function PortalBanner({
           <div
             style={{
               position: "absolute",
-              top: "calc(100% + 6px)",
+              top: "calc(100% + 3px)",
               left: "50%",
               transform: "translateX(-50%)",
               pointerEvents: "none",
