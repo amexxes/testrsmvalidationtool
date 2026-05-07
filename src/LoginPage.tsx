@@ -78,19 +78,6 @@ function LoginBrandPanel() {
           Check VAT, TIN, EORI and IBAN data in a clean customer portal.
         </p>
       </div>
-
-      <div style={featureGridStyle}>
-        {[
-          "Batch validation",
-          "Import and export",
-          "Customer access control",
-        ].map((item) => (
-          <div key={item} style={featureItemStyle}>
-            <span style={featureDotStyle} />
-            <span>{item}</span>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }
@@ -422,32 +409,6 @@ const brandTextStyle: React.CSSProperties = {
   fontWeight: 300,
 };
 
-const featureGridStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 10,
-  marginTop: 30,
-};
-
-const featureItemStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  padding: "11px 13px",
-  borderRadius: 15,
-  background: "rgba(255,255,255,0.46)",
-  border: "1px solid rgba(81,83,86,0.08)",
-  color: "#515356",
-  fontSize: 13,
-  fontWeight: 700,
-};
-
-const featureDotStyle: React.CSSProperties = {
-  width: 9,
-  height: 9,
-  borderRadius: 999,
-  background: "#009CDE",
-  flex: "0 0 auto",
-};
 
 const formCardStyle: React.CSSProperties = {
   borderRadius: 28,
