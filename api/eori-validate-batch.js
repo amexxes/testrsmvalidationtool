@@ -148,6 +148,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const auth = await requireModuleAccess(req, res, "eori");
+    if (!auth) return;
+
     const body = req.body || {};
     const input = Array.isArray(body.eoris) ? body.eoris : [];
 
