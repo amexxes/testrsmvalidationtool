@@ -3166,24 +3166,24 @@ const ratio =
     ? Math.log1p(n) / Math.log1p(max)
     : 0;
 
-let fill = "#eef8fb";
-let stroke = "#d6edf4";
+let fill = "#EEF8FC";
+let stroke = "#D8EDF7";
 
 if (ratio >= 0.85) {
-  fill = "#1f8fb3";
-  stroke = "#0b6f91";
+  fill = "#005F86";
+  stroke = "#004A68";
 } else if (ratio >= 0.65) {
-  fill = "#3fa9c9";
-  stroke = "#2385a5";
+  fill = "#007CAD";
+  stroke = "#005F86";
 } else if (ratio >= 0.45) {
-  fill = "#6fc2d8";
-  stroke = "#3fa9c9";
+  fill = "#009CDE";
+  stroke = "#007CAD";
 } else if (ratio >= 0.25) {
-  fill = "#99d7e7";
-  stroke = "#6fc2d8";
+  fill = "#63C7F2";
+  stroke = "#009CDE";
 } else if (ratio > 0) {
-  fill = "#bfeaf3";
-  stroke = "#8fd3e5";
+  fill = "#CBEFFD";
+  stroke = "#63C7F2";
 }
 
           return {
