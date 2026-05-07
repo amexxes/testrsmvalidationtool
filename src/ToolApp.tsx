@@ -3494,10 +3494,25 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
                 <div style={{ flex: 1 }} />
 
-                <div className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>
-                  <span>{t(language, "progress")}: </span>
-                  <b style={{ color: "var(--text)" }}>{progressText}</b>
-                </div>
+<div
+  style={{
+    fontFamily: PORTAL_FONT,
+    fontSize: 12,
+    lineHeight: 1.35,
+    fontWeight: 300,
+    color: "#515356",
+  }}
+>
+  <span>{t(language, "progress")}: </span>
+  <b
+    style={{
+      color: "#2F3033",
+      fontWeight: 700,
+    }}
+  >
+    {progressText}
+  </b>
+</div>
               </div>
 
 <div
