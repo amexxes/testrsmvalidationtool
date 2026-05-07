@@ -107,8 +107,7 @@ async function callHmrcBatch(batch) {
     },
     body: JSON.stringify({ eoris: batch }),
   });
-const auth = await requireModuleAccess(req, res, "eori");
-if (!auth) return;
+
   const data = await safeReadJson(response);
 
   if (!response.ok) {
