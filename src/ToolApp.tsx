@@ -1907,6 +1907,7 @@ function TrialBadge({
         gap: 6,
         width: "fit-content",
         padding: "0 10px",
+        borderRadius: 999,
         border: "1px solid rgba(81,83,86,0.14)",
         background: "rgba(81,83,86,0.06)",
         color: RSM_TEXT,
