@@ -33,6 +33,8 @@ type AuthUser = {
   createdAt: string;
   modules?: Partial<ClientModules>;
   vatSubscription?: "starter" | "business" | "enterprise";
+  isTrial?: boolean;
+  trialEndsAt?: string;
 };
 
 const DEFAULT_CLIENT_MODULES: ClientModules = {
@@ -73,6 +75,8 @@ type ClientBranding = {
   textColor: string;
   allowedDomains?: string[];
   active?: boolean;
+  isTrial?: boolean;
+  trialEndsAt?: string;
 };
 
 const DEFAULT_BRANDING: ClientBranding = {
@@ -130,9 +134,15 @@ export default function App() {
   const [viewAsEmail, setViewAsEmail] = useState("");
   const [viewAsBranding, setViewAsBranding] = useState<ClientBranding | null>(null);
 
-  const effectiveBranding = useMemo(() => {
-    return viewAsBranding || branding;
-  }, [viewAsBranding, branding]);
+const effectiveBranding = useMemo(() => {
+  const baseBranding = viewAsBranding || branding;
+
+  return {
+    ...baseBranding,
+    isTrial: Boolean(user?.isTrial),
+    trialEndsAt: user?.trialEndsAt || "",
+  };
+}, [viewAsBranding, branding, user]);
 const effectiveClientModules = useMemo(() => {
   if (!user) return DEFAULT_CLIENT_MODULES;
 
