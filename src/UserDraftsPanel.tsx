@@ -324,7 +324,7 @@ return (
         <div
           style={{
             fontFamily: PORTAL_FONT,
-            fontSize: 19,
+            fontSize: 18,
             lineHeight: 1.2,
             fontWeight: 700,
             color: "#2F3033",
@@ -479,11 +479,16 @@ return (
 }
 
 const emptyStyle: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 16,
-  border: "1px dashed rgba(11,46,95,0.14)",
-  background: "rgba(248,251,255,0.72)",
-  color: "#607089",
-  fontSize: 13,
-  fontWeight: 700,
+  padding: "10px 12px",
+  borderRadius: 14,
+  border: "1px solid rgba(255,255,255,0.58)",
+  background: "rgba(255,255,255,0.38)",
+  color: "#515356",
+  fontFamily: PORTAL_FONT,
+  fontSize: 12,
+  lineHeight: 1.45,
+  fontWeight: 300,
+  boxShadow: "0 10px 24px rgba(11,46,95,0.06)",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
 };
