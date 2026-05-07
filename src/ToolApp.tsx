@@ -707,7 +707,38 @@ function normalizeTsMs(ts: any): number | undefined {
   if (n < 1_000_000_000_000) return n * 1000;
   return n;
 }
+function FilterSectionTitle({ language }: { language: PortalLanguage }) {
+  return (
+    <SectionTitle>
+      <span
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: 12,
+          textAlign: "left",
+        }}
+      >
+        <span style={INPUT_CARD_ICON_STYLE}>
+          <img
+            src="/filter.png"
+            alt=""
+            aria-hidden="true"
+            style={{
+              width: 22,
+              height: 22,
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
+        </span>
 
+        <span>{t(language, "filter")}</span>
+      </span>
+    </SectionTitle>
+  );
+}
 function rowKeyStable(r: Partial<VatRow>, fallbackIdx?: number): string {
   const vat = String((r as any).vat_number || "").trim();
   const input = String((r as any).input || "").trim();
@@ -3481,7 +3512,7 @@ boxShadow: "0 8px 18px rgba(15,23,42,0.08)",
           <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 16, minHeight: 0 }}>
             <Card style={GLASS_PANEL_STYLE}>
               <CardHeader className="pb-4">
-                <SectionTitle>{t(language, "filter")}</SectionTitle>
+                <FilterSectionTitle language={language} />
                 <SectionSubtitle maxWidth={520}>{t(language, "filterHelp")}</SectionSubtitle>
               </CardHeader>
 
