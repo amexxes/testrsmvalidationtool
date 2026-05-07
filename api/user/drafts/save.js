@@ -18,14 +18,23 @@ export default async function handler(req, res) {
   if (!auth) return;
 
   try {
-    const body = parseBody(req);
+ const body = parseBody(req);
 
-    const draft = await saveDraftForUser(auth.user.email, {
-      activePage: body.activePage,
-      title: body.title,
-      referenceValue: body.referenceValue,
-      inputValue: body.inputValue,
-    });
+const activePage = String(body.activePage || "").toLowerCase();
+
+if (!["vat", "tin", "eori"].includes(activePage)) {
+  return res.status(400).json({
+    error: "Invalid activePage",
+    message: `activePage must be vat, tin or eori. Received: ${body.activePage || "-"}`,
+  });
+}
+
+const draft = await saveDraftForUser(auth.user.email, {
+  activePage,
+  title: body.title,
+  referenceValue: body.referenceValue,
+  inputValue: body.inputValue,
+});
 
     return res.status(200).json({
       ok: true,
