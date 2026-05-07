@@ -2189,8 +2189,7 @@ function PortalBanner({
 <div
   style={{
     ...BANNER_CENTER_STYLE,
-    flexDirection: "column",
-    gap: 7,
+    position: "relative",
   }}
 >
   <div style={BANNER_STATUS_BAR_STYLE}>
@@ -2253,7 +2252,17 @@ function PortalBanner({
             ))}
           </div>
 
-          <TrialBadge branding={branding} language={language} />
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 10px)",
+              left: "50%",
+              transform: "translateX(-50%)",
+              pointerEvents: "none",
+            }}
+          >
+            <TrialBadge branding={branding} language={language} />
+          </div>
         </div>
 <div style={BANNER_RIGHT_STYLE}>
   <img
