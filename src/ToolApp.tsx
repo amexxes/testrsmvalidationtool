@@ -2086,7 +2086,7 @@ function GlassCard({ glow, className, style, children, ...props }: GlassCardProp
     </div>
   );
 }
-function formatTrialDate(value?: string, language: PortalLanguage): string {
+function formatTrialDate(value: string | undefined, language: PortalLanguage): string {
   if (!value) return "";
 
   try {
