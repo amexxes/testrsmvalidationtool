@@ -308,15 +308,7 @@ export default function UserDraftsPanel({
   }
 
   return (
-    <div
-      style={{
-        borderRadius: 22,
-        border: "1px solid rgba(11,46,95,0.08)",
-        background: "rgba(255,255,255,0.92)",
-        boxShadow: "0 14px 42px rgba(15,23,42,0.05)",
-        padding: 18,
-      }}
-    >
+<div style={DRAFT_PANEL_STYLE}>
       <div
         style={{
           display: "flex",
