@@ -91,7 +91,108 @@ async function readJson(resp: Response) {
     return null;
   }
 }
+const PORTAL_FONT =
+  "'Prelo', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 
+type DraftButtonIcon = "draft" | "restore" | "delete";
+
+function DraftButtonText({
+  icon,
+  children,
+}: {
+  icon: DraftButtonIcon;
+  children: React.ReactNode;
+}) {
+  const paths: Record<DraftButtonIcon, React.ReactNode> = {
+    draft: (
+      <>
+        <path d="M5 4h11l3 3v13H5z" />
+        <path d="M16 4v4h4" />
+        <path d="M8 13h8" />
+        <path d="M8 17h5" />
+      </>
+    ),
+    restore: (
+      <>
+        <path d="M4 12a8 8 0 0 1 13.66-5.66" />
+        <path d="M20 4v6h-6" />
+        <path d="M20 12a8 8 0 0 1-13.66 5.66" />
+      </>
+    ),
+    delete: (
+      <>
+        <path d="M4 7h16" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+        <path d="M6 7l1 14h10l1-14" />
+        <path d="M9 7V4h6v3" />
+      </>
+    ),
+  };
+
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        fontWeight: 700,
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <g
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {paths[icon]}
+        </g>
+      </svg>
+
+      <span>{children}</span>
+    </span>
+  );
+}
+
+const DRAFT_PANEL_STYLE: React.CSSProperties = {
+  borderRadius: 22,
+  border: "1px solid rgba(255,255,255,0.58)",
+  background: "rgba(255,255,255,0.58)",
+  boxShadow: "0 22px 60px rgba(11,46,95,0.12)",
+  backdropFilter: "blur(18px) saturate(1.28)",
+  WebkitBackdropFilter: "blur(18px) saturate(1.28)",
+  padding: 18,
+};
+
+const DRAFT_BUTTON_STYLE: React.CSSProperties = {
+  height: 38,
+  minHeight: 38,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.62)",
+  background: "rgba(255,255,255,0.48)",
+  color: "#0B2E5F",
+  boxShadow: "0 12px 30px rgba(11,46,95,0.12)",
+  backdropFilter: "blur(14px) saturate(1.25)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+  fontFamily: PORTAL_FONT,
+  cursor: "pointer",
+};
+
+const DRAFT_DELETE_BUTTON_STYLE: React.CSSProperties = {
+  ...DRAFT_BUTTON_STYLE,
+  border: "1px solid rgba(185,28,28,0.14)",
+  background: "rgba(185,28,28,0.05)",
+  color: "#8F1D1D",
+};
 export default function UserDraftsPanel({
   activePage,
   referenceValue = "",
@@ -246,25 +347,21 @@ export default function UserDraftsPanel({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void handleSaveDraft()}
-          disabled={saving || !String(inputValue || "").trim()}
-          style={{
-            minWidth: 150,
-            height: 38,
-            borderRadius: 12,
-            border: "1px solid rgba(11,46,95,0.12)",
-            background: "#FFFFFF",
-            color: "#0B2E5F",
-            fontSize: 13,
-            fontWeight: 850,
-            cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
-            opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
-          }}
-        >
-          {saving ? draftText(language, "saving") : t(language, "saveDraft")}
-        </button>
+<button
+  type="button"
+  onClick={() => void handleSaveDraft()}
+  disabled={saving || !String(inputValue || "").trim()}
+  style={{
+    ...DRAFT_BUTTON_STYLE,
+    minWidth: 150,
+    cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
+    opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
+  }}
+>
+  <DraftButtonText icon="draft">
+    {saving ? draftText(language, "saving") : t(language, "saveDraft")}
+  </DraftButtonText>
+</button>
       </div>
 
       {error ? (
