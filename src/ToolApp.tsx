@@ -3394,7 +3394,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  {t(language, "exportExcel")}
+                  <ActionButtonText icon="export">
+  {t(language, "exportExcel")}
+</ActionButtonText>
                 </Button>
 
                 <input
@@ -3459,7 +3461,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
               <div className="row">
                 <Button variant="primary" size="md" onClick={onValidate} disabled={loading}>
                   <ActionButtonText icon="validate">
+  <ActionButtonText icon="validate">
   {loading ? t(language, "validating") : t(language, "validate")}
+</ActionButtonText>
 </ActionButtonText>
                 </Button>
 
@@ -4449,7 +4453,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  {t(language, "exportExcel")}
+                  <ActionButtonText icon="export">
+  {t(language, "exportExcel")}
+</ActionButtonText>
                 </Button>
 
                 <input
@@ -4489,7 +4495,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 
               <div className="row" style={{ marginTop: 12 }}>
                 <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
-                  {loading ? t(language, "validating") : t(language, "validate")}
+                  <ActionButtonText icon="validate">
+  {loading ? t(language, "validating") : t(language, "validate")}
+</ActionButtonText>
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
@@ -5150,7 +5158,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  {t(language, "exportExcel")}
+                  <ActionButtonText icon="export">
+  {t(language, "exportExcel")}
+</ActionButtonText>
                 </Button>
 
                 <input
@@ -5213,7 +5223,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   onClick={onValidateEoriBatch}
                   disabled={loading || !validInputEoris.length}
                 >
-                  {loading ? t(language, "validating") : t(language, "validate")}
+                  <ActionButtonText icon="validate">
+  {loading ? t(language, "validating") : t(language, "validate")}
+</ActionButtonText>
                 </Button>
 
                 <Button variant="secondary" size="md" onClick={onClearEori} disabled={loading}>
@@ -5579,7 +5591,9 @@ function IbanPage({
                     ...GLASS_BUTTON_STYLE,
                   }}
                 >
-                  {t(language, "exportExcel")}
+                  <ActionButtonText icon="export">
+  {t(language, "exportExcel")}
+</ActionButtonText>
                 </Button>
 
                 <Button
@@ -5610,7 +5624,9 @@ function IbanPage({
                   onClick={onValidateIbanBatch}
                   disabled={loading || !ibanInput.trim()}
                 >
-                  {loading ? t(language, "validating") : t(language, "validate")}
+                  <ActionButtonText icon="validate">
+  {loading ? t(language, "validating") : t(language, "validate")}
+</ActionButtonText>
                 </Button>
               </div>
 
