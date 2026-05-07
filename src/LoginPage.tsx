@@ -164,7 +164,8 @@ function LoginFormCard({
         </button>
       </form>
 
-      {!checkingStatus && !bootstrapped && (
+     {false && !checkingStatus && !bootstrapped && (
+  <div style={setupBlockStyle}>
         <div style={setupBlockStyle}>
           <h3 style={setupTitleStyle}>First-time setup</h3>
           <p style={setupTextStyle}>Create the first administrator account.</p>
