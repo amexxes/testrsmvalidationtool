@@ -262,22 +262,39 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
       setActionLoadingEmail("");
     }
   }
-function updateUserTrial(user: UserRow, isTrial: boolean, trialEndsAt: string) {
+async function updateUserTrial(user: UserRow, isTrial: boolean, trialEndsAt: string) {
   if (user.role === "admin") return;
 
-  setUsers((prev) =>
-    prev.map((row) =>
-      row.email === user.email
-        ? {
-            ...row,
-            isTrial,
-            trialEndsAt,
-          }
-        : row
-    )
-  );
+  setActionLoadingEmail(user.email);
+  setError("");
+  setSuccess("");
 
-  setSuccess(`Trial updated visually for ${user.email}`);
+  try {
+    const resp = await fetch("/api/admin/users/trial", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        email: user.email,
+        isTrial,
+        trialEndsAt,
+      }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      setError(data?.error || data?.message || "Could not update trial");
+      return;
+    }
+
+    setSuccess(`Trial updated for ${user.email}`);
+    await loadUsers();
+  } catch {
+    setError("Could not update trial");
+  } finally {
+    setActionLoadingEmail("");
+  }
 }
   async function resetPassword(email: string) {
     const newPassword = window.prompt(`Enter a new password for ${email}`);
