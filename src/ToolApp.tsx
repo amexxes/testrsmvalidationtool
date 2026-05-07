@@ -1875,6 +1875,41 @@ function UnlimitedLogo() {
     />
   );
 }
+const IMPORT_BUTTON_CONTENT_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  fontSize: 12,
+  lineHeight: 1,
+  fontWeight: 700,
+};
+
+function ImportIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 4v10"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 10l4 4 4-4"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 18h14"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 type GlassCardProps = React.HTMLAttributes<HTMLDivElement> & {
   glow?: boolean;
   children?: React.ReactNode;
@@ -3236,7 +3271,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  {t(language, "importXlsxCsv")}
+                  <span style={IMPORT_BUTTON_CONTENT_STYLE}>
+  <ImportIcon />
+  <span>{t(language, "importXlsxCsv")}</span>
+</span>
                 </Button>
 
                 <Button
@@ -4285,7 +4323,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  {t(language, "importXlsxCsv")}
+                  <span style={IMPORT_BUTTON_CONTENT_STYLE}>
+  <ImportIcon />
+  <span>{t(language, "importXlsxCsv")}</span>
+</span>
                 </Button>
 
                 <Button
@@ -4980,7 +5021,10 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   ...GLASS_BUTTON_STYLE,
 }}
                 >
-                  {t(language, "importXlsxCsv")}
+                  <span style={IMPORT_BUTTON_CONTENT_STYLE}>
+  <ImportIcon />
+  <span>{t(language, "importXlsxCsv")}</span>
+</span>
                 </Button>
 
                 <Button
