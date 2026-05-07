@@ -434,7 +434,7 @@ type LanguageSwitcherProps = {
 type PortalBannerProps = {
   title: string;
   modeValue: string;
-  meta: { label: string; value: string }[];
+  meta: { label: string; value: React.ReactNode }[];
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
   branding: ClientBranding;
@@ -1839,6 +1839,8 @@ function AnimatedBannerValue({
   );
 }
 function creditBarPercent(value: React.ReactNode): number {
+  if (React.isValidElement(value)) return 100;
+
   const text = String(value || "");
 
   if (text.toLowerCase().includes("unlimited")) return 100;
@@ -1853,6 +1855,20 @@ function creditBarPercent(value: React.ReactNode): number {
   if (!limit) return 0;
 
   return Math.min(100, Math.round((used / limit) * 100));
+}
+function UnlimitedLogo() {
+  return (
+    <img
+      src="/unlimited-logo.svg"
+      alt="Unlimited"
+      style={{
+        height: 18,
+        width: "auto",
+        display: "block",
+        objectFit: "contain",
+      }}
+    />
+  );
 }
 type GlassCardProps = React.HTMLAttributes<HTMLDivElement> & {
   glow?: boolean;
@@ -3198,10 +3214,10 @@ if (ratio >= 0.85) {
       <PortalBanner
         title={branding.portalTitle || "Validation Portal"}
         modeValue="VAT"
-        meta={[
-          { label: t(language, "credits"), value: formatVatCredits(vatCredits, language) },
-          { label: t(language, "lastUpdate"), value: lastUpdate },
-        ]}
+meta={[
+  { label: t(language, "credits"), value: <UnlimitedLogo /> },
+  { label: t(language, "lastUpdate"), value: lastUpdate },
+]}
         activePage={activePage}
         setActivePage={setActivePage}
         branding={branding}
@@ -4271,10 +4287,10 @@ function TinPage({
       <PortalBanner
         title={branding.portalTitle || "Validation Portal"}
         modeValue="TIN"
-        meta={[
-          { label: t(language, "credits"), value: t(language, "unlimited") },
-          { label: t(language, "country"), value: country },
-        ]}
+meta={[
+  { label: t(language, "credits"), value: <UnlimitedLogo /> },
+  { label: t(language, "country"), value: country },
+]}
         activePage={activePage}
         setActivePage={setActivePage}
         branding={branding}
@@ -4978,10 +4994,10 @@ async function runEoriValidation(eoris: string[]) {
       <PortalBanner
         title={branding.portalTitle || "Validation Portal"}
         modeValue="EORI"
-        meta={[
-          { label: t(language, "credits"), value: t(language, "unlimited") },
-          { label: t(language, "lastUpdate"), value: lastUpdate },
-        ]}
+meta={[
+  { label: t(language, "credits"), value: <UnlimitedLogo /> },
+  { label: t(language, "lastUpdate"), value: lastUpdate },
+]}
         activePage={activePage}
         setActivePage={setActivePage}
         branding={branding}
