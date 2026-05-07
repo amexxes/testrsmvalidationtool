@@ -1912,7 +1912,7 @@ function TrialBadge({
         background: "rgba(81,83,86,0.06)",
         color: RSM_TEXT,
         fontFamily: PORTAL_FONT,
-        fontSize: 10,
+        fontSize: 9,
         lineHeight: 1,
         fontWeight: 700,
         letterSpacing: "0.03em",
