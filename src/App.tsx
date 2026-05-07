@@ -351,20 +351,7 @@ const handleRunCompleted = useCallback(
         </div>
       )}
 
-<div style={rsmFooterLogoWrapStyle}>
-  <img
-    src="/rsmlogo.png"
-    alt="Made by RSM"
-    style={rsmFooterLogoStyle}
-  />
-</div>
-<div style={rsmFooterLogoWrapStyle}>
-  <img
-    src="/rsmlogo.png"
-    alt="Made by RSM"
-    style={rsmFooterLogoStyle}
-  />
-</div>
+
       <div style={accountMenuWrapStyle}>
         <AccountMenu
           user={user}
