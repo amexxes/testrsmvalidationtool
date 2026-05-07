@@ -336,102 +336,89 @@ const handleRunCompleted = useCallback(
     return <LoginPage onLoggedIn={handleLoggedIn} />;
   }
 
-  return (
-    <>
-      {user.role === "admin" && viewAsEmail && (
-        <div style={viewAsBarStyle}>
-          <div style={{ minWidth: 0 }}>
-            <b>Viewing as</b>{" "}
-            <span style={{ wordBreak: "break-word" }}>{viewAsEmail}</span>
-          </div>
-
-          <button type="button" onClick={() => resetViewAs(true)} style={viewAsStopButtonStyle}>
-            Stop view as
-          </button>
+ return (
+  <>
+    {user.role === "admin" && viewAsEmail ? (
+      <div style={viewAsBarStyle}>
+        <div style={{ minWidth: 0 }}>
+          <b>Viewing as</b>{" "}
+          <span style={{ wordBreak: "break-word" }}>{viewAsEmail}</span>
         </div>
-      )}
 
+        <button type="button" onClick={() => resetViewAs(true)} style={viewAsStopButtonStyle}>
+          Stop view as
+        </button>
+      </div>
+    ) : null}
 
-      )}
+    <ToolApp
+      branding={effectiveBranding}
+      viewAsEmail={viewAsEmail}
+      language={language}
+      setLanguage={setLanguage}
+      userRole={user.role}
+      clientModules={effectiveClientModules}
+      onRunCompleted={handleRunCompleted}
+      onRequestModuleUpgrade={(module) => {
+        window.alert(`${module.toUpperCase()} is an add-on module.`);
+      }}
+    />
 
-      <ToolApp
-        branding={effectiveBranding}
-        viewAsEmail={viewAsEmail}
+    <div style={accountMenuWrapStyle}>
+      <AccountMenu
+        user={user}
         language={language}
         setLanguage={setLanguage}
-        userRole={user.role}
-        clientModules={effectiveClientModules}
-        onRunCompleted={handleRunCompleted}
-        onRequestModuleUpgrade={(module) => {
-          window.alert(`${module.toUpperCase()} is an add-on module.`);
+        onOpenUsers={() => setAdminOpen(true)}
+        onOpenUsage={() => setUsageOpen(true)}
+        onOpenBranding={() => setBrandingOpen(true)}
+        onOpenViewAsUser={() => {
+          setViewAsError("");
+          setViewAsOpen(true);
         }}
+        onOpenTaskHistory={() => setTaskHistoryOpen(true)}
+        onOpenChangePassword={() => setChangePasswordOpen(true)}
+        onLogout={handleLogout}
       />
+    </div>
 
-      <div style={accountMenuWrapStyle}>
-        <AccountMenu
-          user={user}
-          language={language}
-          setLanguage={setLanguage}
-          onOpenUsers={() => setAdminOpen(true)}
-          onOpenUsage={() => setUsageOpen(true)}
-          onOpenBranding={() => setBrandingOpen(true)}
-          onOpenViewAsUser={() => {
-            setViewAsError("");
-            setViewAsOpen(true);
-          }}
-          onOpenTaskHistory={() => setTaskHistoryOpen(true)}
-          onOpenChangePassword={() => setChangePasswordOpen(true)}
-          onLogout={handleLogout}
-        />
-      </div>
+    {user.role === "admin" ? (
+      <AdminUsersPanel open={adminOpen} onClose={() => setAdminOpen(false)} />
+    ) : null}
 
-      {user.role === "admin" && (
-        <AdminUsersPanel
-          open={adminOpen}
-          onClose={() => setAdminOpen(false)}
-        />
-      )}
+    {user.role === "admin" ? (
+      <AdminUsageDashboard open={usageOpen} onClose={() => setUsageOpen(false)} />
+    ) : null}
 
-      {user.role === "admin" && (
-        <AdminUsageDashboard
-          open={usageOpen}
-          onClose={() => setUsageOpen(false)}
-        />
-      )}
+    {user.role === "admin" ? (
+      <AdminClientBrandingPanel open={brandingOpen} onClose={() => setBrandingOpen(false)} />
+    ) : null}
 
-      {user.role === "admin" && (
-        <AdminClientBrandingPanel
-          open={brandingOpen}
-          onClose={() => setBrandingOpen(false)}
-        />
-      )}
-
-      {user.role === "admin" && (
-        <AdminViewAsUserPanel
-          open={viewAsOpen}
-          loading={viewAsLoading}
-          error={viewAsError}
-          onClose={() => setViewAsOpen(false)}
-          onApply={handleViewAsUser}
-        />
-      )}
-
-      {user.role !== "admin" && (
-        <PortalTaskHistoryPanel
-          open={taskHistoryOpen}
-          runs={portalRuns}
-          onClose={() => setTaskHistoryOpen(false)}
-          onClear={handleClearPortalRuns}
-        />
-      )}
-
-      <ChangePasswordPanel
-        open={changePasswordOpen}
-        onClose={() => setChangePasswordOpen(false)}
+    {user.role === "admin" ? (
+      <AdminViewAsUserPanel
+        open={viewAsOpen}
+        loading={viewAsLoading}
+        error={viewAsError}
+        onClose={() => setViewAsOpen(false)}
+        onApply={handleViewAsUser}
       />
-    </>
-  );
-}
+    ) : null}
+
+    {user.role !== "admin" ? (
+      <PortalTaskHistoryPanel
+        open={taskHistoryOpen}
+        runs={portalRuns}
+        onClose={() => setTaskHistoryOpen(false)}
+        onClear={handleClearPortalRuns}
+      />
+    ) : null}
+
+    <ChangePasswordPanel
+      open={changePasswordOpen}
+      onClose={() => setChangePasswordOpen(false)}
+    />
+  </>
+);
 
 const loadingShellStyle: React.CSSProperties = {
   minHeight: "100vh",
