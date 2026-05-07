@@ -352,6 +352,21 @@ const handleRunCompleted = useCallback(
       )}
 
 
+      )}
+
+      <ToolApp
+        branding={effectiveBranding}
+        viewAsEmail={viewAsEmail}
+        language={language}
+        setLanguage={setLanguage}
+        userRole={user.role}
+        clientModules={effectiveClientModules}
+        onRunCompleted={handleRunCompleted}
+        onRequestModuleUpgrade={(module) => {
+          window.alert(`${module.toUpperCase()} is an add-on module.`);
+        }}
+      />
+
       <div style={accountMenuWrapStyle}>
         <AccountMenu
           user={user}
