@@ -1898,24 +1898,26 @@ function TrialBadge({
 
   return (
     <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        width: "fit-content",
-        padding: "4px 9px",
-        borderRadius: 999,
-        border: "1px solid rgba(81,83,86,0.14)",
-        background: "rgba(81,83,86,0.06)",
-        color: RSM_TEXT,
-        fontFamily: PORTAL_FONT,
-        fontSize: 10,
-        lineHeight: 1,
-        fontWeight: 700,
-        letterSpacing: "0.03em",
-        whiteSpace: "nowrap",
-      }}
+  style={{
+  minHeight: 22,
+  boxSizing: "border-box",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  width: "fit-content",
+  padding: "0 10px",
+  borderRadius: 999,
+  border: "1px solid rgba(81,83,86,0.14)",
+  background: "rgba(81,83,86,0.06)",
+  color: RSM_TEXT,
+  fontFamily: PORTAL_FONT,
+  fontSize: 10,
+  lineHeight: "22px",
+  fontWeight: 700,
+  letterSpacing: "0.03em",
+  whiteSpace: "nowrap",
+}}
     >
       <span>Trial</span>
       {dateText ? <span style={{ fontWeight: 300 }}>until {dateText}</span> : null}
