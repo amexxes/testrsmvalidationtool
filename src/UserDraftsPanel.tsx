@@ -310,168 +310,172 @@ export default function UserDraftsPanel({
     }
   }
 
-  return (
-<div style={DRAFT_PANEL_STYLE}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 14,
-          alignItems: "flex-start",
-        }}
-      >
-  <div>
-  <div
-    style={{
-      fontFamily: PORTAL_FONT,
-      fontSize: 19,
-      lineHeight: 1.2,
-      fontWeight: 700,
-      color: "#2F3033",
-      margin: 0,
-    }}
-  >
-    {t(language, "drafts")}
-  </div>
-
-  <div
-    style={{
-      fontFamily: PORTAL_FONT,
-      fontSize: 13,
-      lineHeight: 1.55,
-      fontWeight: 300,
-      color: "#515356",
-      marginTop: 6,
-    }}
-  >
-    {draftText(language, "help")}
-  </div>
-</div>
-
-<button
-  type="button"
-  onClick={() => void handleSaveDraft()}
-  disabled={saving || !String(inputValue || "").trim()}
-  style={{
-    ...DRAFT_BUTTON_STYLE,
-    minWidth: 150,
-    padding: "0 14px",
-    cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
-    opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
-  }}
->
-  <DraftButtonText icon="draft">
-    {saving ? draftText(language, "saving") : t(language, "saveDraft")}
-  </DraftButtonText>
-</button>
-      </div>
-
-      {error ? (
+return (
+  <div style={DRAFT_PANEL_STYLE}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 14,
+        alignItems: "flex-start",
+      }}
+    >
+      <div>
         <div
           style={{
-            marginTop: 12,
-            borderRadius: 14,
-            border: "1px solid rgba(185,28,28,0.14)",
-            background: "rgba(185,28,28,0.07)",
-            color: "#8F1D1D",
-            padding: "10px 12px",
-            fontSize: 13,
+            fontFamily: PORTAL_FONT,
+            fontSize: 19,
+            lineHeight: 1.2,
             fontWeight: 700,
+            color: "#2F3033",
+            margin: 0,
           }}
         >
-          <b>{t(language, "error")}</b>: {error}
+          {t(language, "drafts")}
         </div>
-      ) : null}
 
-      <div style={{ marginTop: 14 }}>
-        {loading ? (
-          <div style={emptyStyle}>{draftText(language, "loading")}</div>
-        ) : visibleDrafts.length === 0 ? (
-          <div style={emptyStyle}>{draftText(language, "empty")}</div>
-        ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {visibleDrafts.map((draft) => (
-              <div
-                key={draft.id}
-style={{
-  display: "grid",
-  gridTemplateColumns: "minmax(220px, 1fr) auto",
-  gap: 12,
-  alignItems: "center",
-  padding: 12,
-  borderRadius: 16,
-  border: "1px solid rgba(255,255,255,0.58)",
-  background: "rgba(255,255,255,0.48)",
-  boxShadow: "0 12px 30px rgba(11,46,95,0.08)",
-  backdropFilter: "blur(14px) saturate(1.25)",
-  WebkitBackdropFilter: "blur(14px) saturate(1.25)",
-}}
-              >
-                <div style={{ minWidth: 0 }}>
- <div
-  style={{
-    fontFamily: PORTAL_FONT,
-    color: "#2F3033",
-    fontSize: 13,
-    lineHeight: 1.35,
-    fontWeight: 700,
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-  }}
-  title={draft.title}
->
-  {draft.title}
-</div>
+        <div
+          style={{
+            fontFamily: PORTAL_FONT,
+            fontSize: 13,
+            lineHeight: 1.55,
+            fontWeight: 300,
+            color: "#515356",
+            marginTop: 6,
+          }}
+        >
+          {draftText(language, "help")}
+        </div>
+      </div>
 
-<div
-  style={{
-    marginTop: 4,
-    fontFamily: PORTAL_FONT,
-    color: "#515356",
-    fontSize: 12,
-    lineHeight: 1.35,
-    fontWeight: 300,
-  }}
->
-  {new Date(draft.updatedAt).toLocaleString(localeForLanguage(language))}
-</div>
+      <button
+        type="button"
+        onClick={() => void handleSaveDraft()}
+        disabled={saving || !String(inputValue || "").trim()}
+        style={{
+          ...DRAFT_BUTTON_STYLE,
+          minWidth: 154,
+          padding: "0 14px",
+          cursor: saving || !String(inputValue || "").trim() ? "not-allowed" : "pointer",
+          opacity: saving || !String(inputValue || "").trim() ? 0.55 : 1,
+        }}
+      >
+        <DraftButtonText icon="draft">
+          {saving ? draftText(language, "saving") : t(language, "saveDraft")}
+        </DraftButtonText>
+      </button>
+    </div>
+
+    {error ? (
+      <div
+        style={{
+          marginTop: 12,
+          borderRadius: 14,
+          border: "1px solid rgba(185,28,28,0.14)",
+          background: "rgba(185,28,28,0.07)",
+          color: "#8F1D1D",
+          padding: "10px 12px",
+          fontFamily: PORTAL_FONT,
+          fontSize: 13,
+          lineHeight: 1.45,
+          fontWeight: 300,
+        }}
+      >
+        <b style={{ fontWeight: 700 }}>{t(language, "error")}</b>: {error}
+      </div>
+    ) : null}
+
+    <div style={{ marginTop: 14 }}>
+      {loading ? (
+        <div style={emptyStyle}>{draftText(language, "loading")}</div>
+      ) : visibleDrafts.length === 0 ? (
+        <div style={emptyStyle}>{draftText(language, "empty")}</div>
+      ) : (
+        <div style={{ display: "grid", gap: 10 }}>
+          {visibleDrafts.map((draft) => (
+            <div
+              key={draft.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto",
+                gap: 12,
+                alignItems: "center",
+                padding: 12,
+                borderRadius: 16,
+                border: "1px solid rgba(255,255,255,0.58)",
+                background: "rgba(255,255,255,0.48)",
+                boxShadow: "0 12px 30px rgba(11,46,95,0.08)",
+                backdropFilter: "blur(14px) saturate(1.25)",
+                WebkitBackdropFilter: "blur(14px) saturate(1.25)",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: PORTAL_FONT,
+                    color: "#2F3033",
+                    fontSize: 13,
+                    lineHeight: 1.35,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                  title={draft.title}
+                >
+                  {draft.title}
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
-<button
-  type="button"
-  onClick={() => onRestoreDraft(draft)}
-  style={DRAFT_BUTTON_STYLE}
->
-  <DraftButtonText icon="restore">
-    {t(language, "restore")}
-  </DraftButtonText>
-</button>
-
- <button
-  type="button"
-  onClick={() => void handleDeleteDraft(draft.id)}
-  style={{
-    ...DRAFT_BUTTON_STYLE,
-    border: "1px solid rgba(185,28,28,0.14)",
-    background: "rgba(185,28,28,0.05)",
-    color: "#8F1D1D",
-  }}
->
-  <DraftButtonText icon="delete">
-    {t(language, "delete")}
-  </DraftButtonText>
-</button>
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontFamily: PORTAL_FONT,
+                    color: "#515356",
+                    fontSize: 12,
+                    lineHeight: 1.35,
+                    fontWeight: 300,
+                  }}
+                >
+                  {new Date(draft.updatedAt).toLocaleString(localeForLanguage(language))}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => onRestoreDraft(draft)}
+                  style={{
+                    ...DRAFT_BUTTON_STYLE,
+                    minWidth: 132,
+                    padding: "0 12px",
+                  }}
+                >
+                  <DraftButtonText icon="restore">
+                    {t(language, "restore")}
+                  </DraftButtonText>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteDraft(draft.id)}
+                  style={{
+                    ...DRAFT_DELETE_BUTTON_STYLE,
+                    minWidth: 132,
+                    padding: "0 12px",
+                  }}
+                >
+                  <DraftButtonText icon="delete">
+                    {t(language, "delete")}
+                  </DraftButtonText>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
-  );
-}
+  </div>
+);
 
 const emptyStyle: React.CSSProperties = {
   padding: 14,
