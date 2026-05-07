@@ -2298,46 +2298,7 @@ const INPUT_CARD_ICON_STYLE: React.CSSProperties = {
 };
 
 function InputSectionTitle({ language }: { language: PortalLanguage }) {
-  return (
-    <SectionTitle>
-      <span
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          gap: 12,
-          textAlign: "left",
-        }}
-      >
-        <span style={INPUT_CARD_ICON_STYLE}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M7 4h8.5L20 8.5V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"
-              stroke="currentColor"
-              strokeWidth="2.1"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M15 4v5h5"
-              stroke="currentColor"
-              strokeWidth="2.1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M8.5 13h7M8.5 16.5h5"
-              stroke="currentColor"
-              strokeWidth="2.1"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
-
-        <span>{t(language, "input")}</span>
-      </span>
-    </SectionTitle>
-  );
+  return <SectionTitle>{t(language, "input")}</SectionTitle>;
 }
 type VatCreditStatus = {
   plan: "starter" | "business" | "enterprise";
