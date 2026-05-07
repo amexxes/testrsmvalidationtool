@@ -24,6 +24,8 @@ type UserRow = {
   modules?: Partial<ClientModules>;
   vatSubscription?: VatSubscription;
   vatCredits?: VatCreditStatus;
+  isTrial?: boolean;
+  trialEndsAt?: string;
 };
 
 type Props = {
@@ -260,7 +262,23 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
       setActionLoadingEmail("");
     }
   }
+function updateUserTrial(user: UserRow, isTrial: boolean, trialEndsAt: string) {
+  if (user.role === "admin") return;
 
+  setUsers((prev) =>
+    prev.map((row) =>
+      row.email === user.email
+        ? {
+            ...row,
+            isTrial,
+            trialEndsAt,
+          }
+        : row
+    )
+  );
+
+  setSuccess(`Trial updated visually for ${user.email}`);
+}
   async function resetPassword(email: string) {
     const newPassword = window.prompt(`Enter a new password for ${email}`);
     if (!newPassword) return;
@@ -390,13 +408,14 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
             <table style={tableStyle}>
               <thead>
                 <tr>
-                  <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Role</th>
-                  <th style={thStyle}>Subscription</th>
-                  <th style={thStyle}>VAT credits</th>
-                  <th style={thStyle}>Modules</th>
-                  <th style={thStyle}>Created</th>
-                  <th style={thStyle}>Actions</th>
+<th style={thStyle}>Email</th>
+<th style={thStyle}>Role</th>
+<th style={thStyle}>Subscription</th>
+<th style={thStyle}>Trial</th>
+<th style={thStyle}>VAT credits</th>
+<th style={thStyle}>Modules</th>
+<th style={thStyle}>Created</th>
+<th style={thStyle}>Actions</th>
                 </tr>
               </thead>
 
@@ -416,31 +435,68 @@ export default function AdminUsersPanel({ open, onClose }: Props) {
                         </span>
                       </td>
 
-                      <td style={tdStyle}>
-                        <select
-                          value={normalizeSubscription(user)}
-                          disabled={busy || isAdmin}
-                          onChange={(e) =>
-                            updateUserSubscription(user, e.target.value as VatSubscription)
-                          }
-                          style={{
-                            ...subscriptionSelectStyle,
-                            opacity: isAdmin ? 0.72 : 1,
-                            cursor: isAdmin ? "not-allowed" : "pointer",
-                          }}
-                          title={isAdmin ? "Admin is always Enterprise" : "VAT subscription"}
-                        >
-                          {VAT_SUBSCRIPTION_OPTIONS.map((option) => (
-                            <option key={option.key} value={option.key}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
+<td style={tdStyle}>
+  <select
+    value={normalizeSubscription(user)}
+    disabled={busy || isAdmin}
+    onChange={(e) =>
+      updateUserSubscription(user, e.target.value as VatSubscription)
+    }
+    style={{
+      ...subscriptionSelectStyle,
+      opacity: isAdmin ? 0.72 : 1,
+      cursor: isAdmin ? "not-allowed" : "pointer",
+    }}
+    title={isAdmin ? "Admin is always Enterprise" : "VAT subscription"}
+  >
+    {VAT_SUBSCRIPTION_OPTIONS.map((option) => (
+      <option key={option.key} value={option.key}>
+        {option.label}
+      </option>
+    ))}
+  </select>
+</td>
 
-                      <td style={tdStyle}>
-                        <VatCreditsIndicator user={user} />
-                      </td>
+<td style={tdStyle}>
+  {isAdmin ? (
+    <span style={trialInactiveBadgeStyle}>Not applicable</span>
+  ) : (
+    <div style={trialControlStyle}>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() =>
+          void updateUserTrial(user, !Boolean(user.isTrial), user.trialEndsAt || "")
+        }
+        style={{
+          ...trialToggleStyle,
+          ...(user.isTrial ? trialToggleActiveStyle : trialToggleInactiveStyle),
+          cursor: busy ? "not-allowed" : "pointer",
+        }}
+      >
+        {user.isTrial ? "Trial on" : "Trial off"}
+      </button>
+
+      <input
+        type="date"
+        value={String(user.trialEndsAt || "").slice(0, 10)}
+        disabled={busy || !user.isTrial}
+        onChange={(e) =>
+          void updateUserTrial(user, Boolean(user.isTrial), e.target.value)
+        }
+        style={{
+          ...trialDateStyle,
+          opacity: user.isTrial ? 1 : 0.55,
+          cursor: user.isTrial ? "pointer" : "not-allowed",
+        }}
+      />
+    </div>
+  )}
+</td>
+
+<td style={tdStyle}>
+  <VatCreditsIndicator user={user} />
+</td>
 
                       <td style={tdStyle}>
                         <div style={moduleGridStyle}>
@@ -817,4 +873,60 @@ const creditSubTextStyle: React.CSSProperties = {
   color: "#64748B",
   fontSize: 11,
   fontWeight: 700,
+};
+const trialControlStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  minWidth: 150,
+};
+
+const trialToggleStyle: React.CSSProperties = {
+  height: 30,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: "0 10px",
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 800,
+  border: "1px solid rgba(11,46,95,0.12)",
+};
+
+const trialToggleActiveStyle: React.CSSProperties = {
+  background: "rgba(63,156,53,0.10)",
+  color: "#3F9C35",
+  borderColor: "rgba(63,156,53,0.24)",
+};
+
+const trialToggleInactiveStyle: React.CSSProperties = {
+  background: "rgba(241,245,249,0.8)",
+  color: "#64748B",
+  borderColor: "rgba(148,163,184,0.22)",
+};
+
+const trialDateStyle: React.CSSProperties = {
+  height: 30,
+  borderRadius: 999,
+  border: "1px solid rgba(11,46,95,0.12)",
+  background: "#FFFFFF",
+  color: "#0B2E5F",
+  fontSize: 12,
+  fontWeight: 700,
+  padding: "0 10px",
+  outline: "none",
+};
+
+const trialInactiveBadgeStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 30,
+  padding: "0 10px",
+  borderRadius: 999,
+  background: "rgba(100,116,139,0.08)",
+  color: "#64748B",
+  fontSize: 12,
+  fontWeight: 800,
+  whiteSpace: "nowrap",
 };
