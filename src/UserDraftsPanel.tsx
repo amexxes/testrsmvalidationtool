@@ -193,64 +193,7 @@ const DRAFT_DELETE_BUTTON_STYLE: React.CSSProperties = {
   background: "rgba(185,28,28,0.05)",
   color: "#8F1D1D",
 };
-const PORTAL_FONT =
-  "'Prelo', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 
-const DRAFT_BUTTON_TEXT_STYLE: React.CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 7,
-  fontFamily: PORTAL_FONT,
-  fontSize: 12,
-  lineHeight: 1,
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-};
-
-function DraftButtonText({ children }: { children: React.ReactNode }) {
-  return (
-    <span style={DRAFT_BUTTON_TEXT_STYLE}>
-      <svg
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-        style={{ flex: "0 0 auto" }}
-      >
-        <path
-          d="M5 4h11l3 3v13H5z"
-          stroke="currentColor"
-          strokeWidth="2.1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M16 4v4h4"
-          stroke="currentColor"
-          strokeWidth="2.1"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M8 13h8"
-          stroke="currentColor"
-          strokeWidth="2.1"
-          strokeLinecap="round"
-        />
-        <path
-          d="M8 17h5"
-          stroke="currentColor"
-          strokeWidth="2.1"
-          strokeLinecap="round"
-        />
-      </svg>
-
-      <span>{children}</span>
-    </span>
-  );
-}
 export default function UserDraftsPanel({
   activePage,
   referenceValue = "",
