@@ -2096,43 +2096,7 @@ function formatTrialDate(value: string | undefined, language: PortalLanguage): s
   }
 }
 
-function TrialBadge({
-  branding,
-  language,
-}: {
-  branding: ClientBranding;
-  language: PortalLanguage;
-}) {
-  if (!branding.isTrial) return null;
 
-  const dateText = formatTrialDate(branding.trialEndsAt, language);
-
-  return (
-    <div
-      style={{
-        marginTop: 8,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 7,
-        width: "fit-content",
-        padding: "5px 10px",
-        borderRadius: 999,
-        border: "1px solid rgba(0,156,222,0.22)",
-        background: "rgba(0,156,222,0.10)",
-        color: "#0B2E5F",
-        fontFamily: PORTAL_FONT,
-        fontSize: 11,
-        lineHeight: 1,
-        fontWeight: 700,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-      }}
-    >
-      <span>Trial</span>
-      {dateText ? <span>until {dateText}</span> : null}
-    </div>
-  );
-}
 function PortalBanner({
   modeValue,
   meta = [],
