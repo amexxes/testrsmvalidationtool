@@ -2434,24 +2434,27 @@ const statusItems: Array<{
                       )}
                     </span>
 
-                    {item.label === t(language, "credits") && (
-                      <span style={BANNER_CREDIT_BAR_OUTER_STYLE}>
-                        <span
-                          style={{
-                            ...BANNER_CREDIT_BAR_INNER_STYLE,
-width: `${Math.min(
-  100,
-  Math.max(
-    0,
-    Number.isFinite(Number(item.barPercent))
-      ? Number(item.barPercent)
-      : creditBarPercent(item.value)
-  )
-)}%`,
-                          }}
-                        />
-                      </span>
-                    )}
+{item.label === t(language, "credits") && (
+  <span
+    style={{
+      ...BANNER_CREDIT_BAR_OUTER_STYLE,
+      width: 86,
+      alignSelf: "center",
+      marginLeft: 8,
+    }}
+  >
+    <span
+      style={{
+        ...BANNER_CREDIT_BAR_INNER_STYLE,
+        width: `${
+          typeof item.barPercent === "number"
+            ? item.barPercent
+            : creditBarPercent(item.value)
+        }%`,
+      }}
+    />
+  </span>
+)}
                   </span>
                 </span>
               </React.Fragment>
