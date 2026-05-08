@@ -13,6 +13,7 @@ const WORKER_LOCK_SEC = Number(process.env.WORKER_LOCK_SEC || 45);
 // Poll worker limits
 const POLL_MAX_TASKS = Number(process.env.POLL_MAX_TASKS || 12);
 const POLL_MAX_MS = Number(process.env.POLL_MAX_MS || 12000);
+const WORKER_PARALLELISM = Number(process.env.WORKER_PARALLELISM || 4);
 
 // Pending scan + lease
 const PENDING_SCAN_LIMIT = Number(process.env.PENDING_SCAN_LIMIT || 1000);
@@ -276,20 +277,18 @@ function buildBaseRow(cur, task) {
  * Lease a due pending task instead of deleting it.
  * If the function crashes mid-run, the lease expires and the task becomes claimable again.
  */
-async function claimDuePendingTask(nowMs, workerId, debugEnabled, debugObj) {
+async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugObj) {
   const pending = await kv.hgetall("queue:pending");
 
-  if (!pending || typeof pending !== "object") return null;
+  if (!pending || typeof pending !== "object") return [];
 
   const entries = Object.entries(pending);
-  if (!entries.length) return null;
+  if (!entries.length) return [];
 
   if (debugObj) debugObj.pending_scanned = entries.length;
 
-  let bestTask = null;
-  let bestField = "";
-  let bestDueAt = Number.POSITIVE_INFINITY;
   const cleanupFields = [];
+  const due = [];
 
   for (const [field, raw] of entries) {
     const task = safeJsonParse(raw);
@@ -305,48 +304,272 @@ async function claimDuePendingTask(nowMs, workerId, debugEnabled, debugObj) {
     if (leaseUntil && leaseUntil > nowMs) continue;
     if (dueAt && dueAt > nowMs) continue;
 
-    const score = dueAt || 0;
-
-    if (!bestTask || score < bestDueAt) {
-      bestTask = task;
-      bestField = field;
-      bestDueAt = score;
-    }
+    due.push({
+      field,
+      task,
+      dueAt: dueAt || 0,
+    });
   }
 
   if (cleanupFields.length) {
     await hdelFields("queue:pending", cleanupFields);
   }
 
-  if (!bestTask) return null;
+  due.sort((a, b) => a.dueAt - b.dueAt);
 
-  const leased = {
-    ...bestTask,
-    leaseOwner: workerId,
-    leaseAt: nowMs,
-    leaseUntil: nowMs + PENDING_LEASE_MS,
-  };
+  const selected = due.slice(0, Math.max(1, limit));
+  if (!selected.length) return [];
 
-  await kv.hset("queue:pending", { [bestField]: JSON.stringify(leased) });
+  const leaseMap = {};
+  const leasedTasks = [];
+
+  for (const item of selected) {
+    const leased = {
+      ...item.task,
+      leaseOwner: workerId,
+      leaseAt: nowMs,
+      leaseUntil: nowMs + PENDING_LEASE_MS,
+      _pendingField: item.field,
+    };
+
+    leaseMap[item.field] = JSON.stringify(leased);
+    leasedTasks.push(leased);
+  }
+
+  await kv.hset("queue:pending", leaseMap);
   await kv.expire("queue:pending", JOB_TTL_SEC);
 
-  leased._pendingField = bestField;
-
-  logIf(debugEnabled, `[worker] lease pending`, {
-    field: bestField,
-    key: maskKey(bestTask.key),
+  logIf(debugEnabled, `[worker] lease pending batch`, {
+    count: leasedTasks.length,
   });
 
-  return leased;
+  return leasedTasks;
 }
+async function syncJobMeta(jobId) {
+  if (!jobId) return;
 
+  const metaKey = `job:${jobId}:meta`;
+  const resKey = `job:${jobId}:results`;
+
+  const meta = await getMeta(metaKey);
+  if (!meta) return;
+
+  const results = await readAllResults(resKey);
+  const done = results.filter((row) => isFinalState(row?.state)).length;
+
+  meta.done = done;
+  meta.status = done >= Number(meta.total || 0) ? "completed" : "running";
+
+  await setMeta(metaKey, meta);
+}
 function makeWorkerId(source) {
   return `${source}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
 }
+async function processWorkerTask(task, requester, workerId, debugEnabled, source) {
+  if (!task?.jobId || !task?.key || !task?.p) {
+    return { processed: false, jobId: "" };
+  }
 
+  const now = Date.now();
+  const metaKey = `job:${task.jobId}:meta`;
+  const resKey = `job:${task.jobId}:results`;
+  const meta = await getMeta(metaKey);
+
+  if (!meta) {
+    await hdelFields("queue:pending", [task._pendingField, pendingField(task)].filter(Boolean));
+    return { processed: true, jobId: task.jobId };
+  }
+
+  let cur = null;
+
+  try {
+    const curRaw = await kv.hget(resKey, task.key);
+    cur = curRaw ? safeJsonParse(curRaw) : null;
+  } catch {
+    cur = null;
+  }
+
+  if (cur && isFinalState(cur.state)) {
+    await hdelFields("queue:pending", [
+      task._pendingField,
+      pendingField(task),
+      task.key,
+    ]);
+
+    return { processed: true, jobId: task.jobId };
+  }
+
+  const prevAttempt = Math.max(Number(task.attempt || 0), Number(cur?.attempt || 0));
+  const currentAttempt = Math.max(1, prevAttempt + 1);
+
+  const processingRow = {
+    ...buildBaseRow(cur, task),
+    state: "processing",
+    attempt: currentAttempt,
+    next_retry_at: null,
+    checked_at: now,
+    error_code: cur?.error_code || "",
+    error: cur?.error || "",
+    details: cur?.details || "",
+  };
+
+  await kv.hset(resKey, { [task.key]: JSON.stringify(processingRow) });
+  await ensureKeyTTL(resKey);
+
+  logIf(debugEnabled, `[worker:${source}] run`, {
+    workerId,
+    jobId: task.jobId,
+    key: maskKey(task.key),
+    attempt: currentAttempt,
+  });
+
+  const r = await viesCheck(task.p, requester);
+
+  if (r.ok) {
+    const d = r.data || {};
+    const valid = !!d.valid;
+
+    const row = {
+      ...buildBaseRow(cur, task),
+      state: valid ? "valid" : "invalid",
+      valid,
+      name: d?.name && d.name !== "---" ? d.name : "",
+      address: d?.address && d.address !== "---" ? d.address : "",
+      error_code: "",
+      error: "",
+      details: d?.requestIdentifier ? `requestIdentifier=${d.requestIdentifier}` : "",
+      next_retry_at: null,
+      attempt: currentAttempt,
+      checked_at: Date.now(),
+      done_counted: true,
+    };
+
+    await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
+    await ensureKeyTTL(resKey);
+
+    await hdelFields("queue:pending", [
+      task._pendingField,
+      pendingField(task),
+      task.key,
+    ]);
+
+    return { processed: true, jobId: task.jobId };
+  }
+
+  const code = String(r.errorCode || `HTTP_${r.status || 0}`).trim();
+  const details = String(r.message || JSON.stringify(r.data || {})).slice(0, 1000);
+
+  if (isRetryable(code, r.status)) {
+    if (currentAttempt >= MAX_RETRIES) {
+      const row = {
+        ...buildBaseRow(cur, task),
+        state: "error",
+        valid: null,
+        name: "",
+        address: "",
+        error_code: "RETRY_EXHAUSTED",
+        error: "RETRY_EXHAUSTED",
+        details,
+        next_retry_at: null,
+        attempt: currentAttempt,
+        checked_at: Date.now(),
+        done_counted: true,
+      };
+
+      await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
+      await ensureKeyTTL(resKey);
+
+      await hdelFields("queue:pending", [
+        task._pendingField,
+        pendingField(task),
+        task.key,
+      ]);
+
+      return { processed: true, jobId: task.jobId };
+    }
+
+    const nextRetryAt = Date.now() + nextDelayMs(currentAttempt);
+
+    const row = {
+      ...buildBaseRow(cur, task),
+      state: "retry",
+      valid: null,
+      name: "",
+      address: "",
+      error_code: code,
+      error: code,
+      details,
+      attempt: currentAttempt,
+      next_retry_at: nextRetryAt,
+      checked_at: Date.now(),
+    };
+
+    await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
+    await ensureKeyTTL(resKey);
+
+    const canonical = pendingField(task);
+
+    const retryTask = {
+      jobId: task.jobId,
+      key: task.key,
+      p: task.p,
+      case_ref: task.case_ref,
+      attempt: currentAttempt,
+      nextRunAt: nextRetryAt,
+      leaseOwner: "",
+      leaseAt: 0,
+      leaseUntil: 0,
+    };
+
+    await kv.hset("queue:pending", {
+      [canonical]: JSON.stringify(retryTask),
+    });
+
+    await kv.expire("queue:pending", JOB_TTL_SEC);
+
+    await hdelFields(
+      "queue:pending",
+      [task._pendingField, task.key].filter((field) => field && field !== canonical)
+    );
+
+    return { processed: true, jobId: task.jobId };
+  }
+
+  const row = {
+    ...buildBaseRow(cur, task),
+    state: "error",
+    valid: null,
+    name: "",
+    address: "",
+    error_code: code,
+    error: code,
+    details,
+    next_retry_at: null,
+    attempt: currentAttempt,
+    checked_at: Date.now(),
+    done_counted: true,
+  };
+
+  await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
+  await ensureKeyTTL(resKey);
+
+  await hdelFields("queue:pending", [
+    task._pendingField,
+    pendingField(task),
+    task.key,
+  ]);
+
+  return { processed: true, jobId: task.jobId };
+}
 // Exported so Cron endpoint can reuse it.
-export async function runWorkerSlice({ maxTasks = 4, maxMs = 2500, debugEnabled = false, source = "poll" } = {}) {
+export async function runWorkerSlice({
+  maxTasks = POLL_MAX_TASKS,
+  maxMs = POLL_MAX_MS,
+  debugEnabled = false,
+  source = "poll",
+} = {}) {
   const locked = await acquireWorkerLock();
+
   if (!locked) {
     logIf(debugEnabled, `[worker:${source}] lock busy -> skip`);
     return { processed: 0, locked: false, pending_scanned: 0 };
@@ -363,280 +586,72 @@ export async function runWorkerSlice({ maxTasks = 4, maxMs = 2500, debugEnabled 
   };
 
   const debugObj = debugEnabled ? { pending_scanned: 0, workerId } : null;
+  const touchedJobs = new Set();
 
   try {
     while (processed < maxTasks && Date.now() - start < maxMs) {
-// 1) pending hash is the primary queue source
-let task = await claimDuePendingTask(Date.now(), workerId, debugEnabled, debugObj);
+      const remaining = maxTasks - processed;
+      const batchSize = Math.min(WORKER_PARALLELISM, remaining);
 
-// 2) legacy fallback for older queued jobs
-if (!task) {
-  const raw = await kv.rpop("queue:vies");
-  task = raw ? safeJsonParse(raw) : null;
+      let tasks = await claimDuePendingTasks(
+        batchSize,
+        Date.now(),
+        workerId,
+        debugEnabled,
+        debugObj
+      );
 
-  if (task?.jobId && task?.key && task?.p) {
-    const nowMs = Date.now();
+      if (!tasks.length) {
+        const raw = await kv.rpop("queue:vies");
+        const legacyTask = raw ? safeJsonParse(raw) : null;
 
-    task = {
-      ...task,
-      leaseOwner: workerId,
-      leaseAt: nowMs,
-      leaseUntil: nowMs + PENDING_LEASE_MS,
-      _pendingField: pendingField(task),
-    };
+        if (legacyTask?.jobId && legacyTask?.key && legacyTask?.p) {
+          const canonical = pendingField(legacyTask);
+          const nowMs = Date.now();
 
-    await kv.hset("queue:pending", {
-      [pendingField(task)]: JSON.stringify(task),
-    });
+          const leased = {
+            ...legacyTask,
+            leaseOwner: workerId,
+            leaseAt: nowMs,
+            leaseUntil: nowMs + PENDING_LEASE_MS,
+            _pendingField: canonical,
+          };
 
-    await kv.expire("queue:pending", JOB_TTL_SEC);
-  }
-}
+          await kv.hset("queue:pending", {
+            [canonical]: JSON.stringify(leased),
+          });
 
-      if (!task) break;
-      if (!task?.jobId || !task?.key || !task?.p) continue;
+          await kv.expire("queue:pending", JOB_TTL_SEC);
+          tasks = [leased];
+        }
+      }
+
+      if (!tasks.length) break;
 
       pending_scanned = debugObj?.pending_scanned ?? pending_scanned;
 
-      const now = Date.now();
+      const results = await Promise.all(
+        tasks.map((task) =>
+          processWorkerTask(task, requester, workerId, debugEnabled, source)
+        )
+      );
 
-      // if scheduled in the future, ensure it lives in pending and continue
-      if (task.nextRunAt && Number(task.nextRunAt) > now) {
-        const canonical = pendingField(task);
-        const cleaned = {
-          ...task,
-          leaseOwner: "",
-          leaseAt: 0,
-          leaseUntil: 0,
-        };
-        delete cleaned._pendingField;
-
-        await kv.hset("queue:pending", { [canonical]: JSON.stringify(cleaned) });
-        await kv.expire("queue:pending", JOB_TTL_SEC);
-
-        // remove legacy field if present and different
-        await hdelFields("queue:pending", [task._pendingField, task.key].filter((f) => f && f !== canonical));
-
-        processed++;
-        continue;
+      for (const result of results) {
+        if (result?.processed) processed += 1;
+        if (result?.jobId) touchedJobs.add(result.jobId);
       }
-
-      const metaKey = `job:${task.jobId}:meta`;
-      const resKey = `job:${task.jobId}:results`;
-
-      const meta = await getMeta(metaKey);
-      if (!meta) {
-        // cleanup pending slot to avoid infinite garbage
-        await hdelFields("queue:pending", [task._pendingField, pendingField(task)].filter(Boolean));
-        processed++;
-        continue;
-      }
-
-      let cur = null;
-      try {
-        const curRaw = await kv.hget(resKey, task.key);
-        cur = curRaw ? safeJsonParse(curRaw) : null;
-      } catch {
-        cur = null;
-      }
-
-      // If already final: count once + delete pending entries
-      if (cur && isFinalState(cur.state)) {
-        if (!cur.done_counted) {
-          cur.done_counted = true;
-          await kv.hset(resKey, { [task.key]: JSON.stringify(cur) });
-          await ensureKeyTTL(resKey);
-
-          meta.done = Number(meta.done || 0) + 1;
-          meta.status = Number(meta.done || 0) >= Number(meta.total || 0) ? "completed" : "running";
-          await setMeta(metaKey, meta);
-        }
-
-        // drop pending entries for this row (canonical + legacy + claimed field)
-        await hdelFields("queue:pending", [
-          task._pendingField,
-          pendingField(task),
-          task.key, // legacy validate-batch field
-        ]);
-
-        processed++;
-        continue;
-      }
-
-      // attempt = max(previous task attempt, previous row attempt) + 1
-      const prevAttempt = Math.max(Number(task.attempt || 0), Number(cur?.attempt || 0));
-      const currentAttempt = Math.max(1, prevAttempt + 1);
-
-      // mark processing
-      const processingRow = {
-        ...buildBaseRow(cur, task),
-        state: "processing",
-        attempt: currentAttempt,
-        next_retry_at: null,
-        checked_at: now,
-        error_code: cur?.error_code || "",
-        error: cur?.error || "",
-        details: cur?.details || "",
-      };
-
-      await kv.hset(resKey, { [task.key]: JSON.stringify(processingRow) });
-      await ensureKeyTTL(resKey);
-
-      logIf(debugEnabled, `[worker:${source}] run`, {
-        workerId,
-        jobId: task.jobId,
-        key: maskKey(task.key),
-        attempt: currentAttempt,
-      });
-
-      const r = await viesCheck(task.p, requester);
-
-      // SUCCESS
-      if (r.ok) {
-        const d = r.data || {};
-        const valid = !!d.valid;
-
-        const row = {
-          ...buildBaseRow(cur, task),
-          state: valid ? "valid" : "invalid",
-          valid,
-          name: d?.name && d.name !== "---" ? d.name : "",
-          address: d?.address && d.address !== "---" ? d.address : "",
-          error_code: "",
-          error: "",
-          details: d?.requestIdentifier ? `requestIdentifier=${d.requestIdentifier}` : "",
-          next_retry_at: null,
-          attempt: currentAttempt,
-          checked_at: Date.now(),
-          done_counted: true,
-        };
-
-        await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
-        await ensureKeyTTL(resKey);
-
-        if (!cur?.done_counted) meta.done = Number(meta.done || 0) + 1;
-        meta.status = Number(meta.done || 0) >= Number(meta.total || 0) ? "completed" : "running";
-        await setMeta(metaKey, meta);
-
-        // remove pending entries (canonical + legacy + claimed)
-        await hdelFields("queue:pending", [task._pendingField, pendingField(task), task.key]);
-
-        processed++;
-        continue;
-      }
-
-      const code = String(r.errorCode || `HTTP_${r.status || 0}`).trim();
-      const details = String(r.message || JSON.stringify(r.data || {})).slice(0, 1000);
-
-      // RETRYABLE
-      if (isRetryable(code, r.status)) {
-        if (currentAttempt >= MAX_RETRIES) {
-          const row = {
-            ...buildBaseRow(cur, task),
-            state: "error",
-            valid: null,
-            name: "",
-            address: "",
-            error_code: "RETRY_EXHAUSTED",
-            error: "RETRY_EXHAUSTED",
-            details,
-            next_retry_at: null,
-            attempt: currentAttempt,
-            checked_at: Date.now(),
-            done_counted: true,
-          };
-
-          await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
-          await ensureKeyTTL(resKey);
-
-          if (!cur?.done_counted) meta.done = Number(meta.done || 0) + 1;
-          meta.status = Number(meta.done || 0) >= Number(meta.total || 0) ? "completed" : "running";
-          await setMeta(metaKey, meta);
-
-          await hdelFields("queue:pending", [task._pendingField, pendingField(task), task.key]);
-
-          processed++;
-          continue;
-        }
-
-        const nextRetryAt = Date.now() + nextDelayMs(currentAttempt);
-
-        const row = {
-          ...buildBaseRow(cur, task),
-          state: "retry",
-          valid: null,
-          name: "",
-          address: "",
-          error_code: code,
-          error: code,
-          details,
-          attempt: currentAttempt,
-          next_retry_at: nextRetryAt,
-          checked_at: Date.now(),
-        };
-
-        await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
-        await ensureKeyTTL(resKey);
-
-        meta.status = "running";
-        await setMeta(metaKey, meta);
-
-        // update pending (canonical), clear lease
-        const canonical = pendingField(task);
-        const retryTask = {
-          jobId: task.jobId,
-          key: task.key,
-          p: task.p,
-          case_ref: task.case_ref,
-          attempt: currentAttempt,
-          nextRunAt: nextRetryAt,
-          leaseOwner: "",
-          leaseAt: 0,
-          leaseUntil: 0,
-        };
-
-        await kv.hset("queue:pending", { [canonical]: JSON.stringify(retryTask) });
-        await kv.expire("queue:pending", JOB_TTL_SEC);
-
-        // delete claimed/legacy fields if different (migration + cleanup)
-        await hdelFields(
-          "queue:pending",
-          [task._pendingField, task.key].filter((f) => f && f !== canonical)
-        );
-
-        processed++;
-        continue;
-      }
-
-      // NON-RETRYABLE -> FINAL ERROR
-      const row = {
-        ...buildBaseRow(cur, task),
-        state: "error",
-        valid: null,
-        name: "",
-        address: "",
-        error_code: code,
-        error: code,
-        details,
-        next_retry_at: null,
-        attempt: currentAttempt,
-        checked_at: Date.now(),
-        done_counted: true,
-      };
-
-      await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
-      await ensureKeyTTL(resKey);
-
-      if (!cur?.done_counted) meta.done = Number(meta.done || 0) + 1;
-      meta.status = Number(meta.done || 0) >= Number(meta.total || 0) ? "completed" : "running";
-      await setMeta(metaKey, meta);
-
-      await hdelFields("queue:pending", [task._pendingField, pendingField(task), task.key]);
-
-      processed++;
     }
 
-    return { processed, locked: true, ...(debugObj ? { debug: debugObj } : {}) };
+    for (const jobId of touchedJobs) {
+      await syncJobMeta(jobId);
+    }
+
+    return {
+      processed,
+      locked: true,
+      pending_scanned,
+      ...(debugObj ? { debug: debugObj } : {}),
+    };
   } finally {
     await releaseWorkerLock();
   }
