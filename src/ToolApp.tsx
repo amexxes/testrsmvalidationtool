@@ -2837,6 +2837,7 @@ function VatPage({
 const [resultTypeFilter, setResultTypeFilter] = useState<string>("all");
 const [rows, setRows] = useState<VatRow[]>([]);
 const [loading, setLoading] = useState(false);
+const [largeBatchWarningVisible, setLargeBatchWarningVisible] = useState(false);
 const [runStartedAtMs, setRunStartedAtMs] = useState<number | null>(null);
 const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -2928,6 +2929,8 @@ useEffect(() => {
 const currentFrJobIdRef = useRef<string | null>(null);
 const pollTimerRef = useRef<number | null>(null);
 const pollInFlightRef = useRef(false);
+const largeBatchWarningTimerRef = useRef<number | null>(null);
+const largeBatchWarningShownRef = useRef(false);
 
   const mapRef = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
@@ -3072,6 +3075,42 @@ const filteredRows = useMemo(() => {
 
     return { totalLines: rawLines.length, unique: seen.size, duplicates, badFormat, badExamples };
   }, [vatInput]);
+
+  useEffect(() => {
+    if (precheck.totalLines <= 500) {
+      largeBatchWarningShownRef.current = false;
+      setLargeBatchWarningVisible(false);
+
+      if (largeBatchWarningTimerRef.current) {
+        window.clearTimeout(largeBatchWarningTimerRef.current);
+        largeBatchWarningTimerRef.current = null;
+      }
+
+      return;
+    }
+
+    if (largeBatchWarningShownRef.current) return;
+
+    largeBatchWarningShownRef.current = true;
+    setLargeBatchWarningVisible(true);
+
+    if (largeBatchWarningTimerRef.current) {
+      window.clearTimeout(largeBatchWarningTimerRef.current);
+    }
+
+    largeBatchWarningTimerRef.current = window.setTimeout(() => {
+      setLargeBatchWarningVisible(false);
+      largeBatchWarningTimerRef.current = null;
+    }, 5000);
+  }, [precheck.totalLines]);
+
+  useEffect(() => {
+    return () => {
+      if (largeBatchWarningTimerRef.current) {
+        window.clearTimeout(largeBatchWarningTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
@@ -3818,6 +3857,68 @@ meta={[
 clientModules={clientModules}
 onRequestModuleUpgrade={onRequestModuleUpgrade}
       />
+
+      {largeBatchWarningVisible && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: 92,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 99999,
+            width: "min(560px, calc(100vw - 32px))",
+            padding: "13px 44px 13px 15px",
+            borderRadius: 16,
+            border: "1px solid rgba(245,158,11,0.30)",
+            background: "rgba(255,247,237,0.96)",
+            boxShadow: "0 18px 45px rgba(47,48,51,0.16)",
+            color: "#515356",
+            fontFamily: PORTAL_FONT,
+            fontSize: 12,
+            lineHeight: 1.5,
+            fontWeight: 500,
+          }}
+        >
+          <b style={{ color: "#B45309" }}>
+            {language === "nl" ? "Grote batch gedetecteerd" : "Large batch detected"}
+          </b>
+          <br />
+          {language === "nl"
+            ? "Je hebt meer dan 500 VAT-nummers ingevoerd. Deze validatie kan 20+ minuten duren omdat externe validatieservices grote aantallen vertragen."
+            : "You entered more than 500 VAT numbers. This validation can take 20+ minutes because external validation services slow down large batches."}
+
+          <button
+            type="button"
+            aria-label="Close warning"
+            onClick={() => {
+              setLargeBatchWarningVisible(false);
+
+              if (largeBatchWarningTimerRef.current) {
+                window.clearTimeout(largeBatchWarningTimerRef.current);
+                largeBatchWarningTimerRef.current = null;
+              }
+            }}
+            style={{
+              position: "absolute",
+              top: 10,
+              right: 12,
+              width: 24,
+              height: 24,
+              border: 0,
+              borderRadius: 999,
+              background: "rgba(245,158,11,0.14)",
+              color: "#B45309",
+              cursor: "pointer",
+              fontSize: 16,
+              lineHeight: "24px",
+              fontWeight: 700,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="wrap">
         <div className="grid" style={{ alignItems: "stretch" }}>
