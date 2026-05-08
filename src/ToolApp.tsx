@@ -436,7 +436,7 @@ type LanguageSwitcherProps = {
 type PortalBannerProps = {
   title: string;
   modeValue: string;
-  meta: { label: string; value: React.ReactNode }[];
+  meta: { label: string; value: React.ReactNode; barPercent?: number }[];
   activePage: ActivePage;
   setActivePage: React.Dispatch<React.SetStateAction<ActivePage>>;
   branding: ClientBranding;
@@ -2273,13 +2273,17 @@ function PortalBanner({
   const logoUrl = branding.logoUrl || DEFAULT_BRANDING.logoUrl;
   const logoAlt = `${branding.clientName || "RSM"} logo`;
 
-  const statusItems = [
-    {
-      label: t(language, "mode"),
-      value: modeValue || activePage.toUpperCase(),
-    },
-    ...meta,
-  ];
+const statusItems: Array<{
+  label: string;
+  value: React.ReactNode;
+  barPercent?: number;
+}> = [
+  {
+    label: t(language, "mode"),
+    value: modeValue || activePage.toUpperCase(),
+  },
+  ...meta,
+];
 
   function statusIcon(label: string): React.ReactNode {
     if (label === t(language, "mode")) {
@@ -2407,7 +2411,11 @@ function PortalBanner({
                         <span
                           style={{
                             ...BANNER_CREDIT_BAR_INNER_STYLE,
-                            width: `${creditBarPercent(item.value)}%`,
+                            width: `${
+  typeof item.barPercent === "number"
+    ? item.barPercent
+    : creditBarPercent(item.value)
+}%`,
                           }}
                         />
                       </span>
@@ -2679,6 +2687,14 @@ function formatVatCredits(status: VatCreditStatus | null, language: PortalLangua
   return `${status.used.toLocaleString(localeForLanguage(language))} / ${status.limit.toLocaleString(
     localeForLanguage(language)
   )}`;
+}
+
+function vatCreditBarPercent(status: VatCreditStatus | null): number {
+  if (!status) return 0;
+  if (status.unlimited || status.limit === null) return 100;
+  if (!status.limit) return 0;
+
+  return Math.min(100, Math.max(0, Math.round((status.used / status.limit) * 100)));
 }
 function VatPage({
   activePage,
@@ -3612,7 +3628,11 @@ if (ratio >= 0.85) {
         title={branding.portalTitle || "Validation Portal"}
         modeValue="VAT"
 meta={[
-  { label: t(language, "credits"), value: formatVatCredits(vatCredits, language) },
+  {
+    label: t(language, "credits"),
+    value: formatVatCredits(vatCredits, language),
+    barPercent: vatCreditBarPercent(vatCredits),
+  },
   { label: t(language, "lastUpdate"), value: lastUpdate },
 ]}
         activePage={activePage}
