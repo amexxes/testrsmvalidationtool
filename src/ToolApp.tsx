@@ -715,12 +715,15 @@ function FilterSectionTitle({ language }: { language: PortalLanguage }) {
 function rowKeyStable(r: Partial<VatRow>, fallbackIdx?: number): string {
   const vat = String((r as any).vat_number || "").trim();
   const input = String((r as any).input || "").trim();
-  const cc = String((r as any).country_code || "").trim();
+  const cc = String((r as any).country_code || "").trim().toUpperCase();
   const part = String((r as any).vat_part || "").trim();
 
-  if (vat) return `vat:${normalizeVatCandidate(vat)}`;
-  if (input) return `in:${normalizeVatCandidate(input)}`;
-  if (cc || part) return `cc:${cc}:${part}`;
+  const candidates = [vat, input, cc && part ? `${cc}${part}` : ""]
+    .map((value) => normalizeVatCandidate(value))
+    .filter((value) => value.length >= 3);
+
+  if (candidates.length) return `vat:${candidates[0]}`;
+
   return `idx:${fallbackIdx ?? 0}`;
 }
 
@@ -2082,16 +2085,55 @@ function ValidationRunWarning({ language }: { language: PortalLanguage }) {
         marginTop: 10,
         padding: "11px 13px",
         borderRadius: 14,
-        border: "1px solid rgba(143,29,29,0.14)",
-        background: "rgba(143,29,29,0.045)",
+        border: "1px solid rgba(245,158,11,0.24)",
+        background: "rgba(245,158,11,0.075)",
         color: "#515356",
         fontFamily: PORTAL_FONT,
         fontSize: 12,
         lineHeight: 1.5,
         fontWeight: 500,
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 9,
       }}
     >
-      {copy[language] || copy.en}
+      <span
+        style={{
+          width: 18,
+          height: 18,
+          minWidth: 18,
+          marginTop: 1,
+          borderRadius: 999,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "rgba(245,158,11,0.14)",
+          color: "#D97706",
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M12 8v5"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+          <path
+            d="M12 17h.01"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          <path
+            d="M10.3 4.2 2.8 17.4A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.6L13.7 4.2a2 2 0 0 0-3.4 0Z"
+            stroke="currentColor"
+            strokeWidth="1.9"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+
+      <span>{copy[language] || copy.en}</span>
     </div>
   );
 }
@@ -2939,64 +2981,82 @@ const filteredRows = useMemo(() => {
   }
 
   async function pollFrJob(jobId: string) {
-    try {
-      pollAbortRef.current?.abort();
-      const controller = new AbortController();
-      pollAbortRef.current = controller;
+  try {
+    pollAbortRef.current?.abort();
 
-      const url = `/api/fr-job/${encodeURIComponent(jobId)}`;
-      const resp = await fetch(url, { signal: controller.signal });
-      if (!resp.ok) return;
+    const controller = new AbortController();
+    pollAbortRef.current = controller;
 
-      const data = (await resp.json()) as FrJobResponse & any;
+    const url = `/api/fr-job/${encodeURIComponent(jobId)}`;
+    const resp = await fetch(url, { signal: controller.signal });
+    if (!resp.ok) return;
 
-      setFrText(`${data.job.done}/${data.job.total} (${data.job.status})`);
+    const data = (await resp.json()) as FrJobResponse & any;
+    const jobStatus = String(data.job?.status || "").toLowerCase();
+    const jobDone = Number(data.job?.done || 0);
+    const jobTotal = Number(data.job?.total || 0);
 
-      const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
-      const hasPendingRaw = rawResults.some((x) => {
-        const s = String(x?.state || "").toLowerCase();
-        return s === "queued" || s === "retry" || s === "processing";
-      });
+    setFrText(`${data.job.done}/${data.job.total} (${data.job.status})`);
 
-      setRows((prev) => {
-        const map = new Map<string, VatRow>();
+    const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
 
-        for (let i = 0; i < prev.length; i++) {
-          const r = prev[i];
-          map.set(rowKeyStable(r, i), r);
-        }
+    setRows((prev) => {
+      const map = new Map<string, VatRow>();
 
-        let seq = 0;
-
-        for (const raw of rawResults) {
-          const incoming = { ...(raw as any) } as VatRow;
-          (incoming as any).next_retry_at = normalizeTsMs((incoming as any).next_retry_at);
-
-          const k = rowKeyStable(incoming, 100000 + seq++);
-          const existing = map.get(k);
-
-          const merged: any = { ...(existing || {}), ...(incoming as any) };
-          const st = (incoming as any).state;
-
-          if (st === undefined || st === null || st === "") {
-            merged.state = (existing as any)?.state;
-          }
-
-          map.set(k, enrichRow(merged));
-        }
-
-        return Array.from(map.values());
-      });
-
-      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
-
-      if (data.job?.status === "completed" && !hasPendingRaw) {
-        stopPolling();
+      for (let i = 0; i < prev.length; i++) {
+        const r = prev[i];
+        map.set(rowKeyStable(r, i), r);
       }
-    } catch (e: any) {
-      if (e?.name === "AbortError") return;
+
+      let seq = 0;
+
+      for (const raw of rawResults) {
+        const incoming = { ...(raw as any) } as VatRow;
+        (incoming as any).next_retry_at = normalizeTsMs((incoming as any).next_retry_at);
+
+        const key = rowKeyStable(incoming, 100000 + seq++);
+        const existing = map.get(key);
+
+        const merged: any = {
+          ...(existing || {}),
+          ...(incoming as any),
+        };
+
+        if (!merged.state && existing) {
+          merged.state = (existing as any).state;
+        }
+
+        map.set(key, enrichRow(merged));
+      }
+
+      return Array.from(map.values()).map((row) => {
+        const state = displayState(row);
+
+        if (jobStatus === "completed" && (state === "queued" || state === "processing")) {
+          return enrichRow({
+            ...(row as any),
+            valid: false,
+            state: "error",
+            error_code: "VAT_RESULT_NOT_RETURNED",
+            error: "No final result was returned by the validation service. Please retry this number.",
+            checked_at: new Date().toISOString(),
+          } as any);
+        }
+
+        return row;
+      });
+    });
+
+    setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+
+    if (jobStatus === "completed" || (jobTotal > 0 && jobDone >= jobTotal)) {
+      stopPolling();
+      setLoading(false);
     }
+  } catch (e: any) {
+    if (e?.name === "AbortError") return;
   }
+}
 
   async function runVatValidation(lines: string[]) {
     stopPolling();
@@ -3162,10 +3222,12 @@ duplicatesTotal += Number(viesData.duplicates_ignored || 0);
       if (e?.name === "AbortError") return;
       setRows([]);
     } finally {
-      validateAbortRef.current = null;
-      setLoading(false);
-    }
+  validateAbortRef.current = null;
+
+  if (!currentFrJobIdRef.current) {
+    setLoading(false);
   }
+}
 
   async function onValidate() {
     const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
@@ -4397,51 +4459,61 @@ function TinPage({
     return Math.round((stats.valid / stats.total) * 100);
   }, [stats.total, stats.valid]);
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+const filteredRows = useMemo(() => {
+  const q = search.trim().toLowerCase();
 
-    const base = rows.filter((r) => {
-      const matchesStatus = statusFilter === "all" ? true : r.status === statusFilter;
-      if (!matchesStatus) return false;
-      if (!q) return true;
+  const base = rows.filter((r) => {
+    const status = String(r.status || "").toLowerCase();
 
-      const haystack = [
-        r.input_tin,
-        r.tin_number,
-        r.request_date ? String(r.request_date).slice(0, 10) : "",
-        r.message,
-        r.status,
-        boolLabel(r.structure_valid),
-        boolLabel(r.syntax_valid),
-      ]
-        .join(" ")
-        .toLowerCase();
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "done"
+          ? status === "valid" || status === "invalid" || status === "error"
+          : statusFilter === "pending"
+            ? false
+            : status === statusFilter;
 
-      return haystack.includes(q);
-    });
+    if (!matchesStatus) return false;
+    if (!q) return true;
 
-    return [...base].sort((a, b) => {
-      let cmp = 0;
+    const haystack = [
+      r.input_tin,
+      r.tin_number,
+      r.request_date ? String(r.request_date).slice(0, 10) : "",
+      r.message,
+      r.status,
+      boolLabel(r.structure_valid),
+      boolLabel(r.syntax_valid),
+    ]
+      .join(" ")
+      .toLowerCase();
 
-      if (sortKey === "status") {
-        cmp = statusRank(a.status) - statusRank(b.status);
-      } else if (sortKey === "input_tin") {
-        cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), localeForLanguage(language));
-      } else if (sortKey === "tin_number") {
-        cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), localeForLanguage(language));
-      } else if (sortKey === "structure_valid") {
-        cmp = boolRank(a.structure_valid) - boolRank(b.structure_valid);
-      } else if (sortKey === "syntax_valid") {
-        cmp = boolRank(a.syntax_valid) - boolRank(b.syntax_valid);
-      } else if (sortKey === "request_date") {
-        cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), localeForLanguage(language));
-      } else if (sortKey === "message") {
-        cmp = String(a.message || "").localeCompare(String(b.message || ""), localeForLanguage(language));
-      }
+    return haystack.includes(q);
+  });
 
-      return sortAsc ? cmp : -cmp;
-    });
-  }, [rows, search, statusFilter, sortKey, sortAsc, language]);
+  return [...base].sort((a, b) => {
+    let cmp = 0;
+
+    if (sortKey === "status") {
+      cmp = statusRank(a.status) - statusRank(b.status);
+    } else if (sortKey === "input_tin") {
+      cmp = String(a.input_tin || "").localeCompare(String(b.input_tin || ""), localeForLanguage(language));
+    } else if (sortKey === "tin_number") {
+      cmp = String(a.tin_number || "").localeCompare(String(b.tin_number || ""), localeForLanguage(language));
+    } else if (sortKey === "structure_valid") {
+      cmp = boolRank(a.structure_valid) - boolRank(b.structure_valid);
+    } else if (sortKey === "syntax_valid") {
+      cmp = boolRank(a.syntax_valid) - boolRank(b.syntax_valid);
+    } else if (sortKey === "request_date") {
+      cmp = String(a.request_date || "").localeCompare(String(b.request_date || ""), localeForLanguage(language));
+    } else if (sortKey === "message") {
+      cmp = String(a.message || "").localeCompare(String(b.message || ""), localeForLanguage(language));
+    }
+
+    return sortAsc ? cmp : -cmp;
+  });
+}, [rows, search, statusFilter, sortKey, sortAsc, language]);
 
   const retryTinLines = useMemo(() => {
     const seen = new Set<string>();
@@ -4925,14 +4997,48 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
         </div>
 
         <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
-          <div className="tableHeader">
-            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+<div className="tableHeader">
+  <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
-            <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
-              {t(language, "rows")}
-            </div>
-          </div>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    }}
+  >
+    <select
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value)}
+      style={{
+        height: 34,
+        borderRadius: 999,
+        border: "1px solid rgba(81,83,86,0.14)",
+        background: "rgba(255,255,255,0.72)",
+        color: "#515356",
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        fontWeight: 700,
+        padding: "0 10px",
+        outline: "none",
+      }}
+    >
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="done">Done</option>
+      <option value="valid">Valid</option>
+      <option value="invalid">Invalid</option>
+      <option value="error">Error</option>
+    </select>
+
+    <div className="muted" style={TABLE_META_STYLE}>
+      {t(language, "showing")}{" "}
+      <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+      {t(language, "rows")}
+    </div>
+  </div>
+</div>
 
           <div style={{ overflow: "auto", maxHeight: 520 }}>
             <table>
