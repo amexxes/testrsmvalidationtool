@@ -2,18 +2,22 @@
 import { kv } from "@vercel/kv";
 
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
-const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 20000);
+const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 8000);
 const JOB_TTL_SEC = 6 * 60 * 60;
 
 // Retries
-const MAX_RETRIES = Number(process.env.MAX_RETRIES || 55); // max TOTAL attempts
-const FIXED_RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS || 0); // 0 = exponential backoff
-const WORKER_LOCK_SEC = Number(process.env.WORKER_LOCK_SEC || 8);
+const MAX_RETRIES = Number(process.env.MAX_RETRIES || 8);
+const FIXED_RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS || 0);
+const WORKER_LOCK_SEC = Number(process.env.WORKER_LOCK_SEC || 45);
+
+// Poll worker limits
+const POLL_MAX_TASKS = Number(process.env.POLL_MAX_TASKS || 12);
+const POLL_MAX_MS = Number(process.env.POLL_MAX_MS || 12000);
 
 // Pending scan + lease
-const PENDING_SCAN_LIMIT = Number(process.env.PENDING_SCAN_LIMIT || 200);
+const PENDING_SCAN_LIMIT = Number(process.env.PENDING_SCAN_LIMIT || 1000);
 const PENDING_LEASE_MS = Number(
-  process.env.PENDING_LEASE_MS || Math.max(30_000, VIES_TIMEOUT_MS + 5_000)
+  process.env.PENDING_LEASE_MS || Math.max(45_000, VIES_TIMEOUT_MS + 30_000)
 );
 
 const RETRYABLE_CODES = new Set([
@@ -187,11 +191,21 @@ async function viesCheck(p, requester) {
 function nextDelayMs(attempt) {
   if (FIXED_RETRY_DELAY_MS > 0) return FIXED_RETRY_DELAY_MS;
 
-  const base = 10_000; // 10s
-  const max = 5 * 60_000; // 5m
-  const ms = Math.min(max, base * Math.pow(2, Math.max(0, attempt - 1)));
-  const jitter = Math.floor(Math.random() * 1000);
-  return ms + jitter;
+  const schedule = [
+    3_000,
+    7_000,
+    15_000,
+    30_000,
+    60_000,
+    120_000,
+    180_000,
+    240_000,
+  ];
+
+  const index = Math.max(0, Math.min(schedule.length - 1, Number(attempt || 1) - 1));
+  const jitter = Math.floor(Math.random() * 1200);
+
+  return schedule[index] + jitter;
 }
 
 async function readAllResults(resKey) {
@@ -335,14 +349,32 @@ export async function runWorkerSlice({ maxTasks = 4, maxMs = 2500, debugEnabled 
 
   try {
     while (processed < maxTasks && Date.now() - start < maxMs) {
-      // 1) primary list queue
-      let raw = await kv.rpop("queue:vies");
-      let task = raw ? safeJsonParse(raw) : null;
+// 1) pending hash is the primary queue source
+let task = await claimDuePendingTask(Date.now(), workerId, debugEnabled, debugObj);
 
-      // 2) pending hash (lease-based)
-      if (!task) {
-        task = await claimDuePendingTask(Date.now(), workerId, debugEnabled, debugObj);
-      }
+// 2) legacy fallback for older queued jobs
+if (!task) {
+  const raw = await kv.rpop("queue:vies");
+  task = raw ? safeJsonParse(raw) : null;
+
+  if (task?.jobId && task?.key && task?.p) {
+    const nowMs = Date.now();
+
+    task = {
+      ...task,
+      leaseOwner: workerId,
+      leaseAt: nowMs,
+      leaseUntil: nowMs + PENDING_LEASE_MS,
+      _pendingField: pendingField(task),
+    };
+
+    await kv.hset("queue:pending", {
+      [pendingField(task)]: JSON.stringify(task),
+    });
+
+    await kv.expire("queue:pending", JOB_TTL_SEC);
+  }
+}
 
       if (!task) break;
       if (!task?.jobId || !task?.key || !task?.p) continue;
@@ -610,7 +642,12 @@ export default async function handler(req, res) {
   };
 
   try {
-    const slice = await runWorkerSlice({ maxTasks: 4, maxMs: 2500, debugEnabled: wantDebug, source: "poll" });
+const slice = await runWorkerSlice({
+  maxTasks: POLL_MAX_TASKS,
+  maxMs: POLL_MAX_MS,
+  debugEnabled: wantDebug,
+  source: "poll",
+});
     debug.processed = slice.processed;
     debug.locked = slice.locked;
     debug.pending_scanned = slice?.debug?.pending_scanned ?? null;
