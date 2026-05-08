@@ -2703,21 +2703,21 @@ type VatCreditStatus = {
   remaining: number | null;
 };
 
-function formatVatCredits(status: VatCreditStatus | null, language: PortalLanguage) {
-  if (!status) return "-";
-  if (status.unlimited || status.limit === null) return "Unlimited";
-
-  return `${status.used.toLocaleString(localeForLanguage(language))} / ${status.limit.toLocaleString(
-    localeForLanguage(language)
-  )}`;
-}
-
 function vatCreditBarPercent(status: VatCreditStatus | null): number {
   if (!status) return 0;
   if (status.unlimited || status.limit === null) return 100;
   if (!status.limit) return 0;
 
-  return Math.min(100, Math.max(0, Math.round((status.used / status.limit) * 100)));
+  const used = Number(status.used || 0);
+  const limit = Number(status.limit || 0);
+
+  if (!used || !limit) return 0;
+
+  const percent = Math.round((used / limit) * 100);
+
+  if (percent === 0) return 3;
+
+  return Math.min(100, Math.max(0, percent));
 }
 function VatPage({
   activePage,
@@ -2983,7 +2983,7 @@ const filteredRows = useMemo(() => {
     stats.vOk,
   ]);
 
- function stopPolling() {
+function stopPolling() {
   pollAbortRef.current?.abort();
   pollAbortRef.current = null;
   pollInFlightRef.current = false;
@@ -3276,10 +3276,10 @@ duplicatesTotal += Number(viesData.duplicates_ignored || 0);
 
         await pollFrJob(frJobId);
 
-        pollTimerRef.current = window.setInterval(() => {
-          const id = currentFrJobIdRef.current;
-          if (id) void pollFrJob(id);
-        }, 1500);
+pollTimerRef.current = window.setInterval(() => {
+  const id = currentFrJobIdRef.current;
+  if (id) void pollFrJob(id);
+}, 1000);
       } else {
         setFrText("-");
       }
