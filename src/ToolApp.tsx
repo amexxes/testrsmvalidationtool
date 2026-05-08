@@ -2781,8 +2781,9 @@ useEffect(() => {
     localStorage.setItem("vat_notes", JSON.stringify(notes));
   }, [notes]);
 
-  const currentFrJobIdRef = useRef<string | null>(null);
-  const pollTimerRef = useRef<number | null>(null);
+const currentFrJobIdRef = useRef<string | null>(null);
+const pollTimerRef = useRef<number | null>(null);
+const pollInFlightRef = useRef(false);
 
   const mapRef = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
@@ -2959,18 +2960,19 @@ const filteredRows = useMemo(() => {
     stats.vOk,
   ]);
 
-  function stopPolling() {
-    pollAbortRef.current?.abort();
-    pollAbortRef.current = null;
+ function stopPolling() {
+  pollAbortRef.current?.abort();
+  pollAbortRef.current = null;
+  pollInFlightRef.current = false;
 
-    if (pollTimerRef.current) {
-      window.clearInterval(pollTimerRef.current);
-      pollTimerRef.current = null;
-    }
-
-    currentFrJobIdRef.current = null;
-    setActiveFrJobId(null);
+  if (pollTimerRef.current) {
+    window.clearInterval(pollTimerRef.current);
+    pollTimerRef.current = null;
   }
+
+  currentFrJobIdRef.current = null;
+  setActiveFrJobId(null);
+}
 
   function onCancel() {
     validateAbortRef.current?.abort();
@@ -2997,12 +2999,18 @@ const filteredRows = useMemo(() => {
   }
 
   async function pollFrJob(jobId: string) {
+  if (pollInFlightRef.current) return;
+
+  pollInFlightRef.current = true;
+
+  const controller = new AbortController();
+  pollAbortRef.current = controller;
+
+  const timeoutId = window.setTimeout(() => {
+    controller.abort();
+  }, 30000);
+
   try {
-    pollAbortRef.current?.abort();
-
-    const controller = new AbortController();
-    pollAbortRef.current = controller;
-
     const url = `/api/fr-job/${encodeURIComponent(jobId)}`;
     const resp = await fetch(url, { signal: controller.signal });
     if (!resp.ok) return;
@@ -3011,6 +3019,13 @@ const filteredRows = useMemo(() => {
     const jobStatus = String(data.job?.status || "").toLowerCase();
     const jobDone = Number(data.job?.done || 0);
     const jobTotal = Number(data.job?.total || 0);
+
+    const isTerminalJob =
+      jobStatus === "completed" ||
+      jobStatus === "failed" ||
+      jobStatus === "error" ||
+      jobStatus === "cancelled" ||
+      (jobTotal > 0 && jobDone >= jobTotal);
 
     setFrText(`${data.job.done}/${data.job.total} (${data.job.status})`);
 
@@ -3048,13 +3063,16 @@ const filteredRows = useMemo(() => {
       return Array.from(map.values()).map((row) => {
         const state = displayState(row);
 
-        if (jobStatus === "completed" && (state === "queued" || state === "processing")) {
+        if (isTerminalJob && (state === "queued" || state === "processing")) {
           return enrichRow({
             ...(row as any),
             valid: false,
             state: "error",
-            error_code: "VAT_RESULT_NOT_RETURNED",
-            error: "No final result was returned by the validation service. Please retry this number.",
+            error_code: jobStatus === "completed" ? "VAT_RESULT_NOT_RETURNED" : "VAT_JOB_STOPPED",
+            error:
+              jobStatus === "completed"
+                ? "No final result was returned by the validation service. Please retry this number."
+                : "The validation job stopped before all results were returned. Please retry this number.",
             checked_at: new Date().toISOString(),
           } as any);
         }
@@ -3065,12 +3083,20 @@ const filteredRows = useMemo(() => {
 
     setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
 
-    if (jobStatus === "completed" || (jobTotal > 0 && jobDone >= jobTotal)) {
+    if (isTerminalJob) {
       stopPolling();
       setLoading(false);
     }
   } catch (e: any) {
     if (e?.name === "AbortError") return;
+  } finally {
+    window.clearTimeout(timeoutId);
+
+    if (pollAbortRef.current === controller) {
+      pollAbortRef.current = null;
+    }
+
+    pollInFlightRef.current = false;
   }
 }
 
