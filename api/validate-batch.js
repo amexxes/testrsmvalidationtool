@@ -14,6 +14,8 @@ const REQUESTER_VAT = process.env.REQUESTER_VAT || "";
 
 const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 20000);
 const JOB_TTL_SEC = 6 * 60 * 60;
+const LARGE_BATCH_QUEUE_THRESHOLD = Number(process.env.LARGE_BATCH_QUEUE_THRESHOLD || 50);
+const REALTIME_PARALLELISM = Number(process.env.REALTIME_PARALLELISM || 4);
 const VIES_REALTIME_LIMIT = Number(process.env.VIES_REALTIME_LIMIT || 80);
 const VIES_REALTIME_CONCURRENCY = Number(process.env.VIES_REALTIME_CONCURRENCY || 4);
 const QUEUE_HSET_CHUNK_SIZE = Number(process.env.QUEUE_HSET_CHUNK_SIZE || 100);
@@ -430,10 +432,22 @@ export default async function handler(req, res) {
     }
 
     let fr_job_id = null;
-    const realtime = [];
-    const queued = [];
+const realtime = [];
+const queued = [];
 
-    const checked = await mapLimit(unique, VIES_REALTIME_CONCURRENCY, async (p) => {
+const shouldQueueAll = unique.length > LARGE_BATCH_QUEUE_THRESHOLD;
+
+if (shouldQueueAll && unique.length) {
+  fr_job_id = randomUUID();
+}
+
+const checked = shouldQueueAll
+  ? unique.map((p) => ({
+      kind: "queued",
+      row: rowFromQueued(p, case_ref),
+      key: `${p.countryCode}:${p.vatNumber}`,
+    }))
+  : await mapLimit(unique, REALTIME_PARALLELISM, async (p) => {
       if (p.countryCode === "FR") {
         if (!fr_job_id) fr_job_id = randomUUID();
 
@@ -461,7 +475,15 @@ export default async function handler(req, res) {
 
         return {
           kind: "queued",
-          row: rowFromQueued(p, case_ref),
+          row: {
+            ...rowFromQueued(p, case_ref),
+            state: "retry",
+            error_code: code,
+            error: code,
+            details: details ? String(details).slice(0, 1000) : "",
+            attempt: 0,
+            next_retry_at: Date.now(),
+          },
           key: `${p.countryCode}:${p.vatNumber}`,
         };
       }
@@ -472,10 +494,10 @@ export default async function handler(req, res) {
       };
     });
 
-    for (const x of checked) {
-      if (x.kind === "queued") queued.push(x);
-      else realtime.push(x);
-    }
+for (const x of checked) {
+  if (x.kind === "queued") queued.push(x);
+  else realtime.push(x);
+}
 
     if (fr_job_id && queued.length) {
       const metaKey = `job:${fr_job_id}:meta`;
