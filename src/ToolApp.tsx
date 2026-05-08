@@ -2067,7 +2067,64 @@ function ActionButtonText({
   );
 }
 
+function ValidationRunWarning({ language }: { language: PortalLanguage }) {
+  const copy: Record<PortalLanguage, string> = {
+    en: "During validation, do not refresh the browser or switch to another page in the tool. Validation can take some time because the portal connects to external validation services.",
+    nl: "Tijdens een validatie: ververs de browser niet en ga niet naar een andere pagina in de tool. De validatie kan even duren door verbindingen met externe validatieservices.",
+    de: "Waehrend der Validierung bitte den Browser nicht aktualisieren und nicht zu einer anderen Seite im Tool wechseln. Die Validierung kann durch externe Verbindungen etwas dauern.",
+    fr: "Pendant une validation, ne rafraichissez pas le navigateur et ne changez pas de page dans l'outil. La validation peut prendre un peu de temps en raison des connexions externes.",
+  };
 
+  return (
+    <div
+      className="callout"
+      style={{
+        marginTop: 10,
+        padding: "11px 13px",
+        borderRadius: 14,
+        border: "1px solid rgba(143,29,29,0.14)",
+        background: "rgba(143,29,29,0.045)",
+        color: "#515356",
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        lineHeight: 1.5,
+        fontWeight: 500,
+      }}
+    >
+      {copy[language] || copy.en}
+    </div>
+  );
+}
+
+function ButtonProgressBar({ active }: { active: boolean }) {
+  if (!active) return null;
+
+  return (
+    <span
+      style={{
+        position: "absolute",
+        left: 10,
+        right: 10,
+        bottom: 5,
+        height: 3,
+        borderRadius: 999,
+        overflow: "hidden",
+        background: "rgba(255,255,255,0.32)",
+      }}
+    >
+      <span
+        style={{
+          display: "block",
+          width: "42%",
+          height: "100%",
+          borderRadius: 999,
+          background: "rgba(255,255,255,0.86)",
+          animation: "buttonProgressSlide 900ms ease-in-out infinite",
+        }}
+      />
+    </span>
+  );
+}
 
 const IMPORT_BUTTON_CONTENT_STYLE: React.CSSProperties = {
   display: "inline-flex",
