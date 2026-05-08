@@ -3221,15 +3221,16 @@ duplicatesTotal += Number(viesData.duplicates_ignored || 0);
     } catch (e: any) {
       if (e?.name === "AbortError") return;
       setRows([]);
-    } finally {
+} finally {
   validateAbortRef.current = null;
 
   if (!currentFrJobIdRef.current) {
     setLoading(false);
   }
 }
+}
 
-  async function onValidate() {
+async function onValidate() {
     const lines = vatInput.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
     await runVatValidation(lines);
   }
