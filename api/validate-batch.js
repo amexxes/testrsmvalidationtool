@@ -14,6 +14,9 @@ const REQUESTER_VAT = process.env.REQUESTER_VAT || "";
 
 const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 20000);
 const JOB_TTL_SEC = 6 * 60 * 60;
+const VIES_REALTIME_LIMIT = Number(process.env.VIES_REALTIME_LIMIT || 80);
+const VIES_REALTIME_CONCURRENCY = Number(process.env.VIES_REALTIME_CONCURRENCY || 4);
+const QUEUE_HSET_CHUNK_SIZE = Number(process.env.QUEUE_HSET_CHUNK_SIZE || 100);
 
 const RETRYABLE_CODES = new Set([
   "SERVICE_UNAVAILABLE",
@@ -284,7 +287,74 @@ async function mapLimit(arr, limit, fn) {
 
   return out;
 }
+async function hsetInChunks(hashKey, values, chunkSize = QUEUE_HSET_CHUNK_SIZE) {
+  const entries = Object.entries(values);
 
+  for (let i = 0; i < entries.length; i += chunkSize) {
+    const chunk = Object.fromEntries(entries.slice(i, i + chunkSize));
+    await kv.hset(hashKey, chunk);
+  }
+}
+
+async function createQueuedViesJob(items, case_ref) {
+  const fr_job_id = randomUUID();
+  const metaKey = `job:${fr_job_id}:meta`;
+  const resKey = `job:${fr_job_id}:results`;
+  const now = Date.now();
+
+  const meta = {
+    job_id: fr_job_id,
+    status: "queued",
+    total: items.length,
+    done: 0,
+    created_at: now,
+    updated_at: now,
+  };
+
+  await kv.set(metaKey, meta, { ex: JOB_TTL_SEC });
+
+  const resultMap = {};
+  const pendingMap = {};
+  const results = [];
+
+  for (const p of items) {
+    const key = `${p.countryCode}:${p.vatNumber}`;
+    const row = rowFromQueued(p, case_ref);
+
+    results.push(row);
+    resultMap[key] = JSON.stringify(row);
+
+    const task = {
+      jobId: fr_job_id,
+      key,
+      p: {
+        input: row.input,
+        countryCode: row.country_code,
+        vatNumber: row.vat_part,
+        vat_number: row.vat_number,
+      },
+      attempt: 0,
+      nextRunAt: now,
+      case_ref,
+      leaseOwner: "",
+      leaseAt: 0,
+      leaseUntil: 0,
+    };
+
+    pendingMap[pendingField(fr_job_id, key)] = JSON.stringify(task);
+  }
+
+  await hsetInChunks(resKey, resultMap);
+  await hsetInChunks("queue:pending", pendingMap);
+
+  await kv.expire(resKey, JOB_TTL_SEC);
+  await kv.expire("queue:pending", JOB_TTL_SEC);
+
+  return {
+    fr_job_id,
+    results,
+  };
+}
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -332,11 +402,38 @@ export default async function handler(req, res) {
       throw error;
     }
 
+    const vies_status = await getViesStatusSnapshot();
+
+    if (!unique.length) {
+      return res.status(200).json({
+        duplicates_ignored,
+        vies_status,
+        results: [],
+        fr_job_id: null,
+        count: 0,
+        vat_credits,
+      });
+    }
+
+    if (unique.length > VIES_REALTIME_LIMIT) {
+      const queuedJob = await createQueuedViesJob(unique, case_ref);
+
+      return res.status(200).json({
+        duplicates_ignored,
+        vies_status,
+        results: queuedJob.results,
+        fr_job_id: queuedJob.fr_job_id,
+        count: queuedJob.results.length,
+        vat_credits,
+        queued_all: true,
+      });
+    }
+
     let fr_job_id = null;
     const realtime = [];
     const queued = [];
 
-    const checked = await mapLimit(unique, 6, async (p) => {
+    const checked = await mapLimit(unique, VIES_REALTIME_CONCURRENCY, async (p) => {
       if (p.countryCode === "FR") {
         if (!fr_job_id) fr_job_id = randomUUID();
 
@@ -380,23 +477,27 @@ export default async function handler(req, res) {
       else realtime.push(x);
     }
 
-    if (fr_job_id) {
+    if (fr_job_id && queued.length) {
       const metaKey = `job:${fr_job_id}:meta`;
       const resKey = `job:${fr_job_id}:results`;
+      const now = Date.now();
 
       const meta = {
         job_id: fr_job_id,
         status: "queued",
         total: queued.length,
         done: 0,
-        created_at: Date.now(),
-        updated_at: Date.now(),
+        created_at: now,
+        updated_at: now,
       };
 
       await kv.set(metaKey, meta, { ex: JOB_TTL_SEC });
 
+      const resultMap = {};
+      const pendingMap = {};
+
       for (const q of queued) {
-        await kv.hset(resKey, { [q.key]: JSON.stringify(q.row) });
+        resultMap[q.key] = JSON.stringify(q.row);
 
         const task = {
           jobId: fr_job_id,
@@ -408,24 +509,24 @@ export default async function handler(req, res) {
             vat_number: q.row.vat_number,
           },
           attempt: 0,
-          nextRunAt: Date.now(),
+          nextRunAt: now,
           case_ref,
           leaseOwner: "",
           leaseAt: 0,
           leaseUntil: 0,
         };
 
-    await kv.hset("queue:pending", {
-  [pendingField(fr_job_id, q.key)]: JSON.stringify(task),
-});
+        pendingMap[pendingField(fr_job_id, q.key)] = JSON.stringify(task);
       }
 
-      await kv.expire("queue:pending", JOB_TTL_SEC);
+      await hsetInChunks(resKey, resultMap);
+      await hsetInChunks("queue:pending", pendingMap);
+
       await kv.expire(resKey, JOB_TTL_SEC);
+      await kv.expire("queue:pending", JOB_TTL_SEC);
     }
 
     const results = [...realtime.map((x) => x.row), ...queued.map((x) => x.row)];
-    const vies_status = await getViesStatusSnapshot();
 
     return res.status(200).json({
       duplicates_ignored,
@@ -434,6 +535,7 @@ export default async function handler(req, res) {
       fr_job_id,
       count: results.length,
       vat_credits,
+      queued_all: false,
     });
   } catch (e) {
     return res.status(500).json({
