@@ -998,6 +998,22 @@ function formatEta(ts?: number) {
   return `${m}m`;
 }
 
+function formatElapsedDuration(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds || 0));
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = seconds % 60;
+
+  if (minutes <= 0) return `${restSeconds}s`;
+  return `${minutes}m ${restSeconds}s`;
+}
+
+function elapsedTimerLabel(language: PortalLanguage): string {
+  if (language === "nl") return "Tijd bezig";
+  if (language === "de") return "Laufzeit";
+  if (language === "fr") return "Temps écoulé";
+  return "Elapsed";
+}
+
 function validateFormatStrict(vatNumberWithPrefix: string) {
   const v = normalizeVatCandidate(vatNumberWithPrefix);
   if (v.length < 3) return { ok: false, reason: "Too short" };
@@ -2761,8 +2777,10 @@ function VatPage({
   const [caseRef, setCaseRef] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
 const [resultTypeFilter, setResultTypeFilter] = useState<string>("all");
-  const [rows, setRows] = useState<VatRow[]>([]);
-  const [loading, setLoading] = useState(false);
+const [rows, setRows] = useState<VatRow[]>([]);
+const [loading, setLoading] = useState(false);
+const [runStartedAtMs, setRunStartedAtMs] = useState<number | null>(null);
+const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const [duplicatesIgnored, setDuplicatesIgnored] = useState(0);
   const [viesStatus, setViesStatus] = useState<Array<{ countryCode: string; availability: string }>>([]);
@@ -2797,6 +2815,24 @@ useEffect(() => {
     cancelled = true;
   };
 }, []);
+
+}, []);
+
+useEffect(() => {
+  if (!loading || !runStartedAtMs) return;
+
+  const updateElapsed = () => {
+    setElapsedSeconds(Math.max(0, Math.floor((Date.now() - runStartedAtMs) / 1000)));
+  };
+
+  updateElapsed();
+
+  const timerId = window.setInterval(updateElapsed, 1000);
+
+  return () => {
+    window.clearInterval(timerId);
+  };
+}, [loading, runStartedAtMs]);
 
   const [, setFrText] = useState("-");
   const [lastUpdate, setLastUpdate] = useState("-");
@@ -3022,6 +3058,7 @@ function stopPolling() {
 
   currentFrJobIdRef.current = null;
   setActiveFrJobId(null);
+  setRunStartedAtMs(null);
 }
 
   function onCancel() {
@@ -3160,6 +3197,8 @@ function stopPolling() {
     setSortState({ colIndex: null, asc: true });
     setSortLabel("");
     setLoading(true);
+    setRunStartedAtMs(Date.now());
+    setElapsedSeconds(0);
     setDuplicatesIgnored(0);
     setViesStatus([]);
     setActiveFrJobId(null);
@@ -3318,6 +3357,7 @@ pollTimerRef.current = window.setInterval(() => {
 
   if (!currentFrJobIdRef.current) {
     setLoading(false);
+    setRunStartedAtMs(null);
   }
 }
 }
@@ -3899,7 +3939,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 </div>
               </div>
 
-<div
+<<div
   className="progress"
   aria-label={`${t(language, "progress")}: ${progressPct}%`}
   style={{
@@ -3918,6 +3958,30 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
     }}
   />
 </div>
+
+{loading && (
+  <div
+    style={{
+      marginTop: 7,
+      textAlign: "center",
+      fontFamily: PORTAL_FONT,
+      fontSize: 12,
+      lineHeight: 1.35,
+      fontWeight: 300,
+      color: "#515356",
+    }}
+  >
+    <span>{elapsedTimerLabel(language)}: </span>
+    <b
+      style={{
+        color: "#2F3033",
+        fontWeight: 700,
+      }}
+    >
+      {formatElapsedDuration(elapsedSeconds)}
+    </b>
+  </div>
+)}
 
 <div style={{ marginTop: 14 }}>
   <UserDraftsPanel
