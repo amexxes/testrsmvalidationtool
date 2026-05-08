@@ -2,6 +2,10 @@
 import { kv } from "@vercel/kv";
 import { runWorkerSlice } from "../fr-job/[id].js";
 
+export const config = {
+  maxDuration: 60,
+};
+
 export default async function handler(req, res) {
   // Optional protection (recommended)
   const secret = process.env.CRON_SECRET;
@@ -10,12 +14,28 @@ export default async function handler(req, res) {
     if (auth !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
   }
 
-const maxTasks = Number(process.env.CRON_MAX_TASKS || "120");
-const maxMs = Number(process.env.CRON_MAX_MS || "50000");
+const maxTasks = Number(process.env.CRON_MAX_TASKS || process.env.POLL_MAX_TASKS || "24");
+const maxMs = Number(process.env.CRON_MAX_MS || process.env.POLL_MAX_MS || "9000");
   const wantDebug = String(req.query?.debug || "") === "1";
 
   const started = Date.now();
-  const slice = await runWorkerSlice({ maxTasks, maxMs, debugEnabled: wantDebug, source: "cron" });
+
+  let slice;
+  try {
+    slice = await runWorkerSlice({
+      maxTasks,
+      maxMs,
+      debugEnabled: wantDebug,
+      source: "cron",
+    });
+  } catch (e) {
+    return res.status(500).json({
+      ok: false,
+      error: "vies cron worker failed",
+      message: String(e?.message || e),
+      ms: Date.now() - started,
+    });
+  }
 
   // (handig voor zichtbaarheid)
   let queue_vies_len = null;
