@@ -1336,7 +1336,7 @@ function buildEoriImportPreview(columns: ImportColumnOption[], selectedColumnKey
 }
 function isRetryableError(codeOrError?: string, details?: string) {
   const c = String(codeOrError || "").trim().toUpperCase();
-  const d = String(details || "").toLowerCase();
+  const text = `${codeOrError || ""} ${details || ""}`.toLowerCase();
 
   if (
     c === "NETWORK_ERROR" ||
@@ -1349,36 +1349,59 @@ function isRetryableError(codeOrError?: string, details?: string) {
     return true;
   }
 
-  if (d.includes("abort") || d.includes("aborted") || d.includes("timeout")) return true;
-
-  return false;
+  return [
+    "abort",
+    "aborted",
+    "timeout",
+    "network",
+    "temporarily unavailable",
+    "unavailable",
+    "too many concurrent",
+    "max concurrent",
+    "busy",
+    "try again later",
+    "retry",
+    "retries",
+  ].some((needle) => text.includes(needle));
 }
 
 function displayState(r: VatRow): RowState {
   const raw = String((r as any).state || "").toLowerCase();
   const v = (r as any).valid;
 
-  if (raw === "error") return "error";
-  if (typeof v === "boolean") return v ? "valid" : "invalid";
-
   const errorCode = String((r as any).error_code || "").trim();
   const errorText = String((r as any).error || "").trim();
+  const messageText = String((r as any).message || "").trim();
   const details = String((r as any).details || "").trim();
+  const nextRetryAt = normalizeTsMs((r as any).next_retry_at);
 
-  const retryable = isRetryableError(errorCode || errorText, details);
+  const retryable = isRetryableError(
+    [errorCode, errorText, messageText].filter(Boolean).join(" "),
+    details
+  );
 
-  if ((raw === "queued" || raw === "processing") && retryable) return "retry";
+  if (raw === "valid") return "valid";
+  if (raw === "invalid") return "invalid";
+  if (raw === "error") return retryable ? "retry" : "error";
 
-  const hasResult = Boolean(String((r as any).name || "").trim() || String((r as any).address || "").trim());
-  if (raw === "retry" && hasResult && !errorCode && !errorText) return "valid";
+  if (typeof v === "boolean") return v ? "valid" : "invalid";
 
-  if (
-    raw === "valid" ||
-    raw === "invalid" ||
-    raw === "retry" ||
-    raw === "queued" ||
-    raw === "processing"
-  ) {
+  const hasResult = Boolean(
+    String((r as any).name || "").trim() ||
+      String((r as any).address || "").trim()
+  );
+
+  if (raw === "retry" && hasResult && !errorCode && !errorText && !messageText) {
+    return "valid";
+  }
+
+  if (raw === "retry") return "retry";
+
+  if ((raw === "queued" || raw === "processing" || !raw) && (retryable || nextRetryAt)) {
+    return "retry";
+  }
+
+  if (raw === "queued" || raw === "processing") {
     return raw as RowState;
   }
 
