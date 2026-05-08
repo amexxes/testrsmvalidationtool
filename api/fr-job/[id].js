@@ -92,7 +92,13 @@ function pendingField(task) {
   // canonical: avoids collisions across jobs
   return `${task.jobId}|${task.key}`;
 }
+function taskCountry(task) {
+  const fromPayload = String(task?.p?.countryCode || "").trim().toUpperCase();
+  if (fromPayload) return fromPayload;
 
+  const { cc } = parseVatKey(task?.key);
+  return String(cc || "").trim().toUpperCase();
+}
 async function hdelFields(hashKey, fields) {
   for (const f of fields) {
     if (!f) continue;
@@ -317,7 +323,31 @@ async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugO
 
   due.sort((a, b) => a.dueAt - b.dueAt);
 
-  const selected = due.slice(0, Math.max(1, limit));
+  const selected = [];
+  const usedCountries = new Set();
+
+  for (const item of due) {
+    const cc = taskCountry(item.task);
+
+    if (cc && usedCountries.has(cc)) {
+      continue;
+    }
+
+    selected.push(item);
+
+    if (cc) {
+      usedCountries.add(cc);
+    }
+
+    if (selected.length >= Math.max(1, limit)) {
+      break;
+    }
+  }
+
+  if (!selected.length && due.length) {
+    selected.push(due[0]);
+  }
+
   if (!selected.length) return [];
 
   const leaseMap = {};
@@ -345,6 +375,39 @@ async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugO
 
   return leasedTasks;
 }
+async function popLegacyQueueTasks(maxCount, nowMs, workerId) {
+  const tasks = [];
+  const leaseMap = {};
+
+  for (let i = 0; i < Math.max(0, maxCount); i++) {
+    const raw = await kv.rpop("queue:vies");
+    const legacyTask = raw ? safeJsonParse(raw) : null;
+
+    if (!legacyTask?.jobId || !legacyTask?.key || !legacyTask?.p) {
+      continue;
+    }
+
+    const canonical = pendingField(legacyTask);
+
+    const leased = {
+      ...legacyTask,
+      leaseOwner: workerId,
+      leaseAt: nowMs,
+      leaseUntil: nowMs + PENDING_LEASE_MS,
+      _pendingField: canonical,
+    };
+
+    leaseMap[canonical] = JSON.stringify(leased);
+    tasks.push(leased);
+  }
+
+  if (tasks.length) {
+    await kv.hset("queue:pending", leaseMap);
+    await kv.expire("queue:pending", JOB_TTL_SEC);
+  }
+
+  return tasks;
+}
 async function syncJobMeta(jobId) {
   if (!jobId) return;
 
@@ -364,6 +427,78 @@ async function syncJobMeta(jobId) {
 }
 function makeWorkerId(source) {
   return `${source}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+}
+async function requeueStuckJobRows(jobId) {
+  if (!jobId) return 0;
+
+  const metaKey = `job:${jobId}:meta`;
+  const resKey = `job:${jobId}:results`;
+
+  const meta = await getMeta(metaKey);
+  if (!meta) return 0;
+
+  const status = String(meta.status || "").toLowerCase();
+  if (status === "completed" || status === "failed" || status === "error" || status === "cancelled") {
+    return 0;
+  }
+
+  const resultsObj = await kv.hgetall(resKey);
+  if (!resultsObj || typeof resultsObj !== "object") return 0;
+
+  const pendingObj = await kv.hgetall("queue:pending");
+  const pendingFields = new Set(Object.keys(pendingObj || {}));
+
+  const now = Date.now();
+  const addMap = {};
+  let requeued = 0;
+
+  for (const [key, raw] of Object.entries(resultsObj)) {
+    const row = safeJsonParse(raw);
+    if (!row || isFinalState(row.state)) continue;
+
+    const nextRetryAt = Number(row.next_retry_at || 0);
+    if (nextRetryAt && nextRetryAt > now) continue;
+
+    const checkedAt = Number(row.checked_at || 0);
+    const state = String(row.state || "").toLowerCase();
+
+    if (state === "processing" && checkedAt && checkedAt + PENDING_LEASE_MS > now) {
+      continue;
+    }
+
+    const canonical = `${jobId}|${key}`;
+    if (pendingFields.has(canonical)) continue;
+
+    const parsed = parseVatKey(key);
+    const countryCode = String(row.country_code || parsed.cc || "").trim().toUpperCase();
+    const vatNumber = String(row.vat_part || parsed.vat || "").trim();
+
+    if (!countryCode || !vatNumber) continue;
+
+    addMap[canonical] = JSON.stringify({
+      jobId,
+      key,
+      p: {
+        countryCode,
+        vatNumber,
+      },
+      case_ref: row.case_ref || "",
+      attempt: Number(row.attempt || 0),
+      nextRunAt: now,
+      leaseOwner: "",
+      leaseAt: 0,
+      leaseUntil: 0,
+    });
+
+    requeued++;
+  }
+
+  if (requeued > 0) {
+    await kv.hset("queue:pending", addMap);
+    await kv.expire("queue:pending", JOB_TTL_SEC);
+  }
+
+  return requeued;
 }
 async function processWorkerTask(task, requester, workerId, debugEnabled, source) {
   if (!task?.jobId || !task?.key || !task?.p) {
@@ -601,29 +736,14 @@ export async function runWorkerSlice({
         debugObj
       );
 
-      if (!tasks.length) {
-        const raw = await kv.rpop("queue:vies");
-        const legacyTask = raw ? safeJsonParse(raw) : null;
+      if (tasks.length < batchSize) {
+        const extraTasks = await popLegacyQueueTasks(
+          batchSize - tasks.length,
+          Date.now(),
+          workerId
+        );
 
-        if (legacyTask?.jobId && legacyTask?.key && legacyTask?.p) {
-          const canonical = pendingField(legacyTask);
-          const nowMs = Date.now();
-
-          const leased = {
-            ...legacyTask,
-            leaseOwner: workerId,
-            leaseAt: nowMs,
-            leaseUntil: nowMs + PENDING_LEASE_MS,
-            _pendingField: canonical,
-          };
-
-          await kv.hset("queue:pending", {
-            [canonical]: JSON.stringify(leased),
-          });
-
-          await kv.expire("queue:pending", JOB_TTL_SEC);
-          tasks = [leased];
-        }
+        tasks = [...tasks, ...extraTasks];
       }
 
       if (!tasks.length) break;
@@ -669,6 +789,7 @@ export default async function handler(req, res) {
     queue_vies_len: null,
     queue_pending_len: null,
     pending_scanned: null,
+    requeued_stuck: 0,
     workerId: null,
     error: null,
   };
@@ -708,8 +829,26 @@ const slice = await runWorkerSlice({
       await setMeta(metaKey, job);
     }
 
+    const requeuedStuck = await requeueStuckJobRows(id);
+    debug.requeued_stuck = requeuedStuck;
+
+    if (requeuedStuck > 0) {
+      const healSlice = await runWorkerSlice({
+        maxTasks: Math.min(POLL_MAX_TASKS, requeuedStuck),
+        maxMs: Math.min(POLL_MAX_MS, 8000),
+        debugEnabled: wantDebug,
+        source: "heal",
+      });
+
+      debug.processed += Number(healSlice.processed || 0);
+    }
+
+    const refreshedJob = (await getMeta(metaKey)) || job;
     const results = await readAllResults(resKey);
-    return res.status(200).json(wantDebug ? { job, results, debug } : { job, results });
+
+    return res.status(200).json(
+      wantDebug ? { job: refreshedJob, results, debug } : { job: refreshedJob, results }
+    );
   } catch (e) {
     debug.error = String(e?.message || e);
     return res.status(500).json({ error: "fr-job failed", debug });
