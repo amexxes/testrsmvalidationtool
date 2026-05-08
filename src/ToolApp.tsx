@@ -2722,6 +2722,77 @@ const INPUT_CARD_ICON_STYLE: React.CSSProperties = {
 function InputSectionTitle({ language }: { language: PortalLanguage }) {
   return <SectionTitle>{t(language, "input")}</SectionTitle>;
 }
+function ValidationElapsedTimer({
+  active,
+  language,
+}: {
+  active: boolean;
+  language: PortalLanguage;
+}) {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (!active) {
+      setSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+
+    const intervalId = window.setInterval(() => {
+      setSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [active]);
+
+  if (!active) return null;
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  const timeText =
+    minutes > 0
+      ? `${minutes}m ${String(remainingSeconds).padStart(2, "0")}s`
+      : `${seconds}s`;
+
+  const label =
+    language === "nl"
+      ? "Bezig"
+      : language === "de"
+        ? "Laeuft"
+        : language === "fr"
+          ? "En cours"
+          : "Running";
+
+  return (
+    <div
+      style={{
+        marginTop: 7,
+        width: "100%",
+        textAlign: "center",
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        lineHeight: 1.35,
+        fontWeight: 300,
+        color: "#515356",
+      }}
+    >
+      <span>{label}: </span>
+      <b
+        style={{
+          color: "#2F3033",
+          fontWeight: 700,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {timeText}
+      </b>
+    </div>
+  );
+}
 type VatCreditStatus = {
   plan: "starter" | "business" | "enterprise";
   year: string;
@@ -3939,7 +4010,7 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 </div>
               </div>
 
-<<div
+<div
   className="progress"
   aria-label={`${t(language, "progress")}: ${progressPct}%`}
   style={{
@@ -3958,6 +4029,8 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
     }}
   />
 </div>
+
+<ValidationElapsedTimer active={loading} language={language} />
 
 {loading && (
   <div
