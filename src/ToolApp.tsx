@@ -256,7 +256,8 @@ const BANNER_STATUS_TEXT_WRAP_STYLE: React.CSSProperties = {
 };
 
 const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
-  width: "100%",
+  width: 118,
+  minWidth: 118,
   height: 5,
   borderRadius: 999,
   overflow: "hidden",
@@ -265,11 +266,13 @@ const BANNER_CREDIT_BAR_OUTER_STYLE: React.CSSProperties = {
 };
 
 const BANNER_CREDIT_BAR_INNER_STYLE: React.CSSProperties = {
+  display: "block",
   height: "100%",
+  minWidth: 0,
   borderRadius: 999,
   background: "rgba(0,156,222,0.86)",
+  transition: "width 260ms ease-out",
 };
-
 const APP_ROOT_STYLE: React.CSSProperties = {
   minHeight: "100vh",
   fontFamily: PORTAL_FONT,
@@ -2436,11 +2439,15 @@ const statusItems: Array<{
                         <span
                           style={{
                             ...BANNER_CREDIT_BAR_INNER_STYLE,
-                            width: `${
-  typeof item.barPercent === "number"
-    ? item.barPercent
-    : creditBarPercent(item.value)
-}%`,
+width: `${Math.min(
+  100,
+  Math.max(
+    0,
+    Number.isFinite(Number(item.barPercent))
+      ? Number(item.barPercent)
+      : creditBarPercent(item.value)
+  )
+)}%`,
                           }}
                         />
                       </span>
@@ -2712,19 +2719,27 @@ function formatVatCredits(status: VatCreditStatus | null, language: PortalLangua
     localeForLanguage(language)
   )}`;
 }
+function parseCreditNumber(value: unknown): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const cleaned = String(value ?? "").replace(/[^\d]/g, "");
+  return cleaned ? Number(cleaned) : 0;
+}
+
 function vatCreditBarPercent(status: VatCreditStatus | null): number {
   if (!status) return 0;
   if (status.unlimited || status.limit === null) return 100;
-  if (!status.limit) return 0;
 
-  const used = Number(status.used || 0);
-  const limit = Number(status.limit || 0);
+  const used = parseCreditNumber(status.used);
+  const limit = parseCreditNumber(status.limit);
 
-  if (!used || !limit) return 0;
+  if (!limit) return 0;
 
   const percent = Math.round((used / limit) * 100);
 
-  if (percent === 0) return 3;
+  if (used > 0 && percent < 2) return 2;
 
   return Math.min(100, Math.max(0, percent));
 }
