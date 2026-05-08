@@ -1335,16 +1335,17 @@ function buildEoriImportPreview(columns: ImportColumnOption[], selectedColumnKey
   };
 }
 function isRetryableError(codeOrError?: string, details?: string) {
-  const c = String(codeOrError || "").trim().toUpperCase();
-  const text = `${codeOrError || ""} ${details || ""}`.toLowerCase();
+  const raw = `${codeOrError || ""} ${details || ""}`.trim();
+  const upper = raw.toUpperCase();
+  const text = raw.toLowerCase();
 
   if (
-    c === "NETWORK_ERROR" ||
-    c === "TIMEOUT" ||
-    c === "SERVICE_UNAVAILABLE" ||
-    c === "GLOBAL_MAX_CONCURRENT_REQ" ||
-    c === "MS_MAX_CONCURRENT_REQ" ||
-    c === "MS_UNAVAILABLE"
+    upper.includes("NETWORK_ERROR") ||
+    upper.includes("TIMEOUT") ||
+    upper.includes("SERVICE_UNAVAILABLE") ||
+    upper.includes("GLOBAL_MAX_CONCURRENT_REQ") ||
+    upper.includes("MS_MAX_CONCURRENT_REQ") ||
+    upper.includes("MS_UNAVAILABLE")
   ) {
     return true;
   }
@@ -1358,6 +1359,7 @@ function isRetryableError(codeOrError?: string, details?: string) {
     "unavailable",
     "too many concurrent",
     "max concurrent",
+    "max_concurrent",
     "busy",
     "try again later",
     "retry",
@@ -2702,7 +2704,14 @@ type VatCreditStatus = {
   unlimited: boolean;
   remaining: number | null;
 };
+function formatVatCredits(status: VatCreditStatus | null, language: PortalLanguage) {
+  if (!status) return "-";
+  if (status.unlimited || status.limit === null) return "Unlimited";
 
+  return `${status.used.toLocaleString(localeForLanguage(language))} / ${status.limit.toLocaleString(
+    localeForLanguage(language)
+  )}`;
+}
 function vatCreditBarPercent(status: VatCreditStatus | null): number {
   if (!status) return 0;
   if (status.unlimited || status.limit === null) return 100;
