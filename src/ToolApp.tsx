@@ -4858,11 +4858,23 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
               )}
 
               <div className="row" style={{ marginTop: 12 }}>
-                <Button variant="primary" size="md" onClick={onValidateTinBatch} disabled={loading || !tinInput.trim()}>
-                  <ActionButtonText icon="validate">
-  {loading ? t(language, "validating") : t(language, "validate")}
-</ActionButtonText>
-                </Button>
+<Button
+  variant="primary"
+  size="md"
+  onClick={onValidateTinBatch}
+  disabled={loading || !tinInput.trim()}
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    paddingBottom: loading ? 16 : undefined,
+  }}
+>
+  <ActionButtonText icon="validate">
+    {loading ? t(language, "validating") : t(language, "validate")}
+  </ActionButtonText>
+
+  <ButtonProgressBar active={loading} />
+</Button>
 
 <Button variant="secondary" size="md" onClick={onClearTin} disabled={loading}>
   <ActionButtonText icon="clear">
@@ -5238,18 +5250,27 @@ const validInputEoris = useMemo(() => {
     return Math.round((stats.valid / stats.total) * 100);
   }, [stats.total, stats.valid]);
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+const filteredRows = useMemo(() => {
+  const q = search.trim().toLowerCase();
 
-    return rows.filter((r) => {
-      const state = eoriState(r);
-      const matchesStatus = statusFilter === "all" ? true : state === statusFilter;
-      if (!matchesStatus) return false;
-      if (!q) return true;
+  return rows.filter((r) => {
+    const state = eoriState(r);
 
-      return JSON.stringify(r).toLowerCase().includes(q);
-    });
-  }, [rows, search, statusFilter]);
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "done"
+          ? state === "valid" || state === "invalid" || state === "error"
+          : statusFilter === "pending"
+            ? false
+            : state === statusFilter;
+
+    if (!matchesStatus) return false;
+    if (!q) return true;
+
+    return JSON.stringify(r).toLowerCase().includes(q);
+  });
+}, [rows, search, statusFilter]);
 
   const retryEoriLines = useMemo(() => {
     const seen = new Set<string>();
@@ -5617,16 +5638,23 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
               </div>
 
               <div className="row" style={{ marginTop: 12 }}>
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={onValidateEoriBatch}
-                  disabled={loading || !validInputEoris.length}
-                >
-                  <ActionButtonText icon="validate">
-  {loading ? t(language, "validating") : t(language, "validate")}
-</ActionButtonText>
-                </Button>
+<Button
+  variant="primary"
+  size="md"
+  onClick={onValidateEoriBatch}
+  disabled={loading || !validInputEoris.length}
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    paddingBottom: loading ? 16 : undefined,
+  }}
+>
+  <ActionButtonText icon="validate">
+    {loading ? t(language, "validating") : t(language, "validate")}
+  </ActionButtonText>
+
+  <ButtonProgressBar active={loading} />
+</Button>
 
                 <Button variant="secondary" size="md" onClick={onClearEori} disabled={loading}>
                   {t(language, "clear")}
@@ -5736,14 +5764,48 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
         </div>
 
                 <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
-          <div className="tableHeader">
-            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+<div className="tableHeader">
+  <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
-            <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
-              {t(language, "rows")}
-            </div>
-          </div>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    }}
+  >
+    <select
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value)}
+      style={{
+        height: 34,
+        borderRadius: 999,
+        border: "1px solid rgba(81,83,86,0.14)",
+        background: "rgba(255,255,255,0.72)",
+        color: "#515356",
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        fontWeight: 700,
+        padding: "0 10px",
+        outline: "none",
+      }}
+    >
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="done">Done</option>
+      <option value="valid">Valid</option>
+      <option value="invalid">Invalid</option>
+      <option value="error">Error</option>
+    </select>
+
+    <div className="muted" style={TABLE_META_STYLE}>
+      {t(language, "showing")}{" "}
+      <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+      {t(language, "rows")}
+    </div>
+  </div>
+</div>
 
           <div style={{ overflow: "auto", maxHeight: 520 }}>
             <table>
