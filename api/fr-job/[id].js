@@ -1,24 +1,28 @@
 // api/fr-job/[id].js
 import { kv } from "@vercel/kv";
 
+export const config = {
+  maxDuration: 60,
+};
+
 const VIES_BASE = "https://ec.europa.eu/taxation_customs/vies/rest-api";
-const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 8000);
+const VIES_TIMEOUT_MS = Number(process.env.VIES_TIMEOUT_MS || 6500);
 const JOB_TTL_SEC = 6 * 60 * 60;
 
 // Retries
 const MAX_RETRIES = Number(process.env.MAX_RETRIES || 8);
 const FIXED_RETRY_DELAY_MS = Number(process.env.RETRY_DELAY_MS || 0);
-const WORKER_LOCK_SEC = Number(process.env.WORKER_LOCK_SEC || 45);
+const WORKER_LOCK_SEC = Number(process.env.WORKER_LOCK_SEC || 25);
 
-// Poll worker limits
-const POLL_MAX_TASKS = Number(process.env.POLL_MAX_TASKS || 12);
-const POLL_MAX_MS = Number(process.env.POLL_MAX_MS || 12000);
-const WORKER_PARALLELISM = Number(process.env.WORKER_PARALLELISM || 4);
+// Poll worker limits: kort houden, anders lijkt de UI vast te hangen
+const POLL_MAX_TASKS = Number(process.env.POLL_MAX_TASKS || 8);
+const POLL_MAX_MS = Number(process.env.POLL_MAX_MS || 7000);
+const WORKER_PARALLELISM = Number(process.env.WORKER_PARALLELISM || 3);
 
 // Pending scan + lease
 const PENDING_SCAN_LIMIT = Number(process.env.PENDING_SCAN_LIMIT || 1000);
 const PENDING_LEASE_MS = Number(
-  process.env.PENDING_LEASE_MS || Math.max(45_000, VIES_TIMEOUT_MS + 30_000)
+  process.env.PENDING_LEASE_MS || Math.max(22_000, VIES_TIMEOUT_MS + 15_000)
 );
 
 const RETRYABLE_CODES = new Set([
@@ -533,7 +537,89 @@ async function processWorkerTask(task, requester, workerId, debugEnabled, source
 
     return { processed: true, jobId: task.jobId };
   }
+async function rescheduleWorkerCrash(task, error) {
+  if (!task?.jobId || !task?.key || !task?.p) {
+    return { processed: false, jobId: "" };
+  }
 
+  const now = Date.now();
+  const resKey = `job:${task.jobId}:results`;
+  const prevAttempt = Math.max(0, Number(task.attempt || 0));
+  const currentAttempt = Math.max(1, prevAttempt + 1);
+  const details = String(error?.message || error || "Worker task failed").slice(0, 1000);
+
+  if (currentAttempt >= MAX_RETRIES) {
+    const row = {
+      ...buildBaseRow(null, task),
+      state: "error",
+      valid: null,
+      name: "",
+      address: "",
+      error_code: "WORKER_ERROR",
+      error: "WORKER_ERROR",
+      details,
+      next_retry_at: null,
+      attempt: currentAttempt,
+      checked_at: now,
+      done_counted: true,
+    };
+
+    await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
+    await ensureKeyTTL(resKey);
+
+    await hdelFields("queue:pending", [
+      task._pendingField,
+      pendingField(task),
+      task.key,
+    ]);
+
+    return { processed: true, jobId: task.jobId };
+  }
+
+  const nextRetryAt = now + nextDelayMs(currentAttempt);
+
+  const row = {
+    ...buildBaseRow(null, task),
+    state: "retry",
+    valid: null,
+    name: "",
+    address: "",
+    error_code: "WORKER_ERROR",
+    error: "WORKER_ERROR",
+    details,
+    next_retry_at: nextRetryAt,
+    attempt: currentAttempt,
+    checked_at: now,
+  };
+
+  await kv.hset(resKey, { [task.key]: JSON.stringify(row) });
+  await ensureKeyTTL(resKey);
+
+  const canonical = pendingField(task);
+
+  await kv.hset("queue:pending", {
+    [canonical]: JSON.stringify({
+      jobId: task.jobId,
+      key: task.key,
+      p: task.p,
+      case_ref: task.case_ref,
+      attempt: currentAttempt,
+      nextRunAt: nextRetryAt,
+      leaseOwner: "",
+      leaseAt: 0,
+      leaseUntil: 0,
+    }),
+  });
+
+  await kv.expire("queue:pending", JOB_TTL_SEC);
+
+  await hdelFields(
+    "queue:pending",
+    [task._pendingField, task.key].filter((field) => field && field !== canonical)
+  );
+
+  return { processed: true, jobId: task.jobId };
+}
   const prevAttempt = Math.max(Number(task.attempt || 0), Number(cur?.attempt || 0));
   const currentAttempt = Math.max(1, prevAttempt + 1);
 
@@ -750,11 +836,21 @@ export async function runWorkerSlice({
 
       pending_scanned = debugObj?.pending_scanned ?? pending_scanned;
 
-      const results = await Promise.all(
-        tasks.map((task) =>
-          processWorkerTask(task, requester, workerId, debugEnabled, source)
-        )
-      );
+const results = await Promise.all(
+  tasks.map(async (task) => {
+    try {
+      return await processWorkerTask(task, requester, workerId, debugEnabled, source);
+    } catch (error) {
+      console.error("[worker] task crashed", {
+        jobId: task?.jobId,
+        key: task?.key,
+        error: String(error?.message || error),
+      });
+
+      return await rescheduleWorkerCrash(task, error);
+    }
+  })
+);
 
       for (const result of results) {
         if (result?.processed) processed += 1;
