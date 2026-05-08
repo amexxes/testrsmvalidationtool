@@ -5914,26 +5914,27 @@ function IbanPage({
 
 <ValidationRunWarning language={language} />
 
-              <div className="row" style={{ marginTop: 12 }}>
+  <div className="row" style={{ marginTop: 12 }}>
   <Button
-  variant="primary"
-  size="md"
-  onClick={onValidateIbanBatch}
-  disabled={loading || !ibanInput.trim()}
-  style={{
-    position: "relative",
-    overflow: "hidden",
-    paddingBottom: loading ? 16 : undefined,
-  }}
->
-  <ActionButtonText icon="validate">
-    {loading ? t(language, "validating") : t(language, "validate")}
-  </ActionButtonText>
+    variant="primary"
+    size="md"
+    onClick={onValidateIbanBatch}
+    disabled={loading || !ibanInput.trim()}
+    style={{
+      position: "relative",
+      overflow: "hidden",
+      paddingBottom: loading ? 16 : undefined,
+    }}
+  >
+    <ActionButtonText icon="validate">
+      {loading ? t(language, "validating") : t(language, "validate")}
+    </ActionButtonText>
 
-  <ButtonProgressBar active={loading} />
-</Button>
+    <ButtonProgressBar active={loading} />
+  </Button>
+</div>
 
-              <MetricGrid
+<MetricGrid
                 items={[
                   { label: t(language, "total"), value: stats.total },
                   { label: t(language, "valid"), value: stats.valid, tone: "ok" },
