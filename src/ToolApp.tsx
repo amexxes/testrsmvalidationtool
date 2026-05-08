@@ -2722,20 +2722,7 @@ const INPUT_CARD_ICON_STYLE: React.CSSProperties = {
 function InputSectionTitle({ language }: { language: PortalLanguage }) {
   return <SectionTitle>{t(language, "input")}</SectionTitle>;
 }
-function ValidationElapsedTimer({
-  active,
-  language,
-}: {
-  active: boolean;
-  language: PortalLanguage;
-}) {
-  const [seconds, setSeconds] = useState(0);
 
-  useEffect(() => {
-    if (!active) {
-      setSeconds(0);
-      return;
-    }
 
     const startedAt = Date.now();
 
@@ -4030,8 +4017,6 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   />
 </div>
 
-<ValidationElapsedTimer active={loading} language={language} />
-
 {loading && (
   <div
     style={{
@@ -4565,7 +4550,34 @@ function TinPage({
 
   const [country, setCountry] = useState("NL");
   const [tinInput, setTinInput] = useState("");
-  const [loading, setLoading] = useState(false);
+ const [loading, setLoading] = useState(false);
+const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+useEffect(() => {
+  if (!loading) {
+    setElapsedSeconds(0);
+    return;
+  }
+
+  const startedAt = Date.now();
+
+  const timerId = window.setInterval(() => {
+    setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+  }, 1000);
+
+  return () => {
+    window.clearInterval(timerId);
+  };
+}, [loading]);
+
+const elapsedText = useMemo(() => {
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const seconds = elapsedSeconds % 60;
+
+  if (minutes <= 0) return `${seconds}s`;
+
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}, [elapsedSeconds]);
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
@@ -5124,6 +5136,32 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
 </ActionButtonText>
                 </Button>
               </div>
+
+</div>
+
+{loading && (
+  <div
+    style={{
+      marginTop: 8,
+      textAlign: "center",
+      fontFamily: PORTAL_FONT,
+      fontSize: 12,
+      lineHeight: 1.35,
+      fontWeight: 300,
+      color: "#515356",
+    }}
+  >
+    <span>{language === "nl" ? "Tijd bezig" : "Elapsed"}: </span>
+    <b
+      style={{
+        color: "#2F3033",
+        fontWeight: 700,
+      }}
+    >
+      {elapsedText}
+    </b>
+  </div>
+)}
 
 <div style={{ marginTop: 14 }}>
   <UserDraftsPanel
