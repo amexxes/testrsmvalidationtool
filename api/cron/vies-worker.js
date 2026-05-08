@@ -10,8 +10,8 @@ export default async function handler(req, res) {
     if (auth !== `Bearer ${secret}`) return res.status(401).json({ error: "Unauthorized" });
   }
 
-const maxTasks = Number(process.env.CRON_MAX_TASKS || "80");
-const maxMs = Number(process.env.CRON_MAX_MS || "45000");
+const maxTasks = Number(process.env.CRON_MAX_TASKS || "120");
+const maxMs = Number(process.env.CRON_MAX_MS || "50000");
   const wantDebug = String(req.query?.debug || "") === "1";
 
   const started = Date.now();
