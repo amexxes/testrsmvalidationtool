@@ -415,10 +415,9 @@ export default async function handler(req, res) {
           leaseUntil: 0,
         };
 
-        await kv.lpush("queue:vies", JSON.stringify(task));
-        await kv.hset("queue:pending", {
-          [pendingField(fr_job_id, q.key)]: JSON.stringify(task),
-        });
+    await kv.hset("queue:pending", {
+  [pendingField(fr_job_id, q.key)]: JSON.stringify(task),
+});
       }
 
       await kv.expire("queue:pending", JOB_TTL_SEC);
