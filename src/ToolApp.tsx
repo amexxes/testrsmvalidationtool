@@ -5881,31 +5881,52 @@ function IbanPage({
   const [statusFilter, setStatusFilter] = useState("all");
   const [lastUpdate, setLastUpdate] = useState("-");
 
-  const stats = useMemo(() => {
-    return {
-      total: rows.length,
-      valid: rows.filter((r) => r.state === "valid").length,
-      invalid: rows.filter((r) => r.state === "invalid").length,
-      error: rows.filter((r) => r.state === "error").length,
-    };
-  }, [rows]);
+  const inputCount = useMemo(() => {
+  return ibanInput
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean).length;
+}, [ibanInput]);
+
+const stats = useMemo(() => {
+  const done = rows.length;
+
+  return {
+    total: loading ? inputCount : rows.length,
+    done,
+    pending: loading ? Math.max(0, inputCount - done) : 0,
+    valid: rows.filter((r) => r.state === "valid").length,
+    invalid: rows.filter((r) => r.state === "invalid").length,
+    error: rows.filter((r) => r.state === "error").length,
+  };
+}, [rows, loading, inputCount]);
 
   const validPct = useMemo(() => {
     if (!stats.total) return 0;
     return Math.round((stats.valid / stats.total) * 100);
   }, [stats.total, stats.valid]);
 
-  const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+ const filteredRows = useMemo(() => {
+  const q = search.trim().toLowerCase();
 
-    return rows.filter((r) => {
-      const matchesStatus = statusFilter === "all" ? true : r.state === statusFilter;
-      if (!matchesStatus) return false;
-      if (!q) return true;
+  return rows.filter((r) => {
+    const state = String(r.state || "error").toLowerCase();
 
-      return JSON.stringify(r).toLowerCase().includes(q);
-    });
-  }, [rows, search, statusFilter]);
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "done"
+          ? state === "valid" || state === "invalid" || state === "error"
+          : statusFilter === "pending"
+            ? false
+            : state === statusFilter;
+
+    if (!matchesStatus) return false;
+    if (!q) return true;
+
+    return JSON.stringify(r).toLowerCase().includes(q);
+  });
+}, [rows, search, statusFilter]);
 
   async function onValidateIbanBatch() {
     const ibans = ibanInput
@@ -6104,13 +6125,19 @@ function IbanPage({
 </div>
 
 <MetricGrid
-                items={[
-                  { label: t(language, "total"), value: stats.total },
-                  { label: t(language, "valid"), value: stats.valid, tone: "ok" },
-                  { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
-                  { label: t(language, "error"), value: stats.error, tone: "bad" },
-                ]}
-              />
+  items={[
+    { label: t(language, "total"), value: stats.total },
+    { label: t(language, "done"), value: stats.done },
+    { label: t(language, "valid"), value: stats.valid, tone: "ok" },
+    { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
+    {
+      label: t(language, "pending"),
+      value: loading ? `${stats.pending} / ${stats.total}` : stats.pending,
+      tone: loading ? "warn" : "default",
+    },
+    { label: t(language, "error"), value: stats.error, tone: "bad" },
+  ]}
+/>
             </CardContent>
           </Card>
 
@@ -6173,15 +6200,48 @@ function IbanPage({
         </div>
 
         <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
-          <div className="tableHeader">
-            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+<div className="tableHeader">
+  <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
-            <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")}{" "}
-              <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
-              {t(language, "rows")}
-            </div>
-          </div>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    }}
+  >
+    <select
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value)}
+      style={{
+        height: 34,
+        borderRadius: 999,
+        border: "1px solid rgba(81,83,86,0.14)",
+        background: "rgba(255,255,255,0.72)",
+        color: "#515356",
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        fontWeight: 700,
+        padding: "0 10px",
+        outline: "none",
+      }}
+    >
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="done">Done</option>
+      <option value="valid">Valid</option>
+      <option value="invalid">Invalid</option>
+      <option value="error">Error</option>
+    </select>
+
+    <div className="muted" style={TABLE_META_STYLE}>
+      {t(language, "showing")}{" "}
+      <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+      {t(language, "rows")}
+    </div>
+  </div>
+</div>
 
           <div style={{ overflow: "auto", maxHeight: 520 }}>
             <table>
