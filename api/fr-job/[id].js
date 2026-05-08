@@ -277,50 +277,67 @@ function buildBaseRow(cur, task) {
  * If the function crashes mid-run, the lease expires and the task becomes claimable again.
  */
 async function claimDuePendingTask(nowMs, workerId, debugEnabled, debugObj) {
-  const fields = await kv.hkeys("queue:pending");
-  if (!fields || fields.length === 0) return null;
+  const pending = await kv.hgetall("queue:pending");
 
-  const scan = fields.slice(0, Math.min(fields.length, PENDING_SCAN_LIMIT));
-  if (debugObj) debugObj.pending_scanned = scan.length;
+  if (!pending || typeof pending !== "object") return null;
 
-  for (const field of scan) {
-    const raw = await kv.hget("queue:pending", field);
-    if (!raw) {
-      await kv.hdel("queue:pending", field);
-      continue;
-    }
+  const entries = Object.entries(pending);
+  if (!entries.length) return null;
 
+  if (debugObj) debugObj.pending_scanned = entries.length;
+
+  let bestTask = null;
+  let bestField = "";
+  let bestDueAt = Number.POSITIVE_INFINITY;
+  const cleanupFields = [];
+
+  for (const [field, raw] of entries) {
     const task = safeJsonParse(raw);
+
     if (!task?.jobId || !task?.key || !task?.p) {
-      await kv.hdel("queue:pending", field);
+      cleanupFields.push(field);
       continue;
     }
 
     const dueAt = Number(task.nextRunAt || 0);
     const leaseUntil = Number(task.leaseUntil || 0);
 
-    // already leased
     if (leaseUntil && leaseUntil > nowMs) continue;
+    if (dueAt && dueAt > nowMs) continue;
 
-    // due now?
-    if (!dueAt || dueAt <= nowMs) {
-      const leased = {
-        ...task,
-        leaseOwner: workerId,
-        leaseAt: nowMs,
-        leaseUntil: nowMs + PENDING_LEASE_MS,
-      };
+    const score = dueAt || 0;
 
-      await kv.hset("queue:pending", { [field]: JSON.stringify(leased) });
-      await kv.expire("queue:pending", JOB_TTL_SEC);
-
-      leased._pendingField = field;
-      logIf(debugEnabled, `[worker] lease pending`, { field, key: maskKey(task.key) });
-      return leased;
+    if (!bestTask || score < bestDueAt) {
+      bestTask = task;
+      bestField = field;
+      bestDueAt = score;
     }
   }
 
-  return null;
+  if (cleanupFields.length) {
+    await hdelFields("queue:pending", cleanupFields);
+  }
+
+  if (!bestTask) return null;
+
+  const leased = {
+    ...bestTask,
+    leaseOwner: workerId,
+    leaseAt: nowMs,
+    leaseUntil: nowMs + PENDING_LEASE_MS,
+  };
+
+  await kv.hset("queue:pending", { [bestField]: JSON.stringify(leased) });
+  await kv.expire("queue:pending", JOB_TTL_SEC);
+
+  leased._pendingField = bestField;
+
+  logIf(debugEnabled, `[worker] lease pending`, {
+    field: bestField,
+    key: maskKey(bestTask.key),
+  });
+
+  return leased;
 }
 
 function makeWorkerId(source) {
