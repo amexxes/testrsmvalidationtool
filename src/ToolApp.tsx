@@ -3768,13 +3768,11 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
     paddingBottom: loading ? 16 : undefined,
   }}
 >
-  {loading ? (
-    t(language, "validating")
-  ) : (
-    <ActionButtonText icon="validate">
-      {t(language, "validate")}
-    </ActionButtonText>
-  )}
+  <ActionButtonText icon="validate">
+    <span style={{ fontSize: loading ? 11 : 12 }}>
+      {loading ? t(language, "validating") : t(language, "validate")}
+    </span>
+  </ActionButtonText>
 
   <ButtonProgressBar active={loading} />
 </Button>
