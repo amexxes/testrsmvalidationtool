@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/vies-worker",
+      "schedule": "* * * * *"
+    }
+  ],
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 60
+    }
+  }
+}
