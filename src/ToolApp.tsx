@@ -2100,29 +2100,46 @@ function ButtonProgressBar({ active }: { active: boolean }) {
   if (!active) return null;
 
   return (
-    <span
-      style={{
-        position: "absolute",
-        left: 10,
-        right: 10,
-        bottom: 5,
-        height: 3,
-        borderRadius: 999,
-        overflow: "hidden",
-        background: "rgba(255,255,255,0.32)",
-      }}
-    >
+    <>
+      <style>
+        {`
+          @keyframes buttonProgressSlide {
+            0% {
+              transform: translateX(-120%);
+            }
+
+            100% {
+              transform: translateX(260%);
+            }
+          }
+        `}
+      </style>
+
       <span
         style={{
-          display: "block",
-          width: "42%",
-          height: "100%",
+          position: "absolute",
+          left: 10,
+          right: 10,
+          bottom: 5,
+          height: 3,
           borderRadius: 999,
-          background: "rgba(255,255,255,0.86)",
-          animation: "buttonProgressSlide 900ms ease-in-out infinite",
+          overflow: "hidden",
+          background: "rgba(255,255,255,0.32)",
+          pointerEvents: "none",
         }}
-      />
-    </span>
+      >
+        <span
+          style={{
+            display: "block",
+            width: "42%",
+            height: "100%",
+            borderRadius: 999,
+            background: "rgba(255,255,255,0.86)",
+            animation: "buttonProgressSlide 900ms ease-in-out infinite",
+          }}
+        />
+      </span>
+    </>
   );
 }
 
@@ -2635,7 +2652,7 @@ function VatPage({
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
   const [filter, setFilter] = useState<string>("");
-
+const [resultTypeFilter, setResultTypeFilter] = useState<string>("all");
   const [rows, setRows] = useState<VatRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -2726,30 +2743,50 @@ useEffect(() => {
     return inputEntries.length ? Math.max(...inputEntries.map(([, n]) => n)) : 0;
   }, [inputEntries]);
 
-  const filteredRows = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    const base = !q ? rows : rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+const filteredRows = useMemo(() => {
+  const q = filter.trim().toLowerCase();
 
-    if (sortState.colIndex !== null) return base;
+  const matchesType = (row: VatRow) => {
+    const state = displayState(row);
 
-    const prio = (r: VatRow) => {
-      const s = displayState(r);
-      if (s === "queued" || s === "retry" || s === "processing") return 0;
-      return 1;
-    };
+    if (resultTypeFilter === "all") return true;
 
-    return [...base].sort((a, b) => {
-      const pa = prio(a);
-      const pb = prio(b);
-      if (pa !== pb) return pa - pb;
+    if (resultTypeFilter === "done") {
+      return state === "valid" || state === "invalid" || state === "error";
+    }
 
-      const na = normalizeTsMs((a as any).next_retry_at) ?? Number.POSITIVE_INFINITY;
-      const nb = normalizeTsMs((b as any).next_retry_at) ?? Number.POSITIVE_INFINITY;
-      if (na !== nb) return na - nb;
+    if (resultTypeFilter === "pending") {
+      return state === "queued" || state === "retry" || state === "processing";
+    }
 
-      return 0;
-    });
-  }, [rows, filter, sortState.colIndex]);
+    return state === resultTypeFilter;
+  };
+
+  const base = rows.filter((r) => {
+    const matchesSearch = !q || JSON.stringify(r).toLowerCase().includes(q);
+    return matchesSearch && matchesType(r);
+  });
+
+  if (sortState.colIndex !== null) return base;
+
+  const prio = (r: VatRow) => {
+    const s = displayState(r);
+    if (s === "queued" || s === "retry" || s === "processing") return 0;
+    return 1;
+  };
+
+  return [...base].sort((a, b) => {
+    const pa = prio(a);
+    const pb = prio(b);
+    if (pa !== pb) return pa - pb;
+
+    const na = normalizeTsMs((a as any).next_retry_at) ?? Number.POSITIVE_INFINITY;
+    const nb = normalizeTsMs((b as any).next_retry_at) ?? Number.POSITIVE_INFINITY;
+    if (na !== nb) return na - nb;
+
+    return 0;
+  });
+}, [rows, filter, resultTypeFilter, sortState.colIndex]);
 
   const retryVatLines = useMemo(() => {
     const seen = new Set<string>();
@@ -3143,22 +3180,23 @@ duplicatesTotal += Number(viesData.duplicates_ignored || 0);
     await runVatValidation(retryVatLines);
   }
 
-  function onClear() {
-    onCancel();
-    setVatInput("");
-    setCaseRef("");
-    setFilter("");
-    setRows([]);
-    setFrText("-");
-    setLastUpdate("-");
-    setProgressText("0/0");
-    setSortState({ colIndex: null, asc: true });
-    setSortLabel("");
-    setDuplicatesIgnored(0);
-    setViesStatus([]);
-    setExpandedKey(null);
-    setImportPreview(null);
-  }
+ function onClear() {
+  onCancel();
+  setVatInput("");
+  setCaseRef("");
+  setFilter("");
+  setResultTypeFilter("all");
+  setRows([]);
+  setFrText("-");
+  setLastUpdate("-");
+  setProgressText("0/0");
+  setSortState({ colIndex: null, asc: true });
+  setSortLabel("");
+  setDuplicatesIgnored(0);
+  setViesStatus([]);
+  setExpandedKey(null);
+  setImportPreview(null);
+}
     function getCellText(r: VatRow, colIndex: number): string {
     const cols: Array<string> = [
       displayState(r),
@@ -3212,6 +3250,7 @@ duplicatesTotal += Number(viesData.duplicates_ignored || 0);
     setVatInput(importPreview.payloadText);
     setExpandedKey(null);
     setFilter("");
+    setResultTypeFilter("all");
     setRows([]);
     setDuplicatesIgnored(0);
     setViesStatus([]);
@@ -3598,16 +3637,17 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   <b>{duplicatesIgnored}</b> {t(language, "duplicatesIgnored")}.
                 </div>
               )}
+<textarea
+  value={vatInput}
+  onChange={(e) => {
+    setVatInput(e.target.value);
+    setImportPreview(null);
+  }}
+  placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
+  style={{ marginTop: 12 }}
+/>
 
-              <textarea
-                value={vatInput}
-                onChange={(e) => {
-                  setVatInput(e.target.value);
-                  setImportPreview(null);
-                }}
-                placeholder={`NL123456789B01\nDE123456789\nFR12345678901\n...`}
-                style={{ marginTop: 12 }}
-              />
+<ValidationRunWarning language={language} />
 
               <div
                 className="callout"
@@ -3639,6 +3679,11 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
   size="md"
   onClick={onValidate}
   disabled={loading || !vatInput.trim()}
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    paddingBottom: loading ? 16 : undefined,
+  }}
 >
   {loading ? (
     t(language, "validating")
@@ -3647,6 +3692,8 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
       {t(language, "validate")}
     </ActionButtonText>
   )}
+
+  <ButtonProgressBar active={loading} />
 </Button>
 
                 <Button variant="secondary" size="md" onClick={onClear} disabled={loading}>
@@ -3726,8 +3773,9 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
       setCaseRef(draft.referenceValue || "");
       setVatInput(draft.inputValue || "");
       setRows([]);
-      setFilter("");
-      setExpandedKey(null);
+setFilter("");
+setResultTypeFilter("all");
+setExpandedKey(null);
       setDuplicatesIgnored(0);
       setViesStatus([]);
       setFrText("-");
@@ -3746,7 +3794,13 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                   { label: t(language, "done"), value: stats.done },
                   { label: t(language, "valid"), value: stats.vOk, tone: "ok" },
                   { label: t(language, "invalid"), value: stats.vBad, tone: "bad" },
-                  { label: t(language, "pending"), value: stats.pending, tone: "warn" },
+                  {
+  label: t(language, "pending"),
+  value: loading
+    ? `${Math.max(0, (precheck.unique || stats.total) - stats.done)} / ${precheck.unique || stats.total}`
+    : stats.pending,
+  tone: loading ? "warn" : "default",
+},
                   { label: t(language, "error"), value: stats.err, tone: "bad" },
                 ]}
               />
@@ -3883,14 +3937,48 @@ textAlign: "center",
         </div>
 
         <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
-          <div className="tableHeader">
-            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+<div className="tableHeader">
+  <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
 
-            <div className="muted" style={TABLE_META_STYLE}>
-              {t(language, "showing")} <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
-              {t(language, "rows")}
-            </div>
-          </div>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      flexWrap: "wrap",
+    }}
+  >
+    <select
+      value={resultTypeFilter}
+      onChange={(e) => setResultTypeFilter(e.target.value)}
+      style={{
+        height: 34,
+        borderRadius: 999,
+        border: "1px solid rgba(81,83,86,0.14)",
+        background: "rgba(255,255,255,0.72)",
+        color: "#515356",
+        fontFamily: PORTAL_FONT,
+        fontSize: 12,
+        fontWeight: 700,
+        padding: "0 10px",
+        outline: "none",
+      }}
+    >
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="done">Done</option>
+      <option value="valid">Valid</option>
+      <option value="invalid">Invalid</option>
+      <option value="error">Error</option>
+    </select>
+
+    <div className="muted" style={TABLE_META_STYLE}>
+      {t(language, "showing")}{" "}
+      <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+      {t(language, "rows")}
+    </div>
+  </div>
+</div>
 
           <div style={{ overflow: "auto", maxHeight: 520 }}>
             <table>
@@ -4678,15 +4766,17 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 />
               )}
 
-              <textarea
-                value={tinInput}
-                onChange={(e) => {
-                  setTinInput(e.target.value);
-                  setImportPreview(null);
-                }}
-                placeholder={`123456782\n987654321\n...`}
-                style={{ marginTop: 12 }}
-              />
+<textarea
+  value={tinInput}
+  onChange={(e) => {
+    setTinInput(e.target.value);
+    setImportPreview(null);
+  }}
+  placeholder={`123456782\n987654321\n...`}
+  style={{ marginTop: 12 }}
+/>
+
+<ValidationRunWarning language={language} />
 
               {infoMessage && (
                 <div className="callout" style={{ marginTop: 10 }}>
@@ -5383,15 +5473,17 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
                 />
               )}
 
-              <textarea
-                value={eoriInput}
-                onChange={(e) => {
-                  setEoriInput(e.target.value);
-                  setImportPreview(null);
-                }}
-                placeholder={`${t(language, "eoriPlaceholder")}\n...`}
-                style={{ marginTop: 12 }}
-              />
+<textarea
+  value={eoriInput}
+  onChange={(e) => {
+    setEoriInput(e.target.value);
+    setImportPreview(null);
+  }}
+  placeholder={`${t(language, "eoriPlaceholder")}\n...`}
+  style={{ marginTop: 12 }}
+/>
+
+<ValidationRunWarning language={language} />
 
               <div
                 className="callout"
@@ -5813,25 +5905,33 @@ function IbanPage({
                 </Button>
               </div>
 
-              <textarea
-                value={ibanInput}
-                onChange={(e) => setIbanInput(e.target.value)}
-                placeholder={`NL91 ABNA 0417 1643 00\nGB82 WEST 1234 5698 7654 32\nDE89 3704 0044 0532 0130 00`}
-                style={{ marginTop: 12 }}
-              />
+<textarea
+  value={ibanInput}
+  onChange={(e) => setIbanInput(e.target.value)}
+  placeholder={`NL91 ABNA 0417 1643 00\nGB82 WEST 1234 5698 7654 32\nDE89 3704 0044 0532 0130 00`}
+  style={{ marginTop: 12 }}
+/>
+
+<ValidationRunWarning language={language} />
 
               <div className="row" style={{ marginTop: 12 }}>
-                <Button
-                  variant="primary"
-                  size="md"
-                  onClick={onValidateIbanBatch}
-                  disabled={loading || !ibanInput.trim()}
-                >
-                  <ActionButtonText icon="validate">
-  {loading ? t(language, "validating") : t(language, "validate")}
-</ActionButtonText>
-                </Button>
-              </div>
+  <Button
+  variant="primary"
+  size="md"
+  onClick={onValidateIbanBatch}
+  disabled={loading || !ibanInput.trim()}
+  style={{
+    position: "relative",
+    overflow: "hidden",
+    paddingBottom: loading ? 16 : undefined,
+  }}
+>
+  <ActionButtonText icon="validate">
+    {loading ? t(language, "validating") : t(language, "validate")}
+  </ActionButtonText>
+
+  <ButtonProgressBar active={loading} />
+</Button>
 
               <MetricGrid
                 items={[
