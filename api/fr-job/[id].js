@@ -17,7 +17,8 @@ const WORKER_LOCK_SEC = Number(process.env.WORKER_LOCK_SEC || 25);
 // Poll worker limits: kort houden, anders lijkt de UI vast te hangen
 const POLL_MAX_TASKS = Number(process.env.POLL_MAX_TASKS || 8);
 const POLL_MAX_MS = Number(process.env.POLL_MAX_MS || 7000);
-const WORKER_PARALLELISM = Number(process.env.WORKER_PARALLELISM || 3);
+const WORKER_PARALLELISM = Number(process.env.WORKER_PARALLELISM || 4);
+const PER_COUNTRY_PARALLELISM = Number(process.env.PER_COUNTRY_PARALLELISM || 2);
 
 // Pending scan + lease
 const PENDING_SCAN_LIMIT = Number(process.env.PENDING_SCAN_LIMIT || 1000);
@@ -287,7 +288,14 @@ function buildBaseRow(cur, task) {
  * Lease a due pending task instead of deleting it.
  * If the function crashes mid-run, the lease expires and the task becomes claimable again.
  */
-async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugObj) {
+async function claimDuePendingTasks(
+  limit,
+  nowMs,
+  workerId,
+  debugEnabled,
+  debugObj,
+  jobIdFilter = ""
+) {
   const pending = await kv.hgetall("queue:pending");
 
   if (!pending || typeof pending !== "object") return [];
@@ -305,6 +313,10 @@ async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugO
 
     if (!task?.jobId || !task?.key || !task?.p) {
       cleanupFields.push(field);
+      continue;
+    }
+
+    if (jobIdFilter && task.jobId !== jobIdFilter) {
       continue;
     }
 
@@ -328,19 +340,20 @@ async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugO
   due.sort((a, b) => a.dueAt - b.dueAt);
 
   const selected = [];
-  const usedCountries = new Set();
+  const countryCounts = new Map();
 
   for (const item of due) {
     const cc = taskCountry(item.task);
+    const count = countryCounts.get(cc) || 0;
 
-    if (cc && usedCountries.has(cc)) {
+    if (cc && count >= PER_COUNTRY_PARALLELISM) {
       continue;
     }
 
     selected.push(item);
 
     if (cc) {
-      usedCountries.add(cc);
+      countryCounts.set(cc, count + 1);
     }
 
     if (selected.length >= Math.max(1, limit)) {
@@ -375,11 +388,12 @@ async function claimDuePendingTasks(limit, nowMs, workerId, debugEnabled, debugO
 
   logIf(debugEnabled, `[worker] lease pending batch`, {
     count: leasedTasks.length,
+    jobIdFilter: jobIdFilter || null,
   });
 
   return leasedTasks;
 }
-async function popLegacyQueueTasks(maxCount, nowMs, workerId) {
+async function popLegacyQueueTasks(maxCount, nowMs, workerId, jobIdFilter = "") {
   const tasks = [];
   const leaseMap = {};
 
@@ -393,6 +407,18 @@ async function popLegacyQueueTasks(maxCount, nowMs, workerId) {
 
     const canonical = pendingField(legacyTask);
 
+    if (jobIdFilter && legacyTask.jobId !== jobIdFilter) {
+      leaseMap[canonical] = JSON.stringify({
+        ...legacyTask,
+        leaseOwner: "",
+        leaseAt: 0,
+        leaseUntil: 0,
+        nextRunAt: Number(legacyTask.nextRunAt || 0),
+      });
+
+      continue;
+    }
+
     const leased = {
       ...legacyTask,
       leaseOwner: workerId,
@@ -405,7 +431,7 @@ async function popLegacyQueueTasks(maxCount, nowMs, workerId) {
     tasks.push(leased);
   }
 
-  if (tasks.length) {
+  if (Object.keys(leaseMap).length) {
     await kv.hset("queue:pending", leaseMap);
     await kv.expire("queue:pending", JOB_TTL_SEC);
   }
@@ -429,9 +455,7 @@ async function syncJobMeta(jobId) {
 
   await setMeta(metaKey, meta);
 }
-function makeWorkerId(source) {
-  return `${source}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
-}
+
 async function requeueStuckJobRows(jobId) {
   if (!jobId) return 0;
 
@@ -442,6 +466,7 @@ async function requeueStuckJobRows(jobId) {
   if (!meta) return 0;
 
   const status = String(meta.status || "").toLowerCase();
+
   if (status === "completed" || status === "failed" || status === "error" || status === "cancelled") {
     return 0;
   }
@@ -504,39 +529,11 @@ async function requeueStuckJobRows(jobId) {
 
   return requeued;
 }
-async function processWorkerTask(task, requester, workerId, debugEnabled, source) {
-  if (!task?.jobId || !task?.key || !task?.p) {
-    return { processed: false, jobId: "" };
-  }
 
-  const now = Date.now();
-  const metaKey = `job:${task.jobId}:meta`;
-  const resKey = `job:${task.jobId}:results`;
-  const meta = await getMeta(metaKey);
+function makeWorkerId(source) {
+  return `${source}-${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+}
 
-  if (!meta) {
-    await hdelFields("queue:pending", [task._pendingField, pendingField(task)].filter(Boolean));
-    return { processed: true, jobId: task.jobId };
-  }
-
-  let cur = null;
-
-  try {
-    const curRaw = await kv.hget(resKey, task.key);
-    cur = curRaw ? safeJsonParse(curRaw) : null;
-  } catch {
-    cur = null;
-  }
-
-  if (cur && isFinalState(cur.state)) {
-    await hdelFields("queue:pending", [
-      task._pendingField,
-      pendingField(task),
-      task.key,
-    ]);
-
-    return { processed: true, jobId: task.jobId };
-  }
 async function rescheduleWorkerCrash(task, error) {
   if (!task?.jobId || !task?.key || !task?.p) {
     return { processed: false, jobId: "" };
@@ -620,6 +617,40 @@ async function rescheduleWorkerCrash(task, error) {
 
   return { processed: true, jobId: task.jobId };
 }
+async function processWorkerTask(task, requester, workerId, debugEnabled, source) {
+  if (!task?.jobId || !task?.key || !task?.p) {
+    return { processed: false, jobId: "" };
+  }
+
+  const now = Date.now();
+  const metaKey = `job:${task.jobId}:meta`;
+  const resKey = `job:${task.jobId}:results`;
+  const meta = await getMeta(metaKey);
+
+  if (!meta) {
+    await hdelFields("queue:pending", [task._pendingField, pendingField(task)].filter(Boolean));
+    return { processed: true, jobId: task.jobId };
+  }
+
+  let cur = null;
+
+  try {
+    const curRaw = await kv.hget(resKey, task.key);
+    cur = curRaw ? safeJsonParse(curRaw) : null;
+  } catch {
+    cur = null;
+  }
+
+  if (cur && isFinalState(cur.state)) {
+    await hdelFields("queue:pending", [
+      task._pendingField,
+      pendingField(task),
+      task.key,
+    ]);
+
+    return { processed: true, jobId: task.jobId };
+  }
+
   const prevAttempt = Math.max(Number(task.attempt || 0), Number(cur?.attempt || 0));
   const currentAttempt = Math.max(1, prevAttempt + 1);
 
@@ -730,20 +761,18 @@ async function rescheduleWorkerCrash(task, error) {
 
     const canonical = pendingField(task);
 
-    const retryTask = {
-      jobId: task.jobId,
-      key: task.key,
-      p: task.p,
-      case_ref: task.case_ref,
-      attempt: currentAttempt,
-      nextRunAt: nextRetryAt,
-      leaseOwner: "",
-      leaseAt: 0,
-      leaseUntil: 0,
-    };
-
     await kv.hset("queue:pending", {
-      [canonical]: JSON.stringify(retryTask),
+      [canonical]: JSON.stringify({
+        jobId: task.jobId,
+        key: task.key,
+        p: task.p,
+        case_ref: task.case_ref,
+        attempt: currentAttempt,
+        nextRunAt: nextRetryAt,
+        leaseOwner: "",
+        leaseAt: 0,
+        leaseUntil: 0,
+      }),
     });
 
     await kv.expire("queue:pending", JOB_TTL_SEC);
@@ -788,6 +817,7 @@ export async function runWorkerSlice({
   maxMs = POLL_MAX_MS,
   debugEnabled = false,
   source = "poll",
+  jobIdFilter = "",
 } = {}) {
   const locked = await acquireWorkerLock();
 
@@ -814,20 +844,22 @@ export async function runWorkerSlice({
       const remaining = maxTasks - processed;
       const batchSize = Math.min(WORKER_PARALLELISM, remaining);
 
-      let tasks = await claimDuePendingTasks(
-        batchSize,
-        Date.now(),
-        workerId,
-        debugEnabled,
-        debugObj
-      );
+let tasks = await claimDuePendingTasks(
+  batchSize,
+  Date.now(),
+  workerId,
+  debugEnabled,
+  debugObj,
+  jobIdFilter
+);
 
       if (tasks.length < batchSize) {
-        const extraTasks = await popLegacyQueueTasks(
-          batchSize - tasks.length,
-          Date.now(),
-          workerId
-        );
+const extraTasks = await popLegacyQueueTasks(
+  batchSize - tasks.length,
+  Date.now(),
+  workerId,
+  jobIdFilter
+);
 
         tasks = [...tasks, ...extraTasks];
       }
@@ -891,15 +923,36 @@ export default async function handler(req, res) {
   };
 
   try {
-const slice = await runWorkerSlice({
-  maxTasks: POLL_MAX_TASKS,
-  maxMs: POLL_MAX_MS,
-  debugEnabled: wantDebug,
-  source: "poll",
-});
-    debug.processed = slice.processed;
+    const metaKey = `job:${id}:meta`;
+    const resKey = `job:${id}:results`;
+
+    const job = await getMeta(metaKey);
+    if (!job) {
+      return res.status(404).json({
+        error: "Not found",
+        ...(wantDebug ? { debug } : {}),
+      });
+    }
+
+    if (job.status === "queued" && Number(job.total || 0) > 0) {
+      job.status = "running";
+      await setMeta(metaKey, job);
+    }
+
+    const requeuedStuck = await requeueStuckJobRows(id);
+    debug.requeued_stuck = requeuedStuck;
+
+    const slice = await runWorkerSlice({
+      maxTasks: POLL_MAX_TASKS,
+      maxMs: POLL_MAX_MS,
+      debugEnabled: wantDebug,
+      source: "poll",
+      jobIdFilter: id,
+    });
+
+    debug.processed = Number(slice.processed || 0);
     debug.locked = slice.locked;
-    debug.pending_scanned = slice?.debug?.pending_scanned ?? null;
+    debug.pending_scanned = slice?.debug?.pending_scanned ?? slice?.pending_scanned ?? null;
     debug.workerId = slice?.debug?.workerId ?? null;
 
     try {
@@ -914,36 +967,13 @@ const slice = await runWorkerSlice({
       debug.queue_pending_len = `ERR:${String(e?.message || e)}`;
     }
 
-    const metaKey = `job:${id}:meta`;
-    const resKey = `job:${id}:results`;
-
-    const job = await getMeta(metaKey);
-    if (!job) return res.status(404).json({ error: "Not found", ...(wantDebug ? { debug } : {}) });
-
-    if (job.status === "queued" && Number(job.total || 0) > 0) {
-      job.status = "running";
-      await setMeta(metaKey, job);
-    }
-
-    const requeuedStuck = await requeueStuckJobRows(id);
-    debug.requeued_stuck = requeuedStuck;
-
-    if (requeuedStuck > 0) {
-      const healSlice = await runWorkerSlice({
-        maxTasks: Math.min(POLL_MAX_TASKS, requeuedStuck),
-        maxMs: Math.min(POLL_MAX_MS, 8000),
-        debugEnabled: wantDebug,
-        source: "heal",
-      });
-
-      debug.processed += Number(healSlice.processed || 0);
-    }
-
     const refreshedJob = (await getMeta(metaKey)) || job;
     const results = await readAllResults(resKey);
 
     return res.status(200).json(
-      wantDebug ? { job: refreshedJob, results, debug } : { job: refreshedJob, results }
+      wantDebug
+        ? { job: refreshedJob, results, debug }
+        : { job: refreshedJob, results }
     );
   } catch (e) {
     debug.error = String(e?.message || e);
