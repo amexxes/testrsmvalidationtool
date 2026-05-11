@@ -8668,22 +8668,23 @@ const sharedProps = {
   onResumeHandled,
 };
 
-   if (activePage === "vat") {
-    return (
-      <div style={APP_ROOT_STYLE}>
-        <VatPage {...sharedProps} />
-      </div>
-    );
-  }
+  if (activePage === "vat") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <VatPage {...sharedProps} />
+    </div>
+  );
+}
 
-  if (activePage === "tin") {
-    return (
-      <div style={APP_ROOT_STYLE}>
-        <TinPage {...sharedProps} />
-      </div>
-    );
-  }
-  if (activePage === "eori") {
+if (activePage === "tin") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <TinPage {...sharedProps} />
+    </div>
+  );
+}
+
+if (activePage === "eori") {
   return (
     <div style={APP_ROOT_STYLE}>
       <EoriPage {...sharedProps} />
@@ -8695,6 +8696,14 @@ if (activePage === "lei") {
   return (
     <div style={APP_ROOT_STYLE}>
       <LeiPage {...sharedProps} />
+    </div>
+  );
+}
+
+if (activePage === "company") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <CompanyRegisterPage {...sharedProps} />
     </div>
   );
 }
