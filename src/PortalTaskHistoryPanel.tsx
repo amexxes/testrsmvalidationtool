@@ -7,6 +7,7 @@ type Props = {
   runs: PortalRunSummary[];
   onClose: () => void;
   onClear: () => void;
+  onContinue?: (run: PortalRunSummary) => void;
 };
 
 function formatDate(value: string) {
@@ -27,11 +28,15 @@ function openActions(run: PortalRunSummary) {
     Number(run.formatIssues || 0)
   );
 }
-
+function canContinue(run: PortalRunSummary) {
+  return run.type === "vat" && Boolean(run.resume?.inputValue || run.resume?.frJobId);
+}
 function typeLabel(type: PortalRunSummary["type"]) {
   if (type === "vat") return "VAT / VIES";
   if (type === "tin") return "TIN";
   if (type === "eori") return "EORI";
+  if (type === "iban") return "IBAN";
+  if (type === "lei") return "LEI";
 
   return "Validation";
 }
@@ -52,7 +57,13 @@ function badgeStyle(open: number): React.CSSProperties {
   };
 }
 
-export default function PortalTaskHistoryPanel({ open, runs, onClose, onClear }: Props) {
+export default function PortalTaskHistoryPanel({
+  open,
+  runs,
+  onClose,
+  onClear,
+  onContinue,
+}: Props) {
   if (!open) return null;
 
   return (
@@ -103,14 +114,24 @@ export default function PortalTaskHistoryPanel({ open, runs, onClose, onClear }:
                     <Stat label="Invalid" value={run.invalid} />
                     <Stat label="Errors" value={run.errors} />
 
-                    <span
-                      style={{
-                        ...badgeBaseStyle,
-                        ...badgeStyle(openCount),
-                      }}
-                    >
-                      {openCount ? `${openCount} open` : "All clear"}
-                    </span>
+<span
+  style={{
+    ...badgeBaseStyle,
+    ...badgeStyle(openCount),
+  }}
+>
+  {openCount ? `${openCount} open` : "All clear"}
+</span>
+
+{canContinue(run) && (
+  <button
+    type="button"
+    onClick={() => onContinue?.(run)}
+    style={continueButtonStyle}
+  >
+    Continue
+  </button>
+)}
                   </div>
                 </div>
               );
@@ -256,5 +277,17 @@ const badgeBaseStyle: React.CSSProperties = {
   borderRadius: 999,
   fontSize: 12,
   fontWeight: 850,
+  whiteSpace: "nowrap",
+};
+const continueButtonStyle: React.CSSProperties = {
+  minHeight: 32,
+  padding: "0 12px",
+  borderRadius: 999,
+  border: "1px solid rgba(0,156,222,0.22)",
+  background: "#009CDE",
+  color: "#FFFFFF",
+  fontSize: 12,
+  fontWeight: 850,
+  cursor: "pointer",
   whiteSpace: "nowrap",
 };
