@@ -1,4 +1,4 @@
-export type PortalRunType = "vat" | "tin" | "eori";
+export type PortalRunType = "vat" | "tin" | "eori" | "iban" | "lei";
 
 export type PortalRunSummary = {
   id: string;
