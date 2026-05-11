@@ -18,7 +18,7 @@ import {
 } from "./i18n";
 
 type SortState = { colIndex: number | null; asc: boolean };
-type ActivePage = "vat" | "tin" | "eori" | "iban" | "lei";
+type ActivePage = "vat" | "tin" | "eori" | "iban" | "lei" | "company";
 type UserRole = "admin" | "user";
 
 type ClientModules = Record<ActivePage, boolean>;
@@ -29,6 +29,7 @@ const DEFAULT_CLIENT_MODULES: ClientModules = {
   eori: false,
   iban: false,
   lei: false,
+  company: false,
 };
 
 function normalizeClientModules(modules?: Partial<ClientModules>): ClientModules {
@@ -102,7 +103,21 @@ type LeiRow = {
   message?: string;
   checked_at?: string;
 };
-
+type CompanyRegisterRow = {
+  input?: string;
+  country?: string;
+  registration_number?: string;
+  valid?: boolean;
+  status?: "valid" | "invalid" | "error" | string;
+  company_name?: string;
+  registry_status?: string;
+  legal_form?: string;
+  address?: string;
+  registration_date?: string;
+  source?: string;
+  message?: string;
+  checked_at?: string;
+};
 const DEFAULT_BRANDING: ClientBranding = {
   id: "default",
   clientName: "RSM Netherlands",
@@ -1155,6 +1170,20 @@ function isLikelyImportHeader(value: string): boolean {
     "leinumber",
     "inputlei",
     "legalentityidentifier",
+    "company",
+    "companynumber",
+    "companyregistrationnumber",
+    "businessregisternumber",
+    "commercialregisternumber",
+    "registrationnumber",
+    "registernumber",
+    "companieshousenumber",
+    "crn",
+    "siren",
+    "siret",
+    "organisasjonsnummer",
+    "ico",
+    "ic",
   ].includes(v);
 }
 
@@ -1464,7 +1493,218 @@ function buildLeiImportPreview(columns: ImportColumnOption[], selectedColumnKey:
     payloadText: out.join("\n"),
   };
 }
+type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ";
 
+const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ"];
+
+function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry {
+  const raw = String(value || "").trim().toUpperCase();
+
+  if (raw === "UK" || raw === "UNITED KINGDOM") return "GB";
+  if (raw === "FRANCE") return "FR";
+  if (raw === "NORWAY") return "NO";
+  if (raw === "CZECHIA" || raw === "CZECH REPUBLIC") return "CZ";
+
+  if (COMPANY_REGISTER_COUNTRIES.includes(raw as CompanyRegisterCountry)) {
+    return raw as CompanyRegisterCountry;
+  }
+
+  return "GB";
+}
+
+function normalizeCompanyRegisterNumber(country: CompanyRegisterCountry, value: string): string {
+  const raw = String(value || "").trim().toUpperCase();
+
+  if (country === "GB") {
+    return raw.replace(/[^A-Z0-9]/g, "");
+  }
+
+  if (country === "FR" || country === "NO") {
+    return raw.replace(/\D/g, "");
+  }
+
+  if (country === "CZ") {
+    const digits = raw.replace(/\D/g, "");
+    return digits && digits.length <= 8 ? digits.padStart(8, "0") : digits;
+  }
+
+  return raw.replace(/\s+/g, "");
+}
+
+function validateCompanyRegisterFormat(
+  country: CompanyRegisterCountry,
+  value: string
+): { ok: boolean; reason: string } {
+  const number = normalizeCompanyRegisterNumber(country, value);
+
+  if (!number) return { ok: false, reason: "Missing registration number" };
+
+  if (country === "GB") {
+    if (!/^[A-Z0-9]{2,8}$/.test(number)) {
+      return { ok: false, reason: "Expected UK Companies House number" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "FR") {
+    if (!/^\d{9}$/.test(number) && !/^\d{14}$/.test(number)) {
+      return { ok: false, reason: "Expected SIREN 9 digits or SIRET 14 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "NO") {
+    if (!/^\d{9}$/.test(number)) {
+      return { ok: false, reason: "Expected Norwegian organisation number: 9 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "CZ") {
+    if (!/^\d{8}$/.test(number)) {
+      return { ok: false, reason: "Expected Czech IČO: 8 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
+  return { ok: false, reason: "Country not supported" };
+}
+
+function companyRegisterPlaceholder(country: CompanyRegisterCountry): string {
+  if (country === "GB") return "12345678\nSC123456";
+  if (country === "FR") return "552100554\n55210055400013";
+  if (country === "NO") return "915501680";
+  if (country === "CZ") return "00006947";
+  return "";
+}
+
+function buildCompanyRegisterImportPreview(
+  columns: ImportColumnOption[],
+  selectedColumnKey: string,
+  country: CompanyRegisterCountry
+): ImportPreviewData {
+  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let duplicatesRemoved = 0;
+  let skippedCount = 0;
+
+  for (const value of selected?.values || []) {
+    if (isLikelyImportHeader(value)) {
+      skippedCount++;
+      continue;
+    }
+
+    const n = normalizeCompanyRegisterNumber(country, value);
+
+    if (!n || !validateCompanyRegisterFormat(country, n).ok) {
+      skippedCount++;
+      continue;
+    }
+
+    if (seen.has(n)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(n);
+    out.push(n);
+  }
+
+  return {
+    columns,
+    selectedColumnKey: selected?.key || "col-0",
+    totalFound: selected?.totalFound || 0,
+    readyCount: out.length,
+    duplicatesRemoved,
+    skippedCount,
+    columnLabel: selected?.label || "Kolom A",
+    examples: out.slice(0, 10),
+    payloadText: out.join("\n"),
+  };
+}
+
+function companyText(language: PortalLanguage, key: string): string {
+  const copy: Record<PortalLanguage, Record<string, string>> = {
+    en: {
+      companyTab: "Company Register Validation",
+      companyInputHelp: "Check company registration numbers against official business registers.",
+      companyImportant: "Supported in this first version: UK Companies House, France INSEE Sirene, Norway Brønnøysund and Czech ARES.",
+      companyValidationFailed: "Company register validation failed",
+      companyRegister: "Company Register",
+      inputNumber: "Input number",
+      registrationNumber: "Registration number",
+      companyName: "Company name",
+      registryStatus: "Registry status",
+      legalForm: "Legal form",
+      registrationDate: "Registration date",
+      source: "Source",
+    },
+    nl: {
+      companyTab: "Handelsregister-validatie",
+      companyInputHelp: "Controleer handelsregisternummers via officiële bedrijfsregisters.",
+      companyImportant: "Ondersteund in deze eerste versie: UK Companies House, Frankrijk INSEE Sirene, Noorwegen Brønnøysund en Tsjechië ARES.",
+      companyValidationFailed: "Handelsregister-validatie mislukt",
+      companyRegister: "Handelsregister",
+      inputNumber: "Invoer nummer",
+      registrationNumber: "Registratienummer",
+      companyName: "Bedrijfsnaam",
+      registryStatus: "Registerstatus",
+      legalForm: "Rechtsvorm",
+      registrationDate: "Registratiedatum",
+      source: "Bron",
+    },
+    de: {
+      companyTab: "Handelsregister-Pruefung",
+      companyInputHelp: "Pruefen Sie Handelsregisternummern ueber offizielle Unternehmensregister.",
+      companyImportant: "Unterstuetzt in dieser ersten Version: UK Companies House, Frankreich INSEE Sirene, Norwegen Bronnoysund und Tschechien ARES.",
+      companyValidationFailed: "Handelsregister-Pruefung fehlgeschlagen",
+      companyRegister: "Handelsregister",
+      inputNumber: "Eingabenummer",
+      registrationNumber: "Registernummer",
+      companyName: "Unternehmensname",
+      registryStatus: "Registerstatus",
+      legalForm: "Rechtsform",
+      registrationDate: "Registrierungsdatum",
+      source: "Quelle",
+    },
+    fr: {
+      companyTab: "Validation registre du commerce",
+      companyInputHelp: "Controlez les numeros d'immatriculation via les registres officiels.",
+      companyImportant: "Pris en charge dans cette premiere version : UK Companies House, France INSEE Sirene, Norvege Bronnoysund et Republique tcheque ARES.",
+      companyValidationFailed: "Echec de la validation du registre",
+      companyRegister: "Registre du commerce",
+      inputNumber: "Numero saisi",
+      registrationNumber: "Numero d'immatriculation",
+      companyName: "Nom de l'entreprise",
+      registryStatus: "Statut registre",
+      legalForm: "Forme juridique",
+      registrationDate: "Date d'immatriculation",
+      source: "Source",
+    },
+  };
+
+  return copy[language]?.[key] || copy.en[key] || key;
+}
+
+function companyRegisterState(row: CompanyRegisterRow): "valid" | "invalid" | "error" {
+  const status = String(row.status || "").toLowerCase();
+
+  if (status === "valid") return "valid";
+  if (status === "invalid") return "invalid";
+  if (status === "error") return "error";
+
+  if (typeof row.valid === "boolean") {
+    return row.valid ? "valid" : "invalid";
+  }
+
+  return "error";
+}
 function leiText(language: PortalLanguage, key: string): string {
   const copy: Record<PortalLanguage, Record<string, string>> = {
     en: {
@@ -1879,6 +2119,12 @@ function PageSwitcher({
   label: "LEI",
   title: "LEI Validation",
   iconSrc: "/world.svg",
+},
+    {
+  key: "company",
+  label: "CRN",
+  title: companyText(language, "companyTab"),
+  iconSrc: "/building-bank.svg",
 },
   ];
 
@@ -7177,6 +7423,763 @@ const aoa = [
         </div>
       </div>
     </>
+  );
+}
+function CompanyRegisterPage({
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+  onRunCompleted,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
+}: BrandedPageProps) {
+  const [country, setCountry] = useState<CompanyRegisterCountry>("GB");
+  const [numberInput, setNumberInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<CompanyRegisterRow[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+  const [lastUpdate, setLastUpdate] = useState("-");
+
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+  const currentRunIdRef = useRef<string | null>(null);
+  const currentRunStartedAtRef = useRef<string>("");
+
+  const preparedNumbers = useMemo(() => {
+    const normalized = numberInput
+      .split(/\r?\n/)
+      .map((x) => normalizeCompanyRegisterNumber(country, x))
+      .filter(Boolean);
+
+    return Array.from(new Set(normalized));
+  }, [country, numberInput]);
+
+  const validInputNumbers = useMemo(() => {
+    return preparedNumbers.filter((value) => validateCompanyRegisterFormat(country, value).ok);
+  }, [country, preparedNumbers]);
+
+  const precheck = useMemo(() => {
+    const rawLines = numberInput
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const seen = new Set<string>();
+    let duplicates = 0;
+    let badFormat = 0;
+    const badExamples: string[] = [];
+
+    for (const line of rawLines) {
+      const n = normalizeCompanyRegisterNumber(country, line);
+      if (!n) continue;
+
+      if (seen.has(n)) {
+        duplicates++;
+        continue;
+      }
+
+      seen.add(n);
+
+      const fmt = validateCompanyRegisterFormat(country, n);
+      if (!fmt.ok) {
+        badFormat++;
+        if (badExamples.length < 5) badExamples.push(`${line} - ${fmt.reason}`);
+      }
+    }
+
+    return {
+      totalLines: rawLines.length,
+      unique: seen.size,
+      duplicates,
+      badFormat,
+      badExamples,
+    };
+  }, [country, numberInput]);
+
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const valid = rows.filter((r) => companyRegisterState(r) === "valid").length;
+    const invalid = rows.filter((r) => companyRegisterState(r) === "invalid").length;
+    const errorCount = rows.filter((r) => companyRegisterState(r) === "error").length;
+
+    return {
+      total,
+      valid,
+      invalid,
+      error: errorCount,
+    };
+  }, [rows]);
+
+  const validPct = useMemo(() => {
+    if (!stats.total) return 0;
+    return Math.round((stats.valid / stats.total) * 100);
+  }, [stats.total, stats.valid]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return rows.filter((r) => {
+      const state = companyRegisterState(r);
+
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "done"
+            ? state === "valid" || state === "invalid" || state === "error"
+            : statusFilter === "pending"
+              ? false
+              : state === statusFilter;
+
+      if (!matchesStatus) return false;
+      if (!q) return true;
+
+      return JSON.stringify(r).toLowerCase().includes(q);
+    });
+  }, [rows, search, statusFilter]);
+
+  const retryCompanyRegisterLines = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+
+    for (const row of rows) {
+      if (companyRegisterState(row) !== "error") continue;
+
+      const number = normalizeCompanyRegisterNumber(
+        country,
+        row.input || row.registration_number || ""
+      );
+
+      if (!number || seen.has(number)) continue;
+
+      seen.add(number);
+      out.push(number);
+    }
+
+    return out;
+  }, [country, rows]);
+
+  useEffect(() => {
+    if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
+
+    onRunCompleted({
+      id: currentRunIdRef.current,
+      type: "company",
+      createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      label: "Company register validation run",
+      total: stats.total,
+      done: stats.total,
+      valid: stats.valid,
+      invalid: stats.invalid,
+      pending: 0,
+      errors: stats.error,
+      formatIssues: precheck.badFormat,
+      country,
+    });
+  }, [
+    country,
+    onRunCompleted,
+    precheck.badFormat,
+    rows.length,
+    stats.error,
+    stats.invalid,
+    stats.total,
+    stats.valid,
+  ]);
+
+  function openImportDialog() {
+    importFileRef.current?.click();
+  }
+
+  function changeCompanyRegisterImportColumn(columnKey: string) {
+    if (!importPreview) return;
+    setImportPreview(buildCompanyRegisterImportPreview(importPreview.columns, columnKey, country));
+  }
+
+  function confirmCompanyRegisterImport() {
+    if (!importPreview) return;
+
+    setNumberInput(importPreview.payloadText);
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(null);
+  }
+
+  async function importCompanyRegisterFile(file: File) {
+    const columns = await readImportFileColumns(file);
+
+    const bestColumn = selectBestImportColumn(columns, (value) => {
+      const n = normalizeCompanyRegisterNumber(country, value);
+      return !isLikelyImportHeader(value) && Boolean(n) && validateCompanyRegisterFormat(country, n).ok;
+    });
+
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(buildCompanyRegisterImportPreview(columns, bestColumn.key, country));
+  }
+
+  function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    void importCompanyRegisterFile(f);
+  }
+
+  async function runCompanyRegisterValidation(values: string[]) {
+    const prepared = Array.from(
+      new Set(
+        values
+          .map((value) => normalizeCompanyRegisterNumber(country, value))
+          .filter((value) => Boolean(value) && validateCompanyRegisterFormat(country, value).ok)
+      )
+    );
+
+    if (!prepared.length) return;
+
+    setLoading(true);
+    setError("");
+    setRows([]);
+    setImportPreview(null);
+
+    currentRunIdRef.current = `company-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    currentRunStartedAtRef.current = new Date().toISOString();
+
+    try {
+      const resp = await fetch("/api/company-register-validate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          country,
+          registration_numbers: prepared,
+        }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data?.message || data?.error || companyText(language, "companyValidationFailed"));
+      }
+
+      setRows(Array.isArray(data?.results) ? data.results : []);
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : companyText(language, "companyValidationFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onValidateCompanyRegisterBatch() {
+    await runCompanyRegisterValidation(validInputNumbers);
+  }
+
+  async function onRetryCompanyRegisterUnresolved() {
+    if (!retryCompanyRegisterLines.length || loading) return;
+
+    setNumberInput(retryCompanyRegisterLines.join("\n"));
+    await runCompanyRegisterValidation(retryCompanyRegisterLines);
+  }
+
+  function onClearCompanyRegister() {
+    setNumberInput("");
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(null);
+    setLastUpdate("-");
+  }
+
+  function exportCompanyRegisterExcel() {
+    const formatDateOnly = (value: unknown): string => {
+      if (!value) return "";
+
+      const raw = String(value);
+      const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (match) return match[1];
+
+      const date = new Date(raw);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toISOString().slice(0, 10);
+      }
+
+      return raw;
+    };
+
+    const headers = [
+      "input",
+      "country",
+      "registration_number",
+      "status",
+      "valid",
+      "company_name",
+      "registry_status",
+      "legal_form",
+      "address",
+      "registration_date",
+      "source",
+      "message",
+      "checked_at",
+    ];
+
+    const aoa = [
+      headers,
+      ...filteredRows.map((r) => [
+        r.input || "",
+        r.country || country,
+        r.registration_number || "",
+        companyRegisterState(r),
+        typeof r.valid === "boolean" ? String(r.valid) : "",
+        r.company_name || "",
+        r.registry_status || "",
+        r.legal_form || "",
+        r.address || "",
+        formatDateOnly(r.registration_date),
+        r.source || "",
+        r.message || "",
+        formatDateOnly(r.checked_at),
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    ws["!cols"] = [
+      { wch: 24 },
+      { wch: 10 },
+      { wch: 24 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 34 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 46 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 42 },
+      { wch: 18 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Company Register Results");
+
+    const filename = `company_register_results_${country}_${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.xlsx`;
+
+    XLSX.writeFile(wb, filename);
+  }
+
+  return (
+    <>
+      <PortalBanner
+        title={branding.portalTitle || "Validation Portal"}
+        modeValue="COMPANY REGISTER"
+        meta={[
+          { label: t(language, "credits"), value: <UnlimitedLogo /> },
+          { label: t(language, "lastUpdate"), value: lastUpdate },
+          { label: t(language, "country"), value: country },
+        ]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+        userRole={userRole}
+        clientModules={clientModules}
+        onRequestModuleUpgrade={onRequestModuleUpgrade}
+      />
+
+      <div className="wrap">
+        <div className="grid" style={{ alignItems: "stretch" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
+            <CardHeader className="pb-4">
+              <InputSectionTitle language={language} />
+
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(11,46,95,0.10)",
+                  background: "rgba(248,251,255,0.82)",
+                  color: "#0B2E5F",
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                }}
+              >
+                {companyText(language, "companyInputHelp")}
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <div style={ACTION_ROW_STYLE}>
+                <select
+                  value={country}
+                  onChange={(e) => {
+                    const nextCountry = normalizeCompanyRegisterCountry(e.target.value);
+                    setCountry(nextCountry);
+                    setRows([]);
+                    setError("");
+                    setSearch("");
+                    setStatusFilter("all");
+                    setImportPreview(null);
+                  }}
+                  style={{
+                    ...ACTION_FIRST_FIELD_STYLE,
+                    lineHeight: "20px",
+                    padding: "0 10px",
+                  }}
+                >
+                  {COMPANY_REGISTER_COUNTRIES.map((code) => (
+                    <option key={code} value={code}>
+                      {code} - {countryName(code, language)}
+                    </option>
+                  ))}
+                </select>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={openImportDialog}
+                  disabled={loading}
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    ...GLASS_BUTTON_STYLE,
+                  }}
+                >
+                  <ActionButtonText icon="import">
+                    {t(language, "importXlsxCsv")}
+                  </ActionButtonText>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportCompanyRegisterExcel}
+                  disabled={!filteredRows.length}
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    ...GLASS_BUTTON_STYLE,
+                  }}
+                >
+                  <ActionButtonText icon="export">
+                    {t(language, "exportExcel")}
+                  </ActionButtonText>
+                </Button>
+
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt"
+                  style={{ display: "none" }}
+                  onChange={onImportFileChange}
+                />
+              </div>
+
+              {importPreview && (
+                <ImportPreviewPanel
+                  preview={importPreview}
+                  language={language}
+                  onColumnChange={changeCompanyRegisterImportColumn}
+                  onCancel={() => setImportPreview(null)}
+                  onConfirm={confirmCompanyRegisterImport}
+                />
+              )}
+
+              <textarea
+                value={numberInput}
+                onChange={(e) => {
+                  setNumberInput(e.target.value);
+                  setImportPreview(null);
+                }}
+                placeholder={`${companyRegisterPlaceholder(country)}\n...`}
+                style={{ marginTop: 12 }}
+              />
+
+              <ValidationRunWarning language={language} />
+
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "#0B2E5F",
+                }}
+              >
+                <b>{t(language, "preCheck")}</b>: {precheck.unique} {localText(language, "unique")} /{" "}
+                {precheck.totalLines} {localText(language, "lines")} | {precheck.duplicates}{" "}
+                {localText(language, "duplicates")} | {precheck.badFormat} {localText(language, "formatIssues")}
+
+                {precheck.badExamples.length > 0 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary>{t(language, "examples")}</summary>
+                    <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+                      {precheck.badExamples.join("\n")}
+                    </div>
+                  </details>
+                )}
+              </div>
+
+              <div className="row" style={{ marginTop: 12 }}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={onValidateCompanyRegisterBatch}
+                  disabled={loading || !validInputNumbers.length}
+                  style={{
+                    position: "relative",
+                    overflow: "hidden",
+                    paddingBottom: loading ? 16 : undefined,
+                  }}
+                >
+                  <ActionButtonText icon="validate">
+                    {loading ? t(language, "validating") : t(language, "validate")}
+                  </ActionButtonText>
+
+                  <ButtonProgressBar active={loading} />
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onClearCompanyRegister}
+                  disabled={loading}
+                >
+                  <ActionButtonText icon="clear">
+                    {t(language, "clear")}
+                  </ActionButtonText>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onRetryCompanyRegisterUnresolved}
+                  disabled={loading || !retryCompanyRegisterLines.length}
+                >
+                  <ActionButtonText icon="retry">
+                    {localText(language, "retryUnresolved")}
+                  </ActionButtonText>
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <UserDraftsPanel
+                  activePage="company"
+                  referenceValue={country}
+                  inputValue={numberInput}
+                  language={language}
+                  onRestoreDraft={(draft) => {
+                    setCountry(normalizeCompanyRegisterCountry(draft.referenceValue || "GB"));
+                    setNumberInput(draft.inputValue || "");
+                    setRows([]);
+                    setError("");
+                    setSearch("");
+                    setStatusFilter("all");
+                    setImportPreview(null);
+                    setLastUpdate("-");
+                  }}
+                />
+              </div>
+
+              <div className="callout" style={{ marginTop: 14 }}>
+                {companyText(language, "companyImportant")}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              {error && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
+                </div>
+              )}
+
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
+
+              {!!rows.length && (
+                <>
+                  <MetricGrid
+                    items={[
+                      { label: t(language, "total"), value: stats.total },
+                      { label: t(language, "valid"), value: stats.valid, tone: "ok" },
+                      { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
+                      { label: t(language, "error"), value: stats.error, tone: "bad" },
+                    ]}
+                  />
+
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    <b>{companyText(language, "companyRegister")}</b>: {country}
+                    <br />
+                    <b>{t(language, "validRate")}</b>: {validPct}%
+                  </div>
+
+                  <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
+                    <div className="bar" style={{ width: `${validPct}%` }} />
+                  </div>
+
+                  <div className="filterBox" style={{ marginTop: 14 }}>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={t(language, "searchResults")}
+                    />
+
+                    <div className="row" style={{ marginTop: 10 }}>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        style={{ minWidth: 180 }}
+                      >
+                        <option value="all">{t(language, "allStatuses")}</option>
+                        <option value="valid">{t(language, "valid")}</option>
+                        <option value="invalid">{t(language, "invalid")}</option>
+                        <option value="error">{t(language, "error")}</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
+          <div className="tableHeader">
+            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  height: 34,
+                  borderRadius: 999,
+                  border: "1px solid rgba(81,83,86,0.14)",
+                  background: "rgba(255,255,255,0.72)",
+                  color: "#515356",
+                  fontFamily: PORTAL_FONT,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "0 10px",
+                  outline: "none",
+                }}
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="done">Done</option>
+                <option value="valid">Valid</option>
+                <option value="invalid">Invalid</option>
+                <option value="error">Error</option>
+              </select>
+
+              <div className="muted" style={TABLE_META_STYLE}>
+                {t(language, "showing")}{" "}
+                <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+                {t(language, "rows")}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ ...TH_STYLE, width: 150 }}>{t(language, "state")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{companyText(language, "inputNumber")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{companyText(language, "registrationNumber")}</th>
+                  <th style={{ ...TH_STYLE, width: 300 }}>{companyText(language, "companyName")}</th>
+                  <th style={{ ...TH_STYLE, width: 180 }}>{companyText(language, "registryStatus")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{companyText(language, "legalForm")}</th>
+                  <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "address")}</th>
+                  <th style={{ ...TH_STYLE, width: 170 }}>{companyText(language, "registrationDate")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{companyText(language, "source")}</th>
+                  <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "message")}</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRows.map((r, idx) => {
+                  const state = companyRegisterState(r);
+
+                  return (
+                    <tr key={`${r.country || country}-${r.registration_number || r.input}-${idx}`}>
+                      <td>
+                        <span className={`pill ${state}`}>
+                          <i aria-hidden="true" />
+                          {state === "valid"
+                            ? t(language, "valid")
+                            : state === "invalid"
+                              ? t(language, "invalid")
+                              : t(language, "error")}
+                        </span>
+                      </td>
+
+                      <td className="mono nowrap">{r.input || ""}</td>
+                      <td className="mono nowrap">{r.registration_number || ""}</td>
+                      <td title={r.company_name || ""}>{r.company_name || ""}</td>
+                      <td>{r.registry_status || ""}</td>
+                      <td>{r.legal_form || ""}</td>
+                      <td title={r.address || ""}>{r.address || ""}</td>
+                      <td>{r.registration_date || "-"}</td>
+                      <td>{r.source || ""}</td>
+                      <td title={r.message || ""}>{r.message || ""}</td>
+                    </tr>
+                  );
+                })}
+
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={10} style={{ padding: 16, color: "var(--muted)" }}>
+                      {t(language, "noResults")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+if (activePage === "company") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <CompanyRegisterPage {...sharedProps} />
+    </div>
   );
 }
 function IbanPage({
