@@ -1,7 +1,6 @@
 // /src/ToolApp.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import LeiPage from "./LeiPage";
 import ReactCountryFlag from "react-country-flag";
 import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import type { PortalRunSummary } from "./portalRunHistory";
@@ -6680,13 +6679,6 @@ export default function App({
       </div>
     );
   }
-if (activePage === "lei") {
-  return (
-    <div style={APP_ROOT_STYLE}>
-      <LeiPage {...sharedProps} />
-    </div>
-  );
-}
   return (
     <div style={APP_ROOT_STYLE}>
       <IbanPage {...sharedProps} />
