@@ -37,6 +37,7 @@ function typeLabel(type: PortalRunSummary["type"]) {
   if (type === "eori") return "EORI";
   if (type === "iban") return "IBAN";
   if (type === "lei") return "LEI";
+  if (type === "company") return "Company Register";
 
   return "Validation";
 }
