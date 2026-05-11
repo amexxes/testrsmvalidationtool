@@ -68,6 +68,8 @@ type ToolAppProps = {
   setLanguage?: React.Dispatch<React.SetStateAction<PortalLanguage>>;
   onRunCompleted?: (summary: PortalRunSummary) => void;
   onRequestModuleUpgrade?: (module: ActivePage) => void;
+  resumeRun?: PortalRunSummary | null;
+  onResumeHandled?: () => void;
 };
 
 type EoriRow = {
@@ -449,6 +451,8 @@ type BrandedPageProps = {
   clientModules: ClientModules;
   onRunCompleted?: (summary: PortalRunSummary) => void;
   onRequestModuleUpgrade?: (module: ActivePage) => void;
+  resumeRun?: PortalRunSummary | null;
+  onResumeHandled?: () => void;
 };
 
 
@@ -2959,6 +2963,8 @@ function VatPage({
   userRole,
   clientModules,
   onRequestModuleUpgrade,
+  resumeRun,
+  onResumeHandled,
 }: BrandedPageProps) {
   const [vatInput, setVatInput] = useState<string>("");
   const [caseRef, setCaseRef] = useState<string>("");
@@ -3040,7 +3046,7 @@ useEffect(() => {
 
   const currentRunIdRef = useRef<string | null>(null);
   const currentRunStartedAtRef = useRef<string>("");
-
+  const handledResumeRunIdRef = useRef<string | null>(null);
   const [notes, setNotes] = useState<Record<string, { note: string; tag: "whitelist" | "blacklist" | "" }>>(() => {
     try {
       return JSON.parse(localStorage.getItem("vat_notes") || "{}");
@@ -3058,6 +3064,63 @@ const pollTimerRef = useRef<number | null>(null);
 const pollInFlightRef = useRef(false);
 const largeBatchWarningTimerRef = useRef<number | null>(null);
 const largeBatchWarningShownRef = useRef(false);
+
+useEffect(() => {
+  if (!resumeRun || resumeRun.type !== "vat" || !resumeRun.resume) return;
+  if (handledResumeRunIdRef.current === resumeRun.id) return;
+
+  handledResumeRunIdRef.current = resumeRun.id;
+
+  onCancel();
+
+  const resume = resumeRun.resume;
+  const restoredRows = Array.isArray(resume.rows)
+    ? resume.rows.map((row) =>
+        enrichRow({
+          ...(row as any),
+          case_ref: resume.referenceValue || (row as any).case_ref || "",
+        } as any)
+      )
+    : [];
+
+  setVatInput(String(resume.inputValue || ""));
+  setCaseRef(String(resume.referenceValue || ""));
+  setRows(restoredRows);
+  setFilter(String(resume.filter || ""));
+  setResultTypeFilter(String(resume.resultTypeFilter || "pending"));
+  setDuplicatesIgnored(Number(resume.duplicatesIgnored || 0));
+  setViesStatus(Array.isArray(resume.viesStatus) ? resume.viesStatus : []);
+  setLastUpdate(String(resume.lastUpdate || "-"));
+  setSortState({ colIndex: null, asc: true });
+  setSortLabel("");
+  setExpandedKey(null);
+  setImportPreview(null);
+
+  const hasPendingRows = restoredRows.some((row) => {
+    const state = displayState(row);
+    return state === "queued" || state === "processing" || state === "retry";
+  });
+
+  if (resume.frJobId && hasPendingRows) {
+    currentFrJobIdRef.current = resume.frJobId;
+    setActiveFrJobId(resume.frJobId);
+    setLoading(true);
+    setRunStartedAtMs(Date.now());
+    setElapsedSeconds(0);
+
+    void pollFrJob(resume.frJobId);
+
+    pollTimerRef.current = window.setInterval(() => {
+      const id = currentFrJobIdRef.current;
+      if (id) void pollFrJob(id);
+    }, 1000);
+  } else {
+    setLoading(false);
+    setRunStartedAtMs(null);
+  }
+
+  onResumeHandled?.();
+}, [resumeRun?.id]);
 
   const mapRef = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
@@ -3239,36 +3302,69 @@ const filteredRows = useMemo(() => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
+ useEffect(() => {
+  if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
 
-    onRunCompleted({
-      id: currentRunIdRef.current,
-      type: "vat",
-      createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      label: "VAT validation run",
-      total: stats.total,
-      done: stats.done,
-      valid: stats.vOk,
-      invalid: stats.vBad,
-      pending: stats.pending,
-      errors: stats.err,
-      formatIssues: precheck.badFormat,
-      caseRef: caseRef || undefined,
-    });
-  }, [
-    caseRef,
-    onRunCompleted,
-    precheck.badFormat,
-    rows.length,
-    stats.done,
-    stats.err,
-    stats.pending,
-    stats.total,
-    stats.vBad,
-    stats.vOk,
-  ]);
+  const resumeRows = rows.filter((row) => {
+    const state = displayState(row);
+    return state === "queued" || state === "processing" || state === "retry" || state === "error";
+  });
+
+  const resumeRetryValues = Array.from(
+    new Set(
+      resumeRows
+        .map((row) => vatInputFromRow(row))
+        .filter(Boolean)
+    )
+  );
+
+  onRunCompleted({
+    id: currentRunIdRef.current,
+    type: "vat",
+    createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    label: "VAT validation run",
+    total: stats.total,
+    done: stats.done,
+    valid: stats.vOk,
+    invalid: stats.vBad,
+    pending: stats.pending,
+    errors: stats.err,
+    formatIssues: precheck.badFormat,
+    caseRef: caseRef || undefined,
+    resume: {
+      page: "vat",
+      inputValue: vatInput,
+      referenceValue: caseRef,
+      frJobId: activeFrJobId || currentFrJobIdRef.current || undefined,
+      rows: resumeRows,
+      retryValues: resumeRetryValues,
+      filter,
+      resultTypeFilter,
+      lastUpdate,
+      duplicatesIgnored,
+      viesStatus,
+    },
+  });
+}, [
+  activeFrJobId,
+  caseRef,
+  duplicatesIgnored,
+  filter,
+  lastUpdate,
+  onRunCompleted,
+  precheck.badFormat,
+  resultTypeFilter,
+  rows,
+  stats.done,
+  stats.err,
+  stats.pending,
+  stats.total,
+  stats.vBad,
+  stats.vOk,
+  vatInput,
+  viesStatus,
+]);
 
 function stopPolling() {
   pollAbortRef.current?.abort();
@@ -7527,6 +7623,8 @@ export default function App({
   userRole = "user",
   clientModules: clientModulesProp,
   onRequestModuleUpgrade,
+  resumeRun,
+  onResumeHandled,
 }: ToolAppProps) {
   const [activePage, setActivePage] = useState<ActivePage>("vat");
   const [internalLanguage, setInternalLanguage] = useState<PortalLanguage>(() => getStoredLanguage());
@@ -7548,7 +7646,11 @@ export default function App({
   useEffect(() => {
     storeLanguage(language);
   }, [language]);
-
+useEffect(() => {
+  if (resumeRun?.type === "vat") {
+    setActivePage("vat");
+  }
+}, [resumeRun?.id, resumeRun?.type]);
   const sharedProps = {
     activePage,
     setActivePage,
