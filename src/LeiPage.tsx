@@ -695,7 +695,7 @@ export default function LeiPage({
               disabled={!inputValues.length || loading}
               onClick={validateLei}
             >
-              {loading ? t(language, "processing") : leiText(language, "validate")}
+              {loading ? t(language, "validating") : leiText(language, "validate")}
             </Button>
           </div>
 
@@ -850,7 +850,7 @@ export default function LeiPage({
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder={t(language, "search")}
+              placeholder="Search"
               style={{
                 minHeight: 40,
                 borderRadius: 12,
