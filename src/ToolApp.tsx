@@ -7651,17 +7651,19 @@ useEffect(() => {
     setActivePage("vat");
   }
 }, [resumeRun?.id, resumeRun?.type]);
-  const sharedProps = {
-    activePage,
-    setActivePage,
-    branding,
-    language,
-    setLanguage,
-    userRole,
-    clientModules,
-    onRunCompleted,
-    onRequestModuleUpgrade,
-  };
+const sharedProps = {
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+  userRole,
+  clientModules,
+  onRunCompleted,
+  onRequestModuleUpgrade,
+  resumeRun,
+  onResumeHandled,
+};
 
    if (activePage === "vat") {
     return (
