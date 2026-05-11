@@ -81,6 +81,26 @@ type EoriRow = {
   message?: string;
 };
 
+type LeiRow = {
+  input_lei?: string;
+  lei?: string;
+  valid?: boolean;
+  status?: "valid" | "invalid" | "error" | string;
+  source?: string;
+  legal_name?: string;
+  entity_status?: string;
+  registration_status?: string;
+  jurisdiction?: string;
+  legal_address?: string;
+  headquarters_address?: string;
+  initial_registration_date?: string;
+  last_update_date?: string;
+  next_renewal_date?: string;
+  managing_lou?: string;
+  message?: string;
+  checked_at?: string;
+};
+
 const DEFAULT_BRANDING: ClientBranding = {
   id: "default",
   clientName: "RSM Netherlands",
@@ -1112,22 +1132,26 @@ function isLikelyImportHeader(value: string): boolean {
     .toLowerCase()
     .replace(/[\s_\-./]/g, "");
 
-  return [
-    "vat",
-    "vatnumber",
-    "btwnummer",
-    "btw",
-    "tin",
-    "tinnumber",
-    "inputtin",
-    "taxnumber",
-    "taxidentificationnumber",
-    "number",
-    "nummer",
-    "eori",
-    "eorinumber",
-    "inputeori",
-  ].includes(v);
+return [
+  "vat",
+  "vatnumber",
+  "btwnummer",
+  "btw",
+  "tin",
+  "tinnumber",
+  "inputtin",
+  "taxnumber",
+  "taxidentificationnumber",
+  "number",
+  "nummer",
+  "eori",
+  "eorinumber",
+  "inputeori",
+  "lei",
+  "leinumber",
+  "inputlei",
+  "legalentityidentifier",
+].includes(v);
 }
 
 function buildColumnOptionsFromRows(rows: string[][], sourceLabel: string): ImportColumnOption[] {
@@ -1354,6 +1378,160 @@ function buildEoriImportPreview(columns: ImportColumnOption[], selectedColumnKey
     payloadText: out.join("\n"),
   };
 }
+
+function normalizeLeiCandidate(v: string): string {
+  return String(v || "")
+    .trim()
+    .replace(/\s+/g, "")
+    .replace(/[.\-_/]/g, "")
+    .toUpperCase();
+}
+
+function leiMod97(lei: string): number {
+  let remainder = 0;
+
+  for (const char of lei) {
+    const code = char.charCodeAt(0);
+    const value = code >= 65 && code <= 90 ? String(code - 55) : char;
+
+    for (const digit of value) {
+      remainder = (remainder * 10 + Number(digit)) % 97;
+    }
+  }
+
+  return remainder;
+}
+
+function validateLeiFormat(value: string): { ok: boolean; reason: string } {
+  const lei = normalizeLeiCandidate(value);
+
+  if (!lei) return { ok: false, reason: "Missing LEI" };
+  if (!/^[A-Z0-9]{20}$/.test(lei)) {
+    return { ok: false, reason: "LEI must contain exactly 20 letters/numbers" };
+  }
+
+  if (leiMod97(lei) !== 1) {
+    return { ok: false, reason: "Invalid LEI checksum" };
+  }
+
+  return { ok: true, reason: "" };
+}
+
+function buildLeiImportPreview(columns: ImportColumnOption[], selectedColumnKey: string): ImportPreviewData {
+  const selected = columns.find((column) => column.key === selectedColumnKey) || columns[0];
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let duplicatesRemoved = 0;
+  let skippedCount = 0;
+
+  for (const value of selected?.values || []) {
+    if (isLikelyImportHeader(value)) {
+      skippedCount++;
+      continue;
+    }
+
+    const n = normalizeLeiCandidate(value);
+    if (!n || !validateLeiFormat(n).ok) {
+      skippedCount++;
+      continue;
+    }
+
+    if (seen.has(n)) {
+      duplicatesRemoved++;
+      continue;
+    }
+
+    seen.add(n);
+    out.push(n);
+  }
+
+  return {
+    columns,
+    selectedColumnKey: selected?.key || "col-0",
+    totalFound: selected?.totalFound || 0,
+    readyCount: out.length,
+    duplicatesRemoved,
+    skippedCount,
+    columnLabel: selected?.label || "Kolom A",
+    examples: out.slice(0, 10),
+    payloadText: out.join("\n"),
+  };
+}
+
+function leiText(language: PortalLanguage, key: string): string {
+  const copy: Record<PortalLanguage, Record<string, string>> = {
+    en: {
+      leiInputHelp: "Check LEI numbers via the GLEIF database.",
+      leiImportant: "LEI data is checked via GLEIF. A valid result means the LEI exists and is actively issued.",
+      leiPlaceholder: "5493001KJTIIGC8Y1R12",
+      leiValidationFailed: "LEI validation failed",
+      inputLei: "Input LEI",
+      legalName: "Legal name",
+      entityStatus: "Entity status",
+      registrationStatus: "Registration status",
+      jurisdiction: "Jurisdiction",
+      nextRenewal: "Next renewal",
+      gleif: "GLEIF database",
+    },
+    nl: {
+      leiInputHelp: "Controleer LEI-nummers via de GLEIF-database.",
+      leiImportant: "LEI-data wordt gecontroleerd via GLEIF. Een geldig resultaat betekent dat de LEI bestaat en actief is uitgegeven.",
+      leiPlaceholder: "5493001KJTIIGC8Y1R12",
+      leiValidationFailed: "LEI-validatie mislukt",
+      inputLei: "Invoer-LEI",
+      legalName: "Juridische naam",
+      entityStatus: "Entiteitstatus",
+      registrationStatus: "Registratiestatus",
+      jurisdiction: "Jurisdictie",
+      nextRenewal: "Volgende verlenging",
+      gleif: "GLEIF-database",
+    },
+    de: {
+      leiInputHelp: "Pruefen Sie LEI-Nummern ueber die GLEIF-Datenbank.",
+      leiImportant: "LEI-Daten werden ueber GLEIF geprueft. Ein gueltiges Ergebnis bedeutet, dass die LEI existiert und aktiv ausgegeben wurde.",
+      leiPlaceholder: "5493001KJTIIGC8Y1R12",
+      leiValidationFailed: "LEI-Pruefung fehlgeschlagen",
+      inputLei: "Eingabe-LEI",
+      legalName: "Rechtlicher Name",
+      entityStatus: "Entitaetsstatus",
+      registrationStatus: "Registrierungsstatus",
+      jurisdiction: "Jurisdiktion",
+      nextRenewal: "Naechste Verlaengerung",
+      gleif: "GLEIF-Datenbank",
+    },
+    fr: {
+      leiInputHelp: "Controlez les numeros LEI via la base GLEIF.",
+      leiImportant: "Les donnees LEI sont controlees via GLEIF. Un resultat valide signifie que le LEI existe et est emis activement.",
+      leiPlaceholder: "5493001KJTIIGC8Y1R12",
+      leiValidationFailed: "Echec de la validation LEI",
+      inputLei: "LEI saisi",
+      legalName: "Nom legal",
+      entityStatus: "Statut entite",
+      registrationStatus: "Statut enregistrement",
+      jurisdiction: "Juridiction",
+      nextRenewal: "Prochain renouvellement",
+      gleif: "Base GLEIF",
+    },
+  };
+
+  return copy[language]?.[key] || copy.en[key] || key;
+}
+
+function leiState(row: LeiRow): "valid" | "invalid" | "error" {
+  const status = String(row.status || "").toLowerCase();
+
+  if (status === "valid") return "valid";
+  if (status === "invalid") return "invalid";
+  if (status === "error") return "error";
+
+  if (typeof row.valid === "boolean") {
+    return row.valid ? "valid" : "invalid";
+  }
+
+  return "error";
+}
+
 function isRetryableError(codeOrError?: string, details?: string) {
   const raw = `${codeOrError || ""} ${details || ""}`.trim();
   const upper = raw.toUpperCase();
