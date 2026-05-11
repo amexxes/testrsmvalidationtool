@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-type ModuleKey = "vat" | "tin" | "eori" | "iban";
+type ModuleKey = "vat" | "tin" | "eori" | "iban" | "lei";
 type VatSubscription = "starter" | "business" | "enterprise";
 
 type VatCreditStatus = {
@@ -38,6 +38,7 @@ const DEFAULT_CLIENT_MODULES: ClientModules = {
   tin: false,
   eori: false,
   iban: false,
+  lei: false,
 };
 
 const ADMIN_CLIENT_MODULES: ClientModules = {
@@ -45,6 +46,7 @@ const ADMIN_CLIENT_MODULES: ClientModules = {
   tin: true,
   eori: true,
   iban: true,
+  lei: true,
 };
 
 const MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [
@@ -52,6 +54,7 @@ const MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [
   { key: "tin", label: "TIN" },
   { key: "eori", label: "EORI" },
   { key: "iban", label: "IBAN" },
+  { key: "lei", label: "LEI" },
 ];
 
 const VAT_SUBSCRIPTION_OPTIONS: Array<{
