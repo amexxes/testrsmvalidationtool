@@ -6645,28 +6645,42 @@ function LeiPage({
       "checked_at",
     ];
 
-    const aoa = [
-      headers,
-      ...filteredRows.map((r) => [
-        r.input_lei || "",
-        r.lei || "",
-        leiState(r),
-        typeof r.valid === "boolean" ? String(r.valid) : "",
-        r.source || "",
-        r.legal_name || "",
-        r.entity_status || "",
-        r.registration_status || "",
-        r.jurisdiction || "",
-        r.legal_address || "",
-        r.headquarters_address || "",
-        r.initial_registration_date || "",
-        r.last_update_date || "",
-        r.next_renewal_date || "",
-        r.managing_lou || "",
-        r.message || "",
-        r.checked_at || "",
-      ]),
-    ];
+  const formatDateOnly = (value: unknown): string => {
+  if (!value) return "";
+
+  const raw = String(value);
+  const date = new Date(raw);
+
+  if (!Number.isNaN(date.getTime())) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : raw;
+};
+
+const aoa = [
+  headers,
+  ...filteredRows.map((r) => [
+    r.input_lei || "",
+    r.lei || "",
+    leiState(r),
+    typeof r.valid === "boolean" ? String(r.valid) : "",
+    r.source || "",
+    r.legal_name || "",
+    r.entity_status || "",
+    r.registration_status || "",
+    r.jurisdiction || "",
+    r.legal_address || "",
+    r.headquarters_address || "",
+    formatDateOnly(r.initial_registration_date),
+    formatDateOnly(r.last_update_date),
+    formatDateOnly(r.next_renewal_date),
+    r.managing_lou || "",
+    r.message || "",
+    formatDateOnly(r.checked_at),
+  ]),
+];
 
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
