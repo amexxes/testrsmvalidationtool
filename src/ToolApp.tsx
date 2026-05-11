@@ -7563,24 +7563,24 @@ export default function App({
     );
   }
   if (activePage === "eori") {
-    return (
-      <div style={APP_ROOT_STYLE}>
-        <EoriPage {...sharedProps} />
-      </div>
-    );
-  }
-
-  if (activePage === "lei") {
-    return (
-      <div style={APP_ROOT_STYLE}>
-        <LeiPage {...sharedProps} />
-      </div>
-    );
-  }
-
   return (
     <div style={APP_ROOT_STYLE}>
-      <IbanPage {...sharedProps} />
+      <EoriPage {...sharedProps} />
     </div>
   );
+}
+
+if (activePage === "lei") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <LeiPage {...sharedProps} />
+    </div>
+  );
+}
+
+return (
+  <div style={APP_ROOT_STYLE}>
+    <IbanPage {...sharedProps} />
+  </div>
+);
 }
