@@ -1132,26 +1132,26 @@ function isLikelyImportHeader(value: string): boolean {
     .toLowerCase()
     .replace(/[\s_\-./]/g, "");
 
-return [
-  "vat",
-  "vatnumber",
-  "btwnummer",
-  "btw",
-  "tin",
-  "tinnumber",
-  "inputtin",
-  "taxnumber",
-  "taxidentificationnumber",
-  "number",
-  "nummer",
-  "eori",
-  "eorinumber",
-  "inputeori",
-  "lei",
-  "leinumber",
-  "inputlei",
-  "legalentityidentifier",
-].includes(v);
+  return [
+    "vat",
+    "vatnumber",
+    "btwnummer",
+    "btw",
+    "tin",
+    "tinnumber",
+    "inputtin",
+    "taxnumber",
+    "taxidentificationnumber",
+    "number",
+    "nummer",
+    "eori",
+    "eorinumber",
+    "inputeori",
+    "lei",
+    "leinumber",
+    "inputlei",
+    "legalentityidentifier",
+  ].includes(v);
 }
 
 function buildColumnOptionsFromRows(rows: string[][], sourceLabel: string): ImportColumnOption[] {
@@ -1406,6 +1406,7 @@ function validateLeiFormat(value: string): { ok: boolean; reason: string } {
   const lei = normalizeLeiCandidate(value);
 
   if (!lei) return { ok: false, reason: "Missing LEI" };
+
   if (!/^[A-Z0-9]{20}$/.test(lei)) {
     return { ok: false, reason: "LEI must contain exactly 20 letters/numbers" };
   }
@@ -1432,6 +1433,7 @@ function buildLeiImportPreview(columns: ImportColumnOption[], selectedColumnKey:
     }
 
     const n = normalizeLeiCandidate(value);
+
     if (!n || !validateLeiFormat(n).ok) {
       skippedCount++;
       continue;
@@ -6356,6 +6358,717 @@ onRequestModuleUpgrade={onRequestModuleUpgrade}
     </>
   );
 }
+function LeiPage({
+  activePage,
+  setActivePage,
+  branding,
+  language,
+  setLanguage,
+  onRunCompleted,
+  userRole,
+  clientModules,
+  onRequestModuleUpgrade,
+}: BrandedPageProps) {
+  const [leiInput, setLeiInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [rows, setRows] = useState<LeiRow[]>([]);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [importPreview, setImportPreview] = useState<ImportPreviewData | null>(null);
+  const [lastUpdate, setLastUpdate] = useState("-");
+
+  const importFileRef = useRef<HTMLInputElement | null>(null);
+  const currentRunIdRef = useRef<string | null>(null);
+  const currentRunStartedAtRef = useRef<string>("");
+
+  const preparedLeis = useMemo(() => {
+    const normalized = leiInput
+      .split(/\r?\n/)
+      .map((x) => normalizeLeiCandidate(x))
+      .filter(Boolean);
+
+    return Array.from(new Set(normalized));
+  }, [leiInput]);
+
+  const validInputLeis = useMemo(() => {
+    return preparedLeis.filter((value) => validateLeiFormat(value).ok);
+  }, [preparedLeis]);
+
+  const precheck = useMemo(() => {
+    const rawLines = leiInput
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const seen = new Set<string>();
+    let duplicates = 0;
+    let badFormat = 0;
+    const badExamples: string[] = [];
+
+    for (const line of rawLines) {
+      const n = normalizeLeiCandidate(line);
+      if (!n) continue;
+
+      if (seen.has(n)) {
+        duplicates++;
+        continue;
+      }
+
+      seen.add(n);
+
+      const fmt = validateLeiFormat(n);
+      if (!fmt.ok) {
+        badFormat++;
+        if (badExamples.length < 5) badExamples.push(`${line} - ${fmt.reason}`);
+      }
+    }
+
+    return {
+      totalLines: rawLines.length,
+      unique: seen.size,
+      duplicates,
+      badFormat,
+      badExamples,
+    };
+  }, [leiInput]);
+
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const valid = rows.filter((r) => leiState(r) === "valid").length;
+    const invalid = rows.filter((r) => leiState(r) === "invalid").length;
+    const errorCount = rows.filter((r) => leiState(r) === "error").length;
+
+    return {
+      total,
+      valid,
+      invalid,
+      error: errorCount,
+    };
+  }, [rows]);
+
+  const validPct = useMemo(() => {
+    if (!stats.total) return 0;
+    return Math.round((stats.valid / stats.total) * 100);
+  }, [stats.total, stats.valid]);
+
+  const filteredRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return rows.filter((r) => {
+      const state = leiState(r);
+
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "done"
+            ? state === "valid" || state === "invalid" || state === "error"
+            : statusFilter === "pending"
+              ? false
+              : state === statusFilter;
+
+      if (!matchesStatus) return false;
+      if (!q) return true;
+
+      return JSON.stringify(r).toLowerCase().includes(q);
+    });
+  }, [rows, search, statusFilter]);
+
+  const retryLeiLines = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+
+    for (const row of rows) {
+      if (leiState(row) !== "error") continue;
+
+      const lei = normalizeLeiCandidate(row.input_lei || row.lei || "");
+      if (!lei || seen.has(lei)) continue;
+
+      seen.add(lei);
+      out.push(lei);
+    }
+
+    return out;
+  }, [rows]);
+
+  useEffect(() => {
+    if (!onRunCompleted || !currentRunIdRef.current || !rows.length) return;
+
+    onRunCompleted({
+      id: currentRunIdRef.current,
+      type: "lei",
+      createdAt: currentRunStartedAtRef.current || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      label: "LEI validation run",
+      total: stats.total,
+      done: stats.total,
+      valid: stats.valid,
+      invalid: stats.invalid,
+      pending: 0,
+      errors: stats.error,
+      formatIssues: precheck.badFormat,
+      country: "GLEIF",
+    } as PortalRunSummary);
+  }, [
+    onRunCompleted,
+    precheck.badFormat,
+    rows.length,
+    stats.error,
+    stats.invalid,
+    stats.total,
+    stats.valid,
+  ]);
+
+  function openImportDialog() {
+    importFileRef.current?.click();
+  }
+
+  function changeLeiImportColumn(columnKey: string) {
+    if (!importPreview) return;
+    setImportPreview(buildLeiImportPreview(importPreview.columns, columnKey));
+  }
+
+  function confirmLeiImport() {
+    if (!importPreview) return;
+
+    setLeiInput(importPreview.payloadText);
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(null);
+  }
+
+  async function importLeiFile(file: File) {
+    const columns = await readImportFileColumns(file);
+
+    const bestColumn = selectBestImportColumn(columns, (value) => {
+      const n = normalizeLeiCandidate(value);
+      return !isLikelyImportHeader(value) && Boolean(n) && validateLeiFormat(n).ok;
+    });
+
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(buildLeiImportPreview(columns, bestColumn.key));
+  }
+
+  function onImportFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    void importLeiFile(f);
+  }
+
+  async function runLeiValidation(leis: string[]) {
+    const prepared = Array.from(
+      new Set(
+        leis
+          .map((value) => normalizeLeiCandidate(value))
+          .filter((value) => Boolean(value) && validateLeiFormat(value).ok)
+      )
+    );
+
+    if (!prepared.length) return;
+
+    setLoading(true);
+    setError("");
+    setRows([]);
+    setImportPreview(null);
+
+    currentRunIdRef.current = `lei-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    currentRunStartedAtRef.current = new Date().toISOString();
+
+    try {
+      const resp = await fetch("/api/lei-validate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ leis: prepared }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        throw new Error(data?.message || data?.error || leiText(language, "leiValidationFailed"));
+      }
+
+      setRows(Array.isArray(data?.results) ? data.results : []);
+      setLastUpdate(new Date().toLocaleString(localeForLanguage(language)));
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : leiText(language, "leiValidationFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onValidateLeiBatch() {
+    await runLeiValidation(validInputLeis);
+  }
+
+  async function onRetryLeiUnresolved() {
+    if (!retryLeiLines.length || loading) return;
+
+    setLeiInput(retryLeiLines.join("\n"));
+    await runLeiValidation(retryLeiLines);
+  }
+
+  function onClearLei() {
+    setLeiInput("");
+    setRows([]);
+    setError("");
+    setSearch("");
+    setStatusFilter("all");
+    setImportPreview(null);
+    setLastUpdate("-");
+  }
+
+  function exportLeiExcel() {
+    const headers = [
+      "input_lei",
+      "lei",
+      "status",
+      "valid",
+      "source",
+      "legal_name",
+      "entity_status",
+      "registration_status",
+      "jurisdiction",
+      "legal_address",
+      "headquarters_address",
+      "initial_registration_date",
+      "last_update_date",
+      "next_renewal_date",
+      "managing_lou",
+      "message",
+      "checked_at",
+    ];
+
+    const aoa = [
+      headers,
+      ...filteredRows.map((r) => [
+        r.input_lei || "",
+        r.lei || "",
+        leiState(r),
+        typeof r.valid === "boolean" ? String(r.valid) : "",
+        r.source || "",
+        r.legal_name || "",
+        r.entity_status || "",
+        r.registration_status || "",
+        r.jurisdiction || "",
+        r.legal_address || "",
+        r.headquarters_address || "",
+        r.initial_registration_date || "",
+        r.last_update_date || "",
+        r.next_renewal_date || "",
+        r.managing_lou || "",
+        r.message || "",
+        r.checked_at || "",
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    ws["!cols"] = [
+      { wch: 24 },
+      { wch: 24 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 34 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 14 },
+      { wch: 46 },
+      { wch: 46 },
+      { wch: 24 },
+      { wch: 24 },
+      { wch: 24 },
+      { wch: 24 },
+      { wch: 42 },
+      { wch: 24 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "LEI Results");
+
+    const filename = `lei_results_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.xlsx`;
+    XLSX.writeFile(wb, filename);
+  }
+
+  return (
+    <>
+      <PortalBanner
+        title={branding.portalTitle || "Validation Portal"}
+        modeValue="LEI"
+        meta={[
+          { label: t(language, "credits"), value: <UnlimitedLogo /> },
+          { label: t(language, "lastUpdate"), value: lastUpdate },
+        ]}
+        activePage={activePage}
+        setActivePage={setActivePage}
+        branding={branding}
+        language={language}
+        setLanguage={setLanguage}
+        userRole={userRole}
+        clientModules={clientModules}
+        onRequestModuleUpgrade={onRequestModuleUpgrade}
+      />
+
+      <div className="wrap">
+        <div className="grid" style={{ alignItems: "stretch" }}>
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
+            <CardHeader className="pb-4">
+              <InputSectionTitle language={language} />
+
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(11,46,95,0.10)",
+                  background: "rgba(248,251,255,0.82)",
+                  color: "#0B2E5F",
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                }}
+              >
+                {leiText(language, "leiInputHelp")}
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <div style={ACTION_ROW_STYLE}>
+                <input
+                  type="text"
+                  value="LEI"
+                  readOnly
+                  style={{
+                    ...ACTION_FIRST_FIELD_STYLE,
+                    opacity: 0.9,
+                  }}
+                />
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={openImportDialog}
+                  disabled={loading}
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    ...GLASS_BUTTON_STYLE,
+                  }}
+                >
+                  <ActionButtonText icon="import">
+                    {t(language, "importXlsxCsv")}
+                  </ActionButtonText>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={exportLeiExcel}
+                  disabled={!filteredRows.length}
+                  style={{
+                    ...ACTION_BUTTON_STYLE,
+                    ...GLASS_BUTTON_STYLE,
+                  }}
+                >
+                  <ActionButtonText icon="export">
+                    {t(language, "exportExcel")}
+                  </ActionButtonText>
+                </Button>
+
+                <input
+                  ref={importFileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,.txt"
+                  style={{ display: "none" }}
+                  onChange={onImportFileChange}
+                />
+              </div>
+
+              {importPreview && (
+                <ImportPreviewPanel
+                  preview={importPreview}
+                  language={language}
+                  onColumnChange={changeLeiImportColumn}
+                  onCancel={() => setImportPreview(null)}
+                  onConfirm={confirmLeiImport}
+                />
+              )}
+
+              <textarea
+                value={leiInput}
+                onChange={(e) => {
+                  setLeiInput(e.target.value);
+                  setImportPreview(null);
+                }}
+                placeholder={`${leiText(language, "leiPlaceholder")}\n...`}
+                style={{ marginTop: 12 }}
+              />
+
+              <ValidationRunWarning language={language} />
+
+              <div
+                className="callout"
+                style={{
+                  marginTop: 10,
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  fontWeight: 500,
+                  color: "#0B2E5F",
+                }}
+              >
+                <b>{t(language, "preCheck")}</b>: {precheck.unique} {localText(language, "unique")} /{" "}
+                {precheck.totalLines} {localText(language, "lines")} | {precheck.duplicates}{" "}
+                {localText(language, "duplicates")} | {precheck.badFormat} {localText(language, "formatIssues")}
+
+                {precheck.badExamples.length > 0 && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary>{t(language, "examples")}</summary>
+                    <div className="mono" style={{ fontSize: 12, whiteSpace: "pre-wrap", marginTop: 6 }}>
+                      {precheck.badExamples.join("\n")}
+                    </div>
+                  </details>
+                )}
+              </div>
+
+              <div className="row" style={{ marginTop: 12 }}>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={onValidateLeiBatch}
+                  disabled={loading || !validInputLeis.length}
+                  style={{
+                    position: "relative",
+                    overflow: "hidden",
+                    paddingBottom: loading ? 16 : undefined,
+                  }}
+                >
+                  <ActionButtonText icon="validate">
+                    {loading ? t(language, "validating") : t(language, "validate")}
+                  </ActionButtonText>
+
+                  <ButtonProgressBar active={loading} />
+                </Button>
+
+                <Button variant="secondary" size="md" onClick={onClearLei} disabled={loading}>
+                  <ActionButtonText icon="clear">
+                    {t(language, "clear")}
+                  </ActionButtonText>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={onRetryLeiUnresolved}
+                  disabled={loading || !retryLeiLines.length}
+                >
+                  <ActionButtonText icon="retry">
+                    {localText(language, "retryUnresolved")}
+                  </ActionButtonText>
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <UserDraftsPanel
+                  activePage="lei"
+                  referenceValue="LEI"
+                  inputValue={leiInput}
+                  language={language}
+                  onRestoreDraft={(draft) => {
+                    setLeiInput(draft.inputValue || "");
+                    setRows([]);
+                    setError("");
+                    setSearch("");
+                    setStatusFilter("all");
+                    setImportPreview(null);
+                    setLastUpdate("-");
+                  }}
+                />
+              </div>
+
+              <div className="callout" style={{ marginTop: 14 }}>
+                {leiText(language, "leiImportant")}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card style={{ ...GLASS_PANEL_STYLE, height: "100%" }}>
+            <CardHeader className="pb-4">
+              <SectionTitle>{t(language, "dashboard")}</SectionTitle>
+              <SectionSubtitle maxWidth={520}>{t(language, "overviewFiltersSorting")}</SectionSubtitle>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              {error && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  <b style={{ color: "var(--bad)" }}>{t(language, "error")}</b>: {error}
+                </div>
+              )}
+
+              {!error && !rows.length && (
+                <div className="callout" style={{ marginTop: 10 }}>
+                  {t(language, "noResultsYet")}
+                </div>
+              )}
+
+              {!!rows.length && (
+                <>
+                  <MetricGrid
+                    items={[
+                      { label: t(language, "total"), value: stats.total },
+                      { label: t(language, "valid"), value: stats.valid, tone: "ok" },
+                      { label: t(language, "invalid"), value: stats.invalid, tone: "bad" },
+                      { label: t(language, "error"), value: stats.error, tone: "bad" },
+                    ]}
+                  />
+
+                  <div className="callout" style={{ marginTop: 12 }}>
+                    <b>LEI</b>: {leiText(language, "gleif")}
+                    <br />
+                    <b>{t(language, "validRate")}</b>: {validPct}%
+                  </div>
+
+                  <div className="progress" aria-hidden="true" style={{ marginTop: 12 }}>
+                    <div className="bar" style={{ width: `${validPct}%` }} />
+                  </div>
+
+                  <div className="filterBox" style={{ marginTop: 14 }}>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={t(language, "searchResults")}
+                    />
+
+                    <div className="row" style={{ marginTop: 10 }}>
+                      <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value)}
+                        style={{ minWidth: 180 }}
+                      >
+                        <option value="all">{t(language, "allStatuses")}</option>
+                        <option value="valid">{t(language, "valid")}</option>
+                        <option value="invalid">{t(language, "invalid")}</option>
+                        <option value="error">{t(language, "error")}</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="tableWrap" style={GLASS_TABLE_WRAP_STYLE}>
+          <div className="tableHeader">
+            <strong style={TABLE_HEADER_STYLE}>{t(language, "results")}</strong>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{
+                  height: 34,
+                  borderRadius: 999,
+                  border: "1px solid rgba(81,83,86,0.14)",
+                  background: "rgba(255,255,255,0.72)",
+                  color: "#515356",
+                  fontFamily: PORTAL_FONT,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "0 10px",
+                  outline: "none",
+                }}
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="done">Done</option>
+                <option value="valid">Valid</option>
+                <option value="invalid">Invalid</option>
+                <option value="error">Error</option>
+              </select>
+
+              <div className="muted" style={TABLE_META_STYLE}>
+                {t(language, "showing")}{" "}
+                <b style={{ color: "var(--text)" }}>{filteredRows.length}</b>{" "}
+                {t(language, "rows")}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ overflow: "auto", maxHeight: 520 }}>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ ...TH_STYLE, width: 150 }}>{t(language, "state")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>{leiText(language, "inputLei")}</th>
+                  <th style={{ ...TH_STYLE, width: 220 }}>LEI</th>
+                  <th style={{ ...TH_STYLE, width: 300 }}>{leiText(language, "legalName")}</th>
+                  <th style={{ ...TH_STYLE, width: 170 }}>{leiText(language, "entityStatus")}</th>
+                  <th style={{ ...TH_STYLE, width: 200 }}>{leiText(language, "registrationStatus")}</th>
+                  <th style={{ ...TH_STYLE, width: 150 }}>{leiText(language, "jurisdiction")}</th>
+                  <th style={{ ...TH_STYLE, width: 180 }}>{leiText(language, "nextRenewal")}</th>
+                  <th style={{ ...TH_STYLE, width: 320 }}>{t(language, "message")}</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRows.map((r, idx) => {
+                  const state = leiState(r);
+
+                  return (
+                    <tr key={`${r.input_lei || r.lei}-${idx}`}>
+                      <td>
+                        <span className={`pill ${state}`}>
+                          <i aria-hidden="true" />
+                          {state === "valid"
+                            ? t(language, "valid")
+                            : state === "invalid"
+                              ? t(language, "invalid")
+                              : t(language, "error")}
+                        </span>
+                      </td>
+
+                      <td className="mono nowrap">{r.input_lei || ""}</td>
+                      <td className="mono nowrap">{r.lei || ""}</td>
+                      <td title={r.legal_name || ""}>{r.legal_name || ""}</td>
+                      <td>{r.entity_status || ""}</td>
+                      <td>{r.registration_status || ""}</td>
+                      <td>{r.jurisdiction || ""}</td>
+                      <td>{r.next_renewal_date || "-"}</td>
+                      <td title={r.message || ""}>{r.message || ""}</td>
+                    </tr>
+                  );
+                })}
+
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 16, color: "var(--muted)" }}>
+                      {t(language, "noResults")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 function IbanPage({
   activePage,
   setActivePage,
@@ -6849,7 +7562,6 @@ export default function App({
       </div>
     );
   }
-
   if (activePage === "eori") {
     return (
       <div style={APP_ROOT_STYLE}>
@@ -6857,6 +7569,15 @@ export default function App({
       </div>
     );
   }
+
+  if (activePage === "lei") {
+    return (
+      <div style={APP_ROOT_STYLE}>
+        <LeiPage {...sharedProps} />
+      </div>
+    );
+  }
+
   return (
     <div style={APP_ROOT_STYLE}>
       <IbanPage {...sharedProps} />
