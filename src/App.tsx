@@ -127,7 +127,7 @@ export default function App() {
 
   const [taskHistoryOpen, setTaskHistoryOpen] = useState(false);
   const [portalRuns, setPortalRuns] = useState<PortalRunSummary[]>([]);
-
+  const [resumeRun, setResumeRun] = useState<PortalRunSummary | null>(null);
   const [viewAsOpen, setViewAsOpen] = useState(false);
   const [viewAsLoading, setViewAsLoading] = useState(false);
   const [viewAsError, setViewAsError] = useState("");
@@ -271,7 +271,12 @@ const handleRunCompleted = useCallback(
     const next = clearPortalRunHistory(user.email);
     setPortalRuns(next);
   }
+function handleContinuePortalRun(run: PortalRunSummary) {
+  if (run.type !== "vat" || !run.resume) return;
 
+  setResumeRun(run);
+  setTaskHistoryOpen(false);
+}
   function resetViewAs(applyCurrentBranding = true) {
     setViewAsOpen(false);
     setViewAsLoading(false);
@@ -351,18 +356,20 @@ const handleRunCompleted = useCallback(
       </div>
     ) : null}
 
-    <ToolApp
-      branding={effectiveBranding}
-      viewAsEmail={viewAsEmail}
-      language={language}
-      setLanguage={setLanguage}
-      userRole={user.role}
-      clientModules={effectiveClientModules}
-      onRunCompleted={handleRunCompleted}
-      onRequestModuleUpgrade={(module) => {
-        window.alert(`${module.toUpperCase()} is an add-on module.`);
-      }}
-    />
+<ToolApp
+  branding={effectiveBranding}
+  viewAsEmail={viewAsEmail}
+  language={language}
+  setLanguage={setLanguage}
+  userRole={user.role}
+  clientModules={effectiveClientModules}
+  onRunCompleted={handleRunCompleted}
+  onRequestModuleUpgrade={(module) => {
+    window.alert(`${module.toUpperCase()} is an add-on module.`);
+  }}
+  resumeRun={resumeRun}
+  onResumeHandled={() => setResumeRun(null)}
+/>
 
     <div style={accountMenuWrapStyle}>
       <AccountMenu
@@ -405,12 +412,13 @@ const handleRunCompleted = useCallback(
     ) : null}
 
     {user.role !== "admin" ? (
-      <PortalTaskHistoryPanel
-        open={taskHistoryOpen}
-        runs={portalRuns}
-        onClose={() => setTaskHistoryOpen(false)}
-        onClear={handleClearPortalRuns}
-      />
+<PortalTaskHistoryPanel
+  open={taskHistoryOpen}
+  runs={portalRuns}
+  onClose={() => setTaskHistoryOpen(false)}
+  onClear={handleClearPortalRuns}
+  onContinue={handleContinuePortalRun}
+/>
     ) : null}
 
     <ChangePasswordPanel
