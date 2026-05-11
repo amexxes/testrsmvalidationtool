@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { t, type PortalLanguage } from "./i18n";
 
-export type DraftPage = "vat" | "tin" | "eori" | "lei";
+export type DraftPage = "vat" | "tin" | "eori" | "lei" | "company";
 
 export type UserDraft = {
   id: string;
@@ -33,7 +33,8 @@ function pageLabel(page: DraftPage) {
   if (page === "vat") return "VAT";
   if (page === "tin") return "TIN";
   if (page === "eori") return "EORI";
-  return "LEI";
+  if (page === "lei") return "LEI";
+  return "Company Register";
 }
 
 function draftText(language: PortalLanguage, key: string): string {
