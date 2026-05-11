@@ -1,6 +1,7 @@
 // /src/ToolApp.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
+import LeiPage from "./LeiPage";
 import ReactCountryFlag from "react-country-flag";
 import type { FrJobResponse, ValidateBatchResponse, VatRow } from "./types";
 import type { PortalRunSummary } from "./portalRunHistory";
@@ -18,7 +19,7 @@ import {
 } from "./i18n";
 
 type SortState = { colIndex: number | null; asc: boolean };
-type ActivePage = "vat" | "tin" | "eori" | "iban";
+type ActivePage = "vat" | "tin" | "eori" | "iban" | "lei";
 type UserRole = "admin" | "user";
 
 type ClientModules = Record<ActivePage, boolean>;
@@ -28,6 +29,7 @@ const DEFAULT_CLIENT_MODULES: ClientModules = {
   tin: false,
   eori: false,
   iban: false,
+  lei: false,
 };
 
 function normalizeClientModules(modules?: Partial<ClientModules>): ClientModules {
@@ -1689,6 +1691,12 @@ function PageSwitcher({
       title: "IBAN",
       iconSrc: "/building-bank.svg",
     },
+    {
+  key: "lei",
+  label: "LEI",
+  title: "LEI Validation",
+  iconSrc: "/world.svg",
+},
   ];
 
   return (
@@ -6672,7 +6680,13 @@ export default function App({
       </div>
     );
   }
-
+if (activePage === "lei") {
+  return (
+    <div style={APP_ROOT_STYLE}>
+      <LeiPage {...sharedProps} />
+    </div>
+  );
+}
   return (
     <div style={APP_ROOT_STYLE}>
       <IbanPage {...sharedProps} />
