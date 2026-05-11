@@ -6508,7 +6508,7 @@ function LeiPage({
       errors: stats.error,
       formatIssues: precheck.badFormat,
       country: "GLEIF",
-    } as PortalRunSummary);
+    });
   }, [
     onRunCompleted,
     precheck.badFormat,
