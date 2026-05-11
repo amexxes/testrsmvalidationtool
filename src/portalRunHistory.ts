@@ -1,5 +1,19 @@
 export type PortalRunType = "vat" | "tin" | "eori" | "iban" | "lei";
 
+export type PortalRunResumeState = {
+  page: PortalRunType;
+  inputValue?: string;
+  referenceValue?: string;
+  frJobId?: string;
+  rows?: unknown[];
+  retryValues?: string[];
+  filter?: string;
+  resultTypeFilter?: string;
+  lastUpdate?: string;
+  duplicatesIgnored?: number;
+  viesStatus?: Array<{ countryCode: string; availability: string }>;
+};
+
 export type PortalRunSummary = {
   id: string;
   type: PortalRunType;
@@ -15,6 +29,7 @@ export type PortalRunSummary = {
   formatIssues?: number;
   country?: string;
   caseRef?: string;
+  resume?: PortalRunResumeState;
 };
 
 const HISTORY_PREFIX = "portal_run_history:";
