@@ -53,9 +53,15 @@ function normalizeCountry(value) {
 function normalizeNumber(country, value) {
   const raw = String(value || "").trim().toUpperCase();
 
-  if (country === "GB") {
-    return raw.replace(/[^A-Z0-9]/g, "");
+if (country === "GB") {
+  const cleaned = raw.replace(/[^A-Z0-9]/g, "");
+
+  if (/^\d{1,8}$/.test(cleaned)) {
+    return cleaned.padStart(8, "0");
   }
+
+  return cleaned;
+}
 
   if (country === "FR" || country === "NO" || country === "IS" || country === "EE") {
     return raw.replace(/\D/g, "");
@@ -552,14 +558,41 @@ async function validateGb(input, country, number) {
   const auth = Buffer.from(`${apiKey}:`).toString("base64");
   const url = `${COMPANIES_HOUSE_BASE_URL}/company/${encodeURIComponent(number)}`;
 
-  const { notFound, data } = await fetchJson(url, {
+  const response = await fetchWithTimeout(url, {
+    method: "GET",
     headers: {
       Authorization: `Basic ${auth}`,
       Accept: "application/json",
     },
   });
 
-  if (notFound) return makeNotFoundRow(input, country, number, "companies_house");
+  const data = await safeReadJson(response);
+
+  if (response.status === 404) {
+    return makeNotFoundRow(input, country, number, "companies_house");
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    return makeErrorRow(
+      input,
+      country,
+      number,
+      "companies_house",
+      "Companies House authentication failed. Check COMPANIES_HOUSE_API_KEY in Vercel."
+    );
+  }
+
+  if (!response.ok) {
+    return makeErrorRow(
+      input,
+      country,
+      number,
+      "companies_house",
+      data?.error ||
+        data?.message ||
+        `Companies House returned HTTP ${response.status}.`
+    );
+  }
 
   const address = data?.registered_office_address || {};
 
