@@ -1729,7 +1729,7 @@ function companyText(language: PortalLanguage, key: string): string {
       companyTab: "Handelsregister-Pruefung",
       companyInputHelp: "Pruefen Sie Handelsregisternummern ueber offizielle Unternehmensregister.",
       companyImportant: "Unterstuetzt in dieser ersten Version: UK Companies House, Frankreich INSEE Sirene, Norwegen Bronnoysund, Tschechien ARES, Polen KRS, Finnland PRH/YTJ und Slowakei RPO.",
-      companyValidationFailed: "Handelsregister-Prcuefung fehlgeschlagen",
+      companyValidationFailed: "Handelsregister-Pruefung fehlgeschlagen",
       companyRegister: "Handelsregister",
       inputNumber: "Eingabenummer",
       registrationNumber: "Registernummer",
