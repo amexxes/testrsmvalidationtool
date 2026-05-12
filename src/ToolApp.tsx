@@ -1728,8 +1728,8 @@ function companyText(language: PortalLanguage, key: string): string {
     de: {
       companyTab: "Handelsregister-Pruefung",
       companyInputHelp: "Pruefen Sie Handelsregisternummern ueber offizielle Unternehmensregister.",
-      companyImportant: "Unterstuetzt in dieser ersten Version: UK Companies House, Frankreich INSEE Sirene, Norwegen Bronnoysund und Tschechien ARES.",
-      companyValidationFailed: "Handelsregister-Pruefung fehlgeschlagen",
+      companyImportant: "Unterstuetzt in dieser ersten Version: UK Companies House, Frankreich INSEE Sirene, Norwegen Bronnoysund, Tschechien ARES, Polen KRS, Finnland PRH/YTJ und Slowakei RPO.",
+      companyValidationFailed: "Handelsregister-Prcuefung fehlgeschlagen",
       companyRegister: "Handelsregister",
       inputNumber: "Eingabenummer",
       registrationNumber: "Registernummer",
@@ -1742,7 +1742,7 @@ function companyText(language: PortalLanguage, key: string): string {
     fr: {
       companyTab: "Validation registre du commerce",
       companyInputHelp: "Controlez les numeros d'immatriculation via les registres officiels.",
-      companyImportant: "Pris en charge dans cette premiere version : UK Companies House, France INSEE Sirene, Norvege Bronnoysund et Republique tcheque ARES.",
+      companyImportant: "Pris en charge dans cette premiere version : UK Companies House, France INSEE Sirene, Norvege Bronnoysund, Republique tcheque ARES, Pologne KRS, Finlande PRH/YTJ et Slovaquie RPO.",
       companyValidationFailed: "Echec de la validation du registre",
       companyRegister: "Registre du commerce",
       inputNumber: "Numero saisi",
