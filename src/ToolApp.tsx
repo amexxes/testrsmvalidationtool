@@ -1493,9 +1493,9 @@ function buildLeiImportPreview(columns: ImportColumnOption[], selectedColumnKey:
     payloadText: out.join("\n"),
   };
 }
-type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ";
+type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ" | "PL" | "FI";
 
-const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ"];
+const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ", "PL", "FI"];
 
 function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry {
   const raw = String(value || "").trim().toUpperCase();
@@ -1504,6 +1504,8 @@ function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry 
   if (raw === "FRANCE") return "FR";
   if (raw === "NORWAY") return "NO";
   if (raw === "CZECHIA" || raw === "CZECH REPUBLIC") return "CZ";
+  if (raw === "POLAND") return "PL";
+  if (raw === "FINLAND") return "FI";
 
   if (COMPANY_REGISTER_COUNTRIES.includes(raw as CompanyRegisterCountry)) {
     return raw as CompanyRegisterCountry;
@@ -1528,9 +1530,43 @@ function normalizeCompanyRegisterNumber(country: CompanyRegisterCountry, value: 
     return digits && digits.length <= 8 ? digits.padStart(8, "0") : digits;
   }
 
+  if (country === "PL") {
+    const digits = raw.replace(/\D/g, "");
+    return digits && digits.length <= 10 ? digits.padStart(10, "0") : digits;
+  }
+
+  if (country === "FI") {
+    const cleaned = raw.replace(/\s+/g, "");
+
+    if (/^\d{8}$/.test(cleaned)) {
+      return `${cleaned.slice(0, 7)}-${cleaned.slice(7)}`;
+    }
+
+    return cleaned;
+  }
+
   return raw.replace(/\s+/g, "");
 }
+function validateFinnishBusinessId(value: string): boolean {
+  const businessId = String(value || "").trim();
 
+  if (!/^\d{7}-\d$/.test(businessId)) return false;
+
+  const digits = businessId.replace("-", "");
+  const weights = [7, 9, 10, 5, 8, 4, 2];
+
+  const sum = weights.reduce((total, weight, index) => {
+    return total + Number(digits[index]) * weight;
+  }, 0);
+
+  const remainder = sum % 11;
+
+  if (remainder === 1) return false;
+
+  const checkDigit = remainder === 0 ? 0 : 11 - remainder;
+
+  return checkDigit === Number(digits[7]);
+}
 function validateCompanyRegisterFormat(
   country: CompanyRegisterCountry,
   value: string
@@ -1571,6 +1607,22 @@ function validateCompanyRegisterFormat(
     return { ok: true, reason: "" };
   }
 
+  if (country === "PL") {
+    if (!/^\d{10}$/.test(number)) {
+      return { ok: false, reason: "Expected Polish KRS number: 10 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "FI") {
+    if (!validateFinnishBusinessId(number)) {
+      return { ok: false, reason: "Expected Finnish Business ID: 1234567-8" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
   return { ok: false, reason: "Country not supported" };
 }
 
@@ -1579,6 +1631,8 @@ function companyRegisterPlaceholder(country: CompanyRegisterCountry): string {
   if (country === "FR") return "552100554\n55210055400013";
   if (country === "NO") return "915501680";
   if (country === "CZ") return "00006947";
+  if (country === "PL") return "0000383614";
+  if (country === "FI") return "0112038-9";
   return "";
 }
 
