@@ -7850,7 +7850,7 @@ function CompanyRegisterPage({
     <>
       <PortalBanner
         title={branding.portalTitle || "Validation Portal"}
-        modeValue="COMPANY REGISTER"
+        modeValue="CRN"
 meta={[
   { label: t(language, "credits"), value: <UnlimitedLogo /> },
   { label: t(language, "country"), value: country },
