@@ -1493,9 +1493,9 @@ function buildLeiImportPreview(columns: ImportColumnOption[], selectedColumnKey:
     payloadText: out.join("\n"),
   };
 }
-type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ" | "PL" | "FI";
+type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ" | "PL" | "FI" | "SK";
 
-const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ", "PL", "FI"];
+const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ", "PL", "FI", "SK"];
 
 function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry {
   const raw = String(value || "").trim().toUpperCase();
@@ -1506,6 +1506,7 @@ function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry 
   if (raw === "CZECHIA" || raw === "CZECH REPUBLIC") return "CZ";
   if (raw === "POLAND") return "PL";
   if (raw === "FINLAND") return "FI";
+  if (raw === "SLOVAKIA" || raw === "SLOVAK REPUBLIC") return "SK";
 
   if (COMPANY_REGISTER_COUNTRIES.includes(raw as CompanyRegisterCountry)) {
     return raw as CompanyRegisterCountry;
@@ -1525,7 +1526,7 @@ function normalizeCompanyRegisterNumber(country: CompanyRegisterCountry, value: 
     return raw.replace(/\D/g, "");
   }
 
-  if (country === "CZ") {
+  if (country === "CZ" || country === "SK") {
     const digits = raw.replace(/\D/g, "");
     return digits && digits.length <= 8 ? digits.padStart(8, "0") : digits;
   }
@@ -1547,6 +1548,7 @@ function normalizeCompanyRegisterNumber(country: CompanyRegisterCountry, value: 
 
   return raw.replace(/\s+/g, "");
 }
+
 function validateFinnishBusinessId(value: string): boolean {
   const businessId = String(value || "").trim();
 
@@ -1567,6 +1569,7 @@ function validateFinnishBusinessId(value: string): boolean {
 
   return checkDigit === Number(digits[7]);
 }
+
 function validateCompanyRegisterFormat(
   country: CompanyRegisterCountry,
   value: string
@@ -1623,6 +1626,14 @@ function validateCompanyRegisterFormat(
     return { ok: true, reason: "" };
   }
 
+  if (country === "SK") {
+    if (!/^\d{8}$/.test(number)) {
+      return { ok: false, reason: "Expected Slovak IČO: 8 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
   return { ok: false, reason: "Country not supported" };
 }
 
@@ -1633,6 +1644,7 @@ function companyRegisterPlaceholder(country: CompanyRegisterCountry): string {
   if (country === "CZ") return "00006947";
   if (country === "PL") return "0000383614";
   if (country === "FI") return "0112038-9";
+  if (country === "SK") return "31333565";
   return "";
 }
 
@@ -1688,7 +1700,7 @@ function companyText(language: PortalLanguage, key: string): string {
     en: {
       companyTab: "Company Register Validation",
       companyInputHelp: "Check company registration numbers against official business registers.",
-      companyImportant: "Supported in this first version: UK Companies House, France INSEE Sirene, Norway Brønnøysund and Czech ARES.",
+      companyImportant: "Supported in this first version: UK Companies House, France INSEE Sirene, Norway Brønnøysund, Czech ARES, Poland KRS, Finland PRH/YTJ and Slovakia RPO.",
       companyValidationFailed: "Company register validation failed",
       companyRegister: "Company Register",
       inputNumber: "Input number",
@@ -1702,7 +1714,7 @@ function companyText(language: PortalLanguage, key: string): string {
     nl: {
       companyTab: "Handelsregister-validatie",
       companyInputHelp: "Controleer handelsregisternummers via officiële bedrijfsregisters.",
-      companyImportant: "Ondersteund in deze eerste versie: UK Companies House, Frankrijk INSEE Sirene, Noorwegen Brønnøysund en Tsjechië ARES.",
+      companyImportant: "Ondersteund in deze eerste versie: UK Companies House, Frankrijk INSEE Sirene, Noorwegen Brønnøysund, Tsjechië ARES, Polen KRS, Finland PRH/YTJ en Slowakije RPO.",
       companyValidationFailed: "Handelsregister-validatie mislukt",
       companyRegister: "Handelsregister",
       inputNumber: "Invoer nummer",
@@ -7840,10 +7852,10 @@ function CompanyRegisterPage({
         title={branding.portalTitle || "Validation Portal"}
         modeValue="COMPANY REGISTER"
         meta={[
-          { label: t(language, "credits"), value: <UnlimitedLogo /> },
-          { label: t(language, "lastUpdate"), value: lastUpdate },
-          { label: t(language, "country"), value: country },
-        ]}
+meta={[
+  { label: t(language, "credits"), value: <UnlimitedLogo /> },
+  { label: t(language, "country"), value: country },
+]}
         activePage={activePage}
         setActivePage={setActivePage}
         branding={branding}
