@@ -10,7 +10,11 @@ const REQUEST_TIMEOUT_MS = Number(process.env.COMPANY_REGISTER_TIMEOUT_MS || 250
 
 const COMPANIES_HOUSE_BASE_URL =
   process.env.COMPANIES_HOUSE_BASE_URL || "https://api.company-information.service.gov.uk";
+const KRS_BASE_URL =
+  process.env.KRS_BASE_URL || "https://api-krs.ms.gov.pl/api/krs";
 
+const PRH_YTJ_BASE_URL =
+  process.env.PRH_YTJ_BASE_URL || "https://avoindata.prh.fi/opendata-ytj-api/v3";
 const INSEE_BASE_URL =
   process.env.INSEE_SIRENE_BASE_URL || "https://api.insee.fr/api-sirene/3.11";
 
@@ -27,6 +31,8 @@ function normalizeCountry(value) {
   if (raw === "FR" || raw === "FRANCE") return "FR";
   if (raw === "NO" || raw === "NORWAY") return "NO";
   if (raw === "CZ" || raw === "CZECHIA" || raw === "CZECH REPUBLIC") return "CZ";
+  if (raw === "PL" || raw === "POLAND") return "PL";
+  if (raw === "FI" || raw === "FINLAND") return "FI";
 
   return raw;
 }
@@ -45,6 +51,21 @@ function normalizeNumber(country, value) {
   if (country === "CZ") {
     const digits = raw.replace(/\D/g, "");
     return digits && digits.length <= 8 ? digits.padStart(8, "0") : digits;
+  }
+
+  if (country === "PL") {
+    const digits = raw.replace(/\D/g, "");
+    return digits && digits.length <= 10 ? digits.padStart(10, "0") : digits;
+  }
+
+  if (country === "FI") {
+    const cleaned = raw.replace(/\s+/g, "");
+
+    if (/^\d{8}$/.test(cleaned)) {
+      return `${cleaned.slice(0, 7)}-${cleaned.slice(7)}`;
+    }
+
+    return cleaned;
   }
 
   return raw.replace(/\s+/g, "");
@@ -82,9 +103,42 @@ function validateFormat(country, number) {
     return { ok: true, reason: "" };
   }
 
+  if (country === "PL") {
+    if (!/^\d{10}$/.test(number)) {
+      return { ok: false, reason: "Expected Polish KRS number: 10 digits." };
+    }
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "FI") {
+    if (!validateFinnishBusinessId(number)) {
+      return { ok: false, reason: "Expected Finnish Business ID: 1234567-8." };
+    }
+    return { ok: true, reason: "" };
+  }
+
   return { ok: false, reason: `Country ${country} is not supported yet.` };
 }
+function validateFinnishBusinessId(value) {
+  const businessId = String(value || "").trim();
 
+  if (!/^\d{7}-\d$/.test(businessId)) return false;
+
+  const digits = businessId.replace("-", "");
+  const weights = [7, 9, 10, 5, 8, 4, 2];
+
+  const sum = weights.reduce((total, weight, index) => {
+    return total + Number(digits[index]) * weight;
+  }, 0);
+
+  const remainder = sum % 11;
+
+  if (remainder === 1) return false;
+
+  const checkDigit = remainder === 0 ? 0 : 11 - remainder;
+
+  return checkDigit === Number(digits[7]);
+}
 function displayValue(value) {
   if (value === null || value === undefined || value === "") return "";
 
@@ -411,7 +465,113 @@ async function validateCz(input, country, number) {
     checked_at: new Date().toISOString(),
   };
 }
+async function validatePl(input, country, number) {
+  async function fetchKrsByRegister(registerType) {
+    const url = `${KRS_BASE_URL}/OdpisAktualny/${encodeURIComponent(
+      number
+    )}?rejestr=${registerType}&format=json`;
 
+    return await fetchJson(url, {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+  }
+
+  let result = await fetchKrsByRegister("P");
+
+  if (result.notFound) {
+    result = await fetchKrsByRegister("S");
+  }
+
+  if (result.notFound) return makeNotFoundRow(input, country, number, "krs");
+
+  const odpis = result.data?.odpis || {};
+  const header = odpis?.naglowekA || {};
+  const entity = odpis?.dane?.dzial1?.danePodmiotu || {};
+  const seatAddress = odpis?.dane?.dzial1?.siedzibaIAdres || {};
+  const address = seatAddress?.adres || {};
+  const seat = seatAddress?.siedziba || {};
+
+  return {
+    input,
+    country,
+    registration_number: header.numerKRS || number,
+    valid: true,
+    status: "valid",
+    company_name: entity.nazwa || "",
+    registry_status: header.stanPozycji ? String(header.stanPozycji) : "",
+    legal_form: entity.formaPrawna || "",
+    address: makeAddress([
+      address.ulica,
+      address.nrDomu,
+      address.nrLokalu,
+      address.kodPocztowy,
+      address.poczta,
+      seat.miejscowosc,
+      seat.kraj,
+    ]),
+    registration_date: header.dataRejestracjiWKRS || "",
+    source: "krs",
+    message: "Company found in Polish KRS.",
+    checked_at: new Date().toISOString(),
+  };
+}
+
+function pickDescription(items) {
+  if (!Array.isArray(items)) return "";
+
+  const english = items.find((item) => String(item.languageCode) === "3");
+  return english?.description || items[0]?.description || "";
+}
+
+async function validateFi(input, country, number) {
+  const url = new URL(`${PRH_YTJ_BASE_URL}/companies`);
+  url.searchParams.set("businessId", number);
+
+  const { notFound, data } = await fetchJson(url.toString(), {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (notFound || !Array.isArray(data?.companies) || !data.companies.length) {
+    return makeNotFoundRow(input, country, number, "prh_ytj");
+  }
+
+  const company = data.companies[0];
+  const currentName =
+    company.names?.find((name) => !name.endDate)?.name ||
+    company.names?.[0]?.name ||
+    "";
+
+  const companyForm = company.companyForms?.find((form) => !form.endDate) || company.companyForms?.[0] || {};
+  const address = company.addresses?.find((item) => item.type === 1) || company.addresses?.[0] || {};
+  const postOffice = address.postOffices?.find((item) => String(item.languageCode) === "3") || address.postOffices?.[0];
+
+  return {
+    input,
+    country,
+    registration_number: company.businessId?.value || number,
+    valid: true,
+    status: "valid",
+    company_name: currentName,
+    registry_status: company.tradeRegisterStatus || company.status || "",
+    legal_form: pickDescription(companyForm.descriptions) || companyForm.type || "",
+    address: makeAddress([
+      address.street,
+      address.buildingNumber,
+      address.postCode,
+      postOffice?.city,
+      address.country,
+      address.freeAddressLine,
+    ]),
+    registration_date: company.registrationDate || company.businessId?.registrationDate || "",
+    source: "prh_ytj",
+    message: "Company found in Finnish PRH/YTJ.",
+    checked_at: new Date().toISOString(),
+  };
+}
 async function validateOne(item) {
   const country = normalizeCountry(item.country);
   const number = normalizeNumber(country, item.registration_number || item.number || item.value);
@@ -424,10 +584,12 @@ async function validateOne(item) {
   }
 
   try {
-    if (country === "GB") return await validateGb(input, country, number);
-    if (country === "FR") return await validateFr(input, country, number);
-    if (country === "NO") return await validateNo(input, country, number);
-    if (country === "CZ") return await validateCz(input, country, number);
+if (country === "GB") return await validateGb(input, country, number);
+if (country === "FR") return await validateFr(input, country, number);
+if (country === "NO") return await validateNo(input, country, number);
+if (country === "CZ") return await validateCz(input, country, number);
+if (country === "PL") return await validatePl(input, country, number);
+if (country === "FI") return await validateFi(input, country, number);
 
     return makeInvalidRow(input, country, number, `Country ${country} is not supported yet.`);
   } catch (error) {
@@ -435,13 +597,19 @@ async function validateOne(item) {
       input,
       country,
       number,
-      country === "GB"
-        ? "companies_house"
-        : country === "FR"
-          ? "insee_sirene"
-          : country === "NO"
-            ? "brreg"
-            : "ares",
+country === "GB"
+  ? "companies_house"
+  : country === "FR"
+    ? "insee_sirene"
+    : country === "NO"
+      ? "brreg"
+      : country === "CZ"
+        ? "ares"
+        : country === "PL"
+          ? "krs"
+          : country === "FI"
+            ? "prh_ytj"
+            : "company_register",
       error?.name === "AbortError"
         ? "Register API request timed out."
         : error?.message || "Register API request failed."
