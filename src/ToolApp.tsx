@@ -8175,13 +8175,7 @@ function CompanyRegisterPage({
     </>
   );
 }
-if (activePage === "company") {
-  return (
-    <div style={APP_ROOT_STYLE}>
-      <CompanyRegisterPage {...sharedProps} />
-    </div>
-  );
-}
+
 function IbanPage({
   activePage,
   setActivePage,
