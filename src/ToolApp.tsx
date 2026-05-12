@@ -1493,9 +1493,9 @@ function buildLeiImportPreview(columns: ImportColumnOption[], selectedColumnKey:
     payloadText: out.join("\n"),
   };
 }
-type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ" | "PL" | "FI" | "SK";
+type CompanyRegisterCountry = "GB" | "FR" | "NO" | "CZ" | "PL" | "FI" | "SK" | "IS" | "EE";
 
-const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ", "PL", "FI", "SK"];
+const COMPANY_REGISTER_COUNTRIES: CompanyRegisterCountry[] = ["GB", "FR", "NO", "CZ", "PL", "FI", "SK", "IS", "EE"];
 
 function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry {
   const raw = String(value || "").trim().toUpperCase();
@@ -1507,6 +1507,8 @@ function normalizeCompanyRegisterCountry(value: string): CompanyRegisterCountry 
   if (raw === "POLAND") return "PL";
   if (raw === "FINLAND") return "FI";
   if (raw === "SLOVAKIA" || raw === "SLOVAK REPUBLIC") return "SK";
+  if (raw === "ICELAND") return "IS";
+  if (raw === "ESTONIA") return "EE";
 
   if (COMPANY_REGISTER_COUNTRIES.includes(raw as CompanyRegisterCountry)) {
     return raw as CompanyRegisterCountry;
@@ -1522,7 +1524,7 @@ function normalizeCompanyRegisterNumber(country: CompanyRegisterCountry, value: 
     return raw.replace(/[^A-Z0-9]/g, "");
   }
 
-  if (country === "FR" || country === "NO") {
+  if (country === "FR" || country === "NO" || country === "IS" || country === "EE") {
     return raw.replace(/\D/g, "");
   }
 
@@ -1569,7 +1571,22 @@ function validateFinnishBusinessId(value: string): boolean {
 
   return checkDigit === Number(digits[7]);
 }
+function validateIcelandKennitala(value: string): boolean {
+  const kennitala = String(value || "").replace(/\D/g, "");
 
+  if (!/^\d{10}$/.test(kennitala)) return false;
+
+  const weights = [3, 2, 7, 6, 5, 4, 3, 2];
+  const sum = weights.reduce((total, weight, index) => {
+    return total + Number(kennitala[index]) * weight;
+  }, 0);
+
+  const checkDigit = (11 - (sum % 11)) % 11;
+
+  if (checkDigit === 10) return false;
+
+  return checkDigit === Number(kennitala[8]);
+}
 function validateCompanyRegisterFormat(
   country: CompanyRegisterCountry,
   value: string
@@ -1634,6 +1651,22 @@ function validateCompanyRegisterFormat(
     return { ok: true, reason: "" };
   }
 
+  if (country === "IS") {
+    if (!validateIcelandKennitala(number)) {
+      return { ok: false, reason: "Expected Icelandic kennitala: 10 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "EE") {
+    if (!/^\d{8}$/.test(number)) {
+      return { ok: false, reason: "Expected Estonian registry code: 8 digits" };
+    }
+
+    return { ok: true, reason: "" };
+  }
+
   return { ok: false, reason: "Country not supported" };
 }
 
@@ -1645,6 +1678,8 @@ function companyRegisterPlaceholder(country: CompanyRegisterCountry): string {
   if (country === "PL") return "0000383614";
   if (country === "FI") return "0112038-9";
   if (country === "SK") return "31333565";
+  if (country === "IS") return "5902697199";
+  if (country === "EE") return "70000310";
   return "";
 }
 
@@ -1700,7 +1735,7 @@ function companyText(language: PortalLanguage, key: string): string {
     en: {
       companyTab: "Company Register Validation",
       companyInputHelp: "Check company registration numbers against official business registers.",
-      companyImportant: "Supported in this first version: UK Companies House, France INSEE Sirene, Norway Brønnøysund, Czech ARES, Poland KRS, Finland PRH/YTJ and Slovakia RPO.",
+      companyImportant: "Supported in this first version: UK Companies House, France INSEE Sirene, Norway Brønnøysund, Czech ARES, Poland KRS, Finland PRH/YTJ, Slovakia RPO, Iceland Skatturinn and Estonia e-Business Register.",
       companyValidationFailed: "Company register validation failed",
       companyRegister: "Company Register",
       inputNumber: "Input number",
@@ -1714,7 +1749,7 @@ function companyText(language: PortalLanguage, key: string): string {
     nl: {
       companyTab: "Handelsregister-validatie",
       companyInputHelp: "Controleer handelsregisternummers via officiële bedrijfsregisters.",
-      companyImportant: "Ondersteund in deze eerste versie: UK Companies House, Frankrijk INSEE Sirene, Noorwegen Brønnøysund, Tsjechië ARES, Polen KRS, Finland PRH/YTJ en Slowakije RPO.",
+      companyImportant: "Ondersteund in deze eerste versie: UK Companies House, Frankrijk INSEE Sirene, Noorwegen Brønnøysund, Tsjechië ARES, Polen KRS, Finland PRH/YTJ, Slowakije RPO, IJsland Skatturinn en Estland e-Business Register.",
       companyValidationFailed: "Handelsregister-validatie mislukt",
       companyRegister: "Handelsregister",
       inputNumber: "Invoer nummer",
@@ -1728,7 +1763,7 @@ function companyText(language: PortalLanguage, key: string): string {
     de: {
       companyTab: "Handelsregister-Pruefung",
       companyInputHelp: "Pruefen Sie Handelsregisternummern ueber offizielle Unternehmensregister.",
-      companyImportant: "Unterstuetzt in dieser ersten Version: UK Companies House, Frankreich INSEE Sirene, Norwegen Bronnoysund, Tschechien ARES, Polen KRS, Finnland PRH/YTJ und Slowakei RPO.",
+      companyImportant: "Unterstuetzt in dieser ersten Version: UK Companies House, Frankreich INSEE Sirene, Norwegen Bronnoysund, Tschechien ARES, Polen KRS, Finnland PRH/YTJ, Slowakei RPO, Island Skatturinn und Estland e-Business Register.",
       companyValidationFailed: "Handelsregister-Pruefung fehlgeschlagen",
       companyRegister: "Handelsregister",
       inputNumber: "Eingabenummer",
@@ -1742,7 +1777,7 @@ function companyText(language: PortalLanguage, key: string): string {
     fr: {
       companyTab: "Validation registre du commerce",
       companyInputHelp: "Controlez les numeros d'immatriculation via les registres officiels.",
-      companyImportant: "Pris en charge dans cette premiere version : UK Companies House, France INSEE Sirene, Norvege Bronnoysund, Republique tcheque ARES, Pologne KRS, Finlande PRH/YTJ et Slovaquie RPO.",
+      companyImportant: "Pris en charge dans cette premiere version : UK Companies House, France INSEE Sirene, Norvege Bronnoysund, Republique tcheque ARES, Pologne KRS, Finlande PRH/YTJ, Slovaquie RPO, Islande Skatturinn et Estonie e-Business Register.",
       companyValidationFailed: "Echec de la validation du registre",
       companyRegister: "Registre du commerce",
       inputNumber: "Numero saisi",
