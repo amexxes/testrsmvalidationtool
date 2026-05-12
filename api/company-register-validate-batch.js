@@ -22,7 +22,17 @@ const ARES_BASE_URL =
   process.env.ARES_BASE_URL || "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest";
 const RPO_BASE_URL =
   process.env.RPO_BASE_URL || "https://api.statistics.sk/rpo/v1";
+const SKATTURINN_COMPANY_REGISTRY_URL_TEMPLATE =
+  process.env.SKATTURINN_COMPANY_REGISTRY_URL_TEMPLATE || "";
 
+const EE_ARIREG_SOAP_URL =
+  process.env.EE_ARIREG_SOAP_URL || "";
+
+const EE_ARIREG_USERNAME =
+  process.env.EE_ARIREG_USERNAME || "";
+
+const EE_ARIREG_PASSWORD =
+  process.env.EE_ARIREG_PASSWORD || "";
 
 function normalizeCountry(value) {
   const raw = String(value || "").trim().toUpperCase();
@@ -34,6 +44,8 @@ function normalizeCountry(value) {
   if (raw === "PL" || raw === "POLAND") return "PL";
   if (raw === "FI" || raw === "FINLAND") return "FI";
   if (raw === "SK" || raw === "SLOVAKIA" || raw === "SLOVAK REPUBLIC") return "SK";
+  if (raw === "IS" || raw === "ICELAND") return "IS";
+  if (raw === "EE" || raw === "ESTONIA") return "EE";
 
   return raw;
 }
@@ -45,7 +57,7 @@ function normalizeNumber(country, value) {
     return raw.replace(/[^A-Z0-9]/g, "");
   }
 
-  if (country === "FR" || country === "NO") {
+  if (country === "FR" || country === "NO" || country === "IS" || country === "EE") {
     return raw.replace(/\D/g, "");
   }
 
@@ -125,8 +137,23 @@ function validateFormat(country, number) {
     return { ok: true, reason: "" };
   }
 
+  if (country === "IS") {
+    if (!validateIcelandKennitala(number)) {
+      return { ok: false, reason: "Expected Icelandic kennitala: 10 digits." };
+    }
+    return { ok: true, reason: "" };
+  }
+
+  if (country === "EE") {
+    if (!/^\d{8}$/.test(number)) {
+      return { ok: false, reason: "Expected Estonian registry code: 8 digits." };
+    }
+    return { ok: true, reason: "" };
+  }
+
   return { ok: false, reason: `Country ${country} is not supported yet.` };
 }
+
 function validateFinnishBusinessId(value) {
   const businessId = String(value || "").trim();
 
@@ -147,6 +174,23 @@ function validateFinnishBusinessId(value) {
 
   return checkDigit === Number(digits[7]);
 }
+function validateIcelandKennitala(value) {
+  const kennitala = String(value || "").replace(/\D/g, "");
+
+  if (!/^\d{10}$/.test(kennitala)) return false;
+
+  const weights = [3, 2, 7, 6, 5, 4, 3, 2];
+  const sum = weights.reduce((total, weight, index) => {
+    return total + Number(kennitala[index]) * weight;
+  }, 0);
+
+  const checkDigit = (11 - (sum % 11)) % 11;
+
+  if (checkDigit === 10) return false;
+
+  return checkDigit === Number(kennitala[8]);
+}
+
 function currentTimedEntry(entries) {
   if (!Array.isArray(entries) || !entries.length) return null;
   return entries.find((entry) => !entry.validTo) || entries[0] || null;
@@ -221,7 +265,160 @@ async function validateSk(input, country, number) {
     checked_at: new Date().toISOString(),
   };
 }
+function firstNonEmpty(...values) {
+  return values.find((value) => value !== null && value !== undefined && String(value).trim() !== "") || "";
+}
 
+function xmlEscape(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function xmlValue(xml, tagName) {
+  const patterns = [
+    new RegExp(`<[^>]*:${tagName}[^>]*>([\\s\\S]*?)<\\/[^>]*:${tagName}>`, "i"),
+    new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i"),
+  ];
+
+  for (const pattern of patterns) {
+    const match = String(xml || "").match(pattern);
+    if (match) {
+      return match[1]
+        .replace(/<!\[CDATA\[(.*?)\]\]>/gs, "$1")
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .trim();
+    }
+  }
+
+  return "";
+}
+
+async function validateIs(input, country, number) {
+  if (!SKATTURINN_COMPANY_REGISTRY_URL_TEMPLATE) {
+    return makeErrorRow(
+      input,
+      country,
+      number,
+      "skatturinn",
+      "Missing SKATTURINN_COMPANY_REGISTRY_URL_TEMPLATE. Configure it with the Skatturinn Company Registry API URL."
+    );
+  }
+
+  const url = SKATTURINN_COMPANY_REGISTRY_URL_TEMPLATE.replace("{number}", encodeURIComponent(number));
+
+  const { notFound, data } = await fetchJson(url, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (notFound || !data) return makeNotFoundRow(input, country, number, "skatturinn");
+
+  const record = Array.isArray(data) ? data[0] : data.data || data.company || data;
+
+  if (!record) return makeNotFoundRow(input, country, number, "skatturinn");
+
+  return {
+    input,
+    country,
+    registration_number: firstNonEmpty(record.kennitala, record.kt, record.id, number),
+    valid: true,
+    status: "valid",
+    company_name: firstNonEmpty(record.name, record.nafn, record.legalName, record.companyName),
+    registry_status: firstNonEmpty(record.status, record.stada, "registered"),
+    legal_form: firstNonEmpty(record.legalForm, record.rekstrarform, record.type),
+    address: firstNonEmpty(
+      record.address,
+      record.heimilisfang,
+      makeAddress([record.street, record.postalCode, record.city])
+    ),
+    registration_date: firstNonEmpty(record.registrationDate, record.skraningardagur, record.dateRegistered),
+    source: "skatturinn",
+    message: "Company found in Icelandic Company Registry.",
+    checked_at: new Date().toISOString(),
+  };
+}
+
+async function validateEe(input, country, number) {
+  if (!EE_ARIREG_SOAP_URL || !EE_ARIREG_USERNAME || !EE_ARIREG_PASSWORD) {
+    return makeErrorRow(
+      input,
+      country,
+      number,
+      "ee_arireg",
+      "Missing EE_ARIREG_SOAP_URL, EE_ARIREG_USERNAME or EE_ARIREG_PASSWORD."
+    );
+  }
+
+  const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:prod="http://arireg.x-road.eu/producer/">
+  <soapenv:Body>
+    <prod:lihtandmed_v2>
+      <prod:keha>
+        <prod:ariregister_kasutajanimi>${xmlEscape(EE_ARIREG_USERNAME)}</prod:ariregister_kasutajanimi>
+        <prod:ariregister_parool>${xmlEscape(EE_ARIREG_PASSWORD)}</prod:ariregister_parool>
+        <prod:ariregister_valjundi_formaat>xml</prod:ariregister_valjundi_formaat>
+        <prod:ariregistri_kood>${xmlEscape(number)}</prod:ariregistri_kood>
+        <prod:keel>eng</prod:keel>
+      </prod:keha>
+    </prod:lihtandmed_v2>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+  const response = await fetchWithTimeout(EE_ARIREG_SOAP_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/xml; charset=utf-8",
+      Accept: "text/xml",
+    },
+    body: soapBody,
+  });
+
+  const xml = await response.text();
+
+  if (!response.ok) {
+    throw new Error(`Estonian e-Business Register returned HTTP ${response.status}`);
+  }
+
+  const foundCount = Number(xmlValue(xml, "leitud_ettevotjate_arv") || 0);
+
+  if (!foundCount) {
+    return makeNotFoundRow(input, country, number, "ee_arireg");
+  }
+
+  const registryCode = xmlValue(xml, "ariregistri_kood") || number;
+  const name = xmlValue(xml, "evnimi");
+  const legalForm = firstNonEmpty(xmlValue(xml, "oiguslik_vorm_tekstina"), xmlValue(xml, "oiguslik_vorm"));
+  const status = firstNonEmpty(xmlValue(xml, "staatus_tekstina"), xmlValue(xml, "staatus"));
+  const address = firstNonEmpty(
+    xmlValue(xml, "aadress_ads__ads_normaliseeritud_taisaadress"),
+    makeAddress([
+      xmlValue(xml, "asukoht_ettevotja_aadressis"),
+      xmlValue(xml, "asukoha_ehak_tekstina"),
+      xmlValue(xml, "indeks_ettevotja_aadressis"),
+    ])
+  );
+
+  return {
+    input,
+    country,
+    registration_number: registryCode,
+    valid: true,
+    status: "valid",
+    company_name: name,
+    registry_status: status,
+    legal_form: legalForm,
+    address,
+    registration_date: xmlValue(xml, "esmakande_aeg"),
+    source: "ee_arireg",
+    message: "Company found in Estonian e-Business Register.",
+    checked_at: new Date().toISOString(),
+  };
+}
 function displayValue(value) {
   if (value === null || value === undefined || value === "") return "";
 
@@ -674,6 +871,8 @@ if (country === "CZ") return await validateCz(input, country, number);
 if (country === "PL") return await validatePl(input, country, number);
 if (country === "FI") return await validateFi(input, country, number);
 if (country === "SK") return await validateSk(input, country, number);
+if (country === "IS") return await validateIs(input, country, number);
+if (country === "EE") return await validateEe(input, country, number);
 
     return makeInvalidRow(input, country, number, `Country ${country} is not supported yet.`);
   } catch (error) {
@@ -695,7 +894,11 @@ country === "GB"
             ? "prh_ytj"
             : country === "SK"
               ? "rpo"
-              : "company_register",
+              : country === "IS"
+                ? "skatturinn"
+                : country === "EE"
+                  ? "ee_arireg"
+                  : "company_register",
       error?.name === "AbortError"
         ? "Register API request timed out."
         : error?.message || "Register API request failed."
