@@ -12,17 +12,17 @@ const COMPANIES_HOUSE_BASE_URL =
   process.env.COMPANIES_HOUSE_BASE_URL || "https://api.company-information.service.gov.uk";
 const KRS_BASE_URL =
   process.env.KRS_BASE_URL || "https://api-krs.ms.gov.pl/api/krs";
-
 const PRH_YTJ_BASE_URL =
   process.env.PRH_YTJ_BASE_URL || "https://avoindata.prh.fi/opendata-ytj-api/v3";
 const INSEE_BASE_URL =
   process.env.INSEE_SIRENE_BASE_URL || "https://api.insee.fr/api-sirene/3.11";
-
 const BRREG_BASE_URL =
   process.env.BRREG_BASE_URL || "https://data.brreg.no/enhetsregisteret/api";
-
 const ARES_BASE_URL =
   process.env.ARES_BASE_URL || "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest";
+const RPO_BASE_URL =
+  process.env.RPO_BASE_URL || "https://api.statistics.sk/rpo/v1";
+
 
 function normalizeCountry(value) {
   const raw = String(value || "").trim().toUpperCase();
@@ -33,6 +33,7 @@ function normalizeCountry(value) {
   if (raw === "CZ" || raw === "CZECHIA" || raw === "CZECH REPUBLIC") return "CZ";
   if (raw === "PL" || raw === "POLAND") return "PL";
   if (raw === "FI" || raw === "FINLAND") return "FI";
+  if (raw === "SK" || raw === "SLOVAKIA" || raw === "SLOVAK REPUBLIC") return "SK";
 
   return raw;
 }
@@ -48,7 +49,7 @@ function normalizeNumber(country, value) {
     return raw.replace(/\D/g, "");
   }
 
-  if (country === "CZ") {
+  if (country === "CZ" || country === "SK") {
     const digits = raw.replace(/\D/g, "");
     return digits && digits.length <= 8 ? digits.padStart(8, "0") : digits;
   }
@@ -117,6 +118,13 @@ function validateFormat(country, number) {
     return { ok: true, reason: "" };
   }
 
+  if (country === "SK") {
+    if (!/^\d{8}$/.test(number)) {
+      return { ok: false, reason: "Expected Slovak IČO: 8 digits." };
+    }
+    return { ok: true, reason: "" };
+  }
+
   return { ok: false, reason: `Country ${country} is not supported yet.` };
 }
 function validateFinnishBusinessId(value) {
@@ -139,6 +147,81 @@ function validateFinnishBusinessId(value) {
 
   return checkDigit === Number(digits[7]);
 }
+function currentTimedEntry(entries) {
+  if (!Array.isArray(entries) || !entries.length) return null;
+  return entries.find((entry) => !entry.validTo) || entries[0] || null;
+}
+
+function currentTimedValue(entries) {
+  const entry = currentTimedEntry(entries);
+  return entry?.value || "";
+}
+
+function currentCodeValue(entries) {
+  const entry = currentTimedEntry(entries);
+  return entry?.value?.value || entry?.value?.code || "";
+}
+
+async function validateSk(input, country, number) {
+  const searchUrl = new URL(`${RPO_BASE_URL}/search`);
+  searchUrl.searchParams.set("identifier", number);
+
+  const searchResult = await fetchJson(searchUrl.toString(), {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  const entityId = searchResult.data?.results?.[0]?.id;
+
+  if (searchResult.notFound || !entityId) {
+    return makeNotFoundRow(input, country, number, "rpo");
+  }
+
+  const detailUrl = `${RPO_BASE_URL}/entity/${encodeURIComponent(entityId)}`;
+
+  const detailResult = await fetchJson(detailUrl, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (detailResult.notFound || !detailResult.data) {
+    return makeNotFoundRow(input, country, number, "rpo");
+  }
+
+  const entity = detailResult.data;
+  const address = currentTimedEntry(entity.addresses);
+  const active = !entity.termination;
+
+  return {
+    input,
+    country,
+    registration_number: currentTimedValue(entity.identifiers) || number,
+    valid: active,
+    status: active ? "valid" : "invalid",
+    company_name: currentTimedValue(entity.fullNames),
+    registry_status: active ? "active" : "terminated",
+    legal_form: currentCodeValue(entity.legalForms),
+    address:
+      address?.formatedAddress ||
+      makeAddress([
+        address?.street,
+        address?.regNumber,
+        address?.buildingNumber,
+        Array.isArray(address?.postalCodes) ? address.postalCodes.join(", ") : "",
+        address?.municipality?.value,
+        address?.country?.value,
+      ]),
+    registration_date: entity.establishment || "",
+    source: "rpo",
+    message: active
+      ? "Company found in Slovak RPO."
+      : "Company found in Slovak RPO, but is terminated.",
+    checked_at: new Date().toISOString(),
+  };
+}
+
 function displayValue(value) {
   if (value === null || value === undefined || value === "") return "";
 
@@ -590,6 +673,7 @@ if (country === "NO") return await validateNo(input, country, number);
 if (country === "CZ") return await validateCz(input, country, number);
 if (country === "PL") return await validatePl(input, country, number);
 if (country === "FI") return await validateFi(input, country, number);
+if (country === "SK") return await validateSk(input, country, number);
 
     return makeInvalidRow(input, country, number, `Country ${country} is not supported yet.`);
   } catch (error) {
@@ -609,7 +693,9 @@ country === "GB"
           ? "krs"
           : country === "FI"
             ? "prh_ytj"
-            : "company_register",
+            : country === "SK"
+              ? "rpo"
+              : "company_register",
       error?.name === "AbortError"
         ? "Register API request timed out."
         : error?.message || "Register API request failed."
