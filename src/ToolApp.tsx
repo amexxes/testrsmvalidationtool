@@ -8668,7 +8668,7 @@ const sharedProps = {
   onResumeHandled,
 };
 
-  if (activePage === "vat") {
+ if (activePage === "vat") {
   return (
     <div style={APP_ROOT_STYLE}>
       <VatPage {...sharedProps} />
